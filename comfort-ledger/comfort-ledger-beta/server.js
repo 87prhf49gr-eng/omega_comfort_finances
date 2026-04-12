@@ -1,6 +1,6 @@
 /**
  * Comfort Ledger beta server: static parent folder + beta login + OpenAI coach.
- * Run from repo: cd comfort-ledger-beta && npm install && npm start
+ * Run from repo: cd comfort-ledger/comfort-ledger-beta && npm install && npm start
  * Env: OPENAI_API_KEY, COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
  * COMFORT_REQUIRE_BETA_LOGIN (default true if hay usuarios beta),
  * COMFORT_LANDING_DEMO_MINUTES (default 10; solo visitantes sin sesión beta, p. ej. desde el landing)

@@ -21,5 +21,5 @@ Demo corta solo para visitantes sin login (p. ej. enlace desde el landing): conf
 Para exigir login a todo el mundo: COMFORT_REQUIRE_BETA_LOGIN=true (por defecto si hay usuarios beta). Para permitir probar sin cuenta desde el landing: COMFORT_REQUIRE_BETA_LOGIN=false.
 
 Cambiar contraseña de un usuario:
-  cd comfort-ledger-beta && npm run hash-password "NuevaClaveSegura"
+  cd comfort-ledger/comfort-ledger-beta && npm run hash-password "NuevaClaveSegura"
   Copia pinSalt y pinHash en data/beta-users.json para ese usuario.

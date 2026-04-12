@@ -9,8 +9,8 @@ blackledger-public-beta-url.txt
 # Nunca guardar usuarios beta en texto plano dentro del repo raíz.
 /beta-users.json
 beta-users.local.json
-comfort-ledger-beta/BETA-HANDOUT.local.txt
-comfort-ledger-beta/data/beta-sessions.json
+comfort-ledger/comfort-ledger-beta/BETA-HANDOUT.local.txt
+comfort-ledger/comfort-ledger-beta/data/beta-sessions.json
 node_modules/
 
 # Binarios / artefactos pesados del proyecto

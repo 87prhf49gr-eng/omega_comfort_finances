@@ -4,7 +4,7 @@ Copia este archivo a donde uses Codex (por ejemplo `~/.codex/` o adjúntalo en e
 
 ## Ubicación del proyecto
 
-- Carpeta: `/Users/josal/Documents/New project 5/`
+- Carpeta: `/Users/josal/Documents/New project 5/comfort-ledger/`
 - App principal (monolito): `COMFORT-LEDGER-abrir-aqui.html` (~3935 líneas, ES/EN/ZH, coach local, gráficos, `localStorage`).
 
 ## PWA (lo ya implementado)
@@ -41,7 +41,7 @@ Copia este archivo a donde uses Codex (por ejemplo `~/.codex/` o adjúntalo en e
 ## Comando rápido (referencia)
 
 ```bash
-cd "/Users/josal/Documents/New project 5"
+cd "/Users/josal/Documents/New project 5/comfort-ledger"
 ./run_comfort_ledger_pwa.command
 ```
 
