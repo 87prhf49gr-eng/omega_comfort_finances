@@ -1,0 +1,17 @@
+{
+  "name": "comfort-ledger-beta",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Comfort Ledger beta host: static app + login + OpenAI coach",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "hash-password": "node scripts/hash-password.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "openai": "^4.77.0"
+  }
+}

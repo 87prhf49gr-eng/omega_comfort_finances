@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Comfort Ledger: deja de adivinar si te alcanza el mes. Una vista clara de ingresos, gastos y deuda — local, privada y lista en segundos.">
+  <meta name="theme-color" content="#8f6b3d">
+  <meta property="og:title" content="Comfort Ledger — Tu mes, sin adivinar">
+  <meta property="og:description" content="Resumen financiero local. Sin banco. Sin ruido. Abre y empieza.">
+  <meta property="og:type" content="website">
+  <link rel="canonical" href="./">
+  <link rel="manifest" href="./comfort-ledger.webmanifest">
+  <link rel="apple-touch-icon" href="./pwa-icons/icon-192.png">
+  <title>Comfort Ledger — Tu mes, sin adivinar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #ebe6dc;
+      --bg-warm: #f3efe6;
+      --surface: #fdfcfa;
+      --text: #1a1d24;
+      --muted: #5c5f68;
+      --line: #d4cec3;
+      --accent: #8f6b3d;
+      --accent-2: #6b5344;
+      --positive: #1d6b52;
+      --negative: #9b2c45;
+      --ink-dark: #12141a;
+      --radius: 14px;
+      --shadow: 0 20px 50px rgba(26, 29, 36, 0.1);
+      --max: 1120px;
+      --font-sans: "Source Sans 3", system-ui, sans-serif;
+      --font-display: "Cormorant Garamond", Georgia, serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 100% 80% at 50% -30%, rgba(196, 165, 116, 0.22), transparent 55%),
+        linear-gradient(rgba(26, 29, 36, 0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26, 29, 36, 0.028) 1px, transparent 1px);
+      background-size: auto, 32px 32px, 32px 32px;
+      line-height: 1.55;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; height: auto; display: block; }
+
+    .wrap {
+      width: min(calc(100% - 40px), var(--max));
+      margin-inline: auto;
+    }
+
+    /* —— Top bar —— */
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(235, 230, 220, 0.82);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(26, 29, 36, 0.06);
+    }
+    .top-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 0;
+      flex-wrap: wrap;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    .logo-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(145deg, #c4a574, var(--accent));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 20px;
+      font-size: 0.92rem;
+      color: var(--muted);
+    }
+    .nav-links a:hover { color: var(--accent-2); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 46px;
+      padding: 0 22px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: linear-gradient(165deg, #a67c48, var(--accent));
+      color: #fffdf8;
+      box-shadow: 0 10px 28px rgba(143, 107, 61, 0.35);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 14px 36px rgba(143, 107, 61, 0.45);
+    }
+    .btn-ghost {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent-2);
+    }
+
+    /* —— Hero —— */
+    .hero {
+      padding: clamp(32px, 6vw, 72px) 0 clamp(48px, 8vw, 96px);
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: clamp(28px, 5vw, 56px);
+      align-items: center;
+    }
+    @media (max-width: 880px) {
+      .hero-grid { grid-template-columns: 1fr; }
+    }
+
+    .trust-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .pill {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(29, 107, 82, 0.12);
+      color: var(--positive);
+      border: 1px solid rgba(29, 107, 82, 0.2);
+    }
+    .pill-muted {
+      background: rgba(143, 107, 61, 0.1);
+      color: var(--accent-2);
+      border-color: rgba(143, 107, 61, 0.22);
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.15rem, 4.5vw, 3.25rem);
+      font-weight: 700;
+      line-height: 1.08;
+      margin: 0 0 16px;
+      color: var(--ink-dark);
+    }
+    .hero-lede {
+      font-size: clamp(1.05rem, 2vw, 1.2rem);
+      color: var(--muted);
+      max-width: 36rem;
+      margin: 0 0 26px;
+    }
+    .hero-lede strong { color: var(--text); }
+
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .micro-trust {
+      font-size: 0.88rem;
+      color: var(--muted);
+      max-width: 32rem;
+    }
+    .micro-trust svg {
+      display: inline-block;
+      vertical-align: -3px;
+      margin-right: 6px;
+      opacity: 0.75;
+    }
+
+    .hero-card {
+      background: linear-gradient(165deg, #14161c 0%, #1a1c24 45%, #12141a 100%);
+      color: #e8e4dc;
+      border-radius: var(--radius);
+      padding: clamp(22px, 3vw, 32px);
+      border: 1px solid rgba(196, 165, 116, 0.35);
+      box-shadow: 0 28px 70px rgba(18, 20, 26, 0.35);
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 40%, rgba(196, 165, 116, 0.06) 50%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      margin: 0 0 14px;
+      color: #f5e6c8;
+    }
+    .hero-card ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.92rem;
+      line-height: 1.65;
+      color: rgba(232, 228, 220, 0.88);
+    }
+    .hero-card li {
+      padding-left: 22px;
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .hero-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 2px rgba(196, 165, 116, 0.35);
+    }
+
+    /* —— Sections —— */
+    section { padding: clamp(48px, 7vw, 88px) 0; }
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin: 0 0 10px;
+    }
+    h2.section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.75rem, 3vw, 2.35rem);
+      margin: 0 0 14px;
+      line-height: 1.12;
+      color: var(--ink-dark);
+    }
+    .section-intro {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 40rem;
+      margin: 0 0 32px;
+    }
+
+    .band-light {
+      background: var(--surface);
+      border-block: 1px solid var(--line);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .problem-grid { grid-template-columns: 1fr; }
+    }
+    .problem-card, .solution-card {
+      padding: 22px 22px 20px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    .problem-card {
+      background: rgba(155, 44, 69, 0.06);
+      border-color: rgba(155, 44, 69, 0.18);
+    }
+    .problem-card h3 { color: var(--negative); margin: 0 0 10px; font-size: 1.1rem; }
+    .solution-card {
+      background: rgba(29, 107, 82, 0.08);
+      border-color: rgba(29, 107, 82, 0.2);
+    }
+    .solution-card h3 { color: var(--positive); margin: 0 0 10px; font-size: 1.1rem; }
+
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 900px) {
+      .bento { grid-template-columns: 1fr; }
+    }
+    .bento-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .bento-card h3 {
+      margin: 0 0 8px;
+      font-size: 1.05rem;
+    }
+    .bento-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .bento-wide {
+      grid-column: span 2;
+    }
+    @media (max-width: 900px) {
+      .bento-wide { grid-column: span 1; }
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      counter-reset: step;
+    }
+    @media (max-width: 800px) {
+      .steps { grid-template-columns: 1fr; }
+    }
+    .step {
+      position: relative;
+      padding: 20px 20px 18px 56px;
+      background: var(--bg-warm);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 16px;
+      top: 18px;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #fffdf8;
+      font-weight: 800;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .step h3 { margin: 0 0 8px; font-size: 1.02rem; }
+    .step p { margin: 0; color: var(--muted); font-size: 0.92rem; }
+
+    .trust-panel {
+      background: linear-gradient(165deg, #fdfcfa, #f0ebe2);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(24px, 4vw, 40px);
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .trust-panel blockquote {
+      margin: 0 auto 16px;
+      max-width: 36rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+      font-style: italic;
+      color: var(--ink-dark);
+      line-height: 1.4;
+    }
+    .trust-panel cite {
+      font-style: normal;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .faq {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    details {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin-bottom: 10px;
+    }
+    details summary {
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details[open] summary { margin-bottom: 10px; color: var(--accent-2); }
+    details p { margin: 0; color: var(--muted); font-size: 0.95rem; }
+
+    .cta-final {
+      text-align: center;
+      padding: clamp(56px, 8vw, 96px) 0;
+    }
+    .cta-final h2 {
+      font-family: var(--font-display);
+      font-size: clamp(1.85rem, 3vw, 2.5rem);
+      margin: 0 0 12px;
+      color: var(--ink-dark);
+    }
+    .cta-final p {
+      color: var(--muted);
+      margin: 0 auto 24px;
+      max-width: 28rem;
+    }
+
+    footer {
+      padding: 28px 0 40px;
+      font-size: 0.88rem;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="logo" href="#top" id="top">
+        <span class="logo-mark" aria-hidden="true"></span>
+        <span>Comfort Ledger</span>
+      </a>
+      <nav class="nav-links" aria-label="Secciones">
+        <a href="#problema">El problema</a>
+        <a href="#beneficios">Qué hace</a>
+        <a href="#confianza">Confianza</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <a class="btn btn-primary" href="./COMFORT-LEDGER-abrir-aqui.html">Abrir la app</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="trust-strip">
+            <span class="pill">100% en tu dispositivo</span>
+            <span class="pill pill-muted">Sin conectar tu banco</span>
+            <span class="pill">Listo en segundos</span>
+          </div>
+          <h1>Deja de adivinar si el mes te alcanza.</h1>
+          <p class="hero-lede">
+            <strong>Comfort Ledger</strong> es una vista única de ingresos, gastos y deuda — con recordatorios de renta, servicios y suscripciones, e informe ejecutivo. <strong>Tus números no viajan a un servidor:</strong> trabajan en tu navegador, privados y bajo tu control.
+          </p>
+          <div class="hero-ctas">
+            <a class="btn btn-primary" href="./COMFORT-LEDGER-abrir-aqui.html">Empezar gratis ahora</a>
+            <a class="btn btn-ghost" href="#como-funciona">Ver cómo funciona</a>
+          </div>
+          <p class="micro-trust">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Sin registro para probar. Instalable como PWA en el móvil. Ideal si odias las hojas dispersas y las apps que venden tus datos.
+          </p>
+        </div>
+        <div class="hero-card" aria-labelledby="hero-card-title">
+          <h3 id="hero-card-title">Lo que dejas de sufrir</h3>
+          <ul>
+            <li>“¿Cuánto me queda después de todo?” — lo ves en una sola pantalla.</li>
+            <li>Renta, luz, gas, seguro y suscripciones — organizados y con avisos.</li>
+            <li>Coach local con tus cifras: reglas claras, sin depender de la nube.</li>
+            <li>Informe tipo “sala de juntas” para decidir en minutos, no en horas.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="band-light" id="problema">
+      <section>
+        <div class="wrap">
+          <p class="section-label">Problema → solución</p>
+          <h2 class="section-title">Las apps ganadoras resuelven un miedo claro. El tuyo es el caos del mes.</h2>
+          <p class="section-intro">
+            Las landings que más convierten (Notion, Linear, herramientas “prosumer”) repiten el mismo patrón: <strong>promesa específica arriba del todo</strong>, prueba de confianza temprana, beneficios concretos y un solo CTA principal. Aquí lo aplicamos a tu dinero del día a día.
+          </p>
+          <div class="problem-grid">
+            <div class="problem-card">
+              <h3>El dolor</h3>
+              <p>Notas en el teléfono, Excel a medias, apps que piden el banco y anuncios. Al final no sabes si estás cómodo o a nada de quedarte en rojo.</p>
+            </div>
+            <div class="solution-card">
+              <h3>La promesa</h3>
+              <p>Un solo lienzo: ingresos del mes, gastos mensualizados, deudas, metas, servicios del hogar y suscripciones — con recordatorios y enlaces para pagar o darte de baja. <strong>Claridad primero.</strong></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section id="beneficios">
+      <div class="wrap">
+        <p class="section-label">Qué obtienes</p>
+        <h2 class="section-title">Diseñado para decidir rápido y dormir tranquilo</h2>
+        <p class="section-intro">Cada bloque responde a una pregunta real. Nada de relleno: es lo que ya hace la app.</p>
+        <div class="bento">
+          <div class="bento-card bento-wide">
+            <h3>Resumen de salud + informe ejecutivo</h3>
+            <p>Misma información en dos lecturas: una humana (“¿estoy en zona de confort?”) y otra compacta al estilo tablero — porcentajes del ingreso del mes y prioridades visuales.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Hogar y servicios</h3>
+            <p>Renta, agua, luz, gas, seguros, teléfono… con monto, fecha y día de recordatorio. URL opcional para ir a pagar con un toque.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Suscripciones</h3>
+            <p>Netflix, Disney+, Spotify y otras, con cadencia y botón que abre la página oficial para cancelar — sin pegar links largos en el texto.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Avisos que importan</h3>
+            <p>Permiso del navegador: aviso 3 días antes y el día del cargo. Si instalas la PWA, mejor experiencia en el móvil.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Coach local</h3>
+            <p>Preguntas sobre tu mes y deudas con respuestas basadas en reglas y tus números — sin enviar datos a un modelo en la nube.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="band-light" id="como-funciona">
+      <section>
+        <div class="wrap">
+          <p class="section-label">Cómo funciona</p>
+          <h2 class="section-title">Tres pasos. Sin fricción.</h2>
+          <p class="section-intro">Menos pasos = más conversiones. Así lo hacen las product-led growth que escalan.</p>
+          <div class="steps">
+            <div class="step">
+              <h3>Abres la app</h3>
+              <p>Un solo archivo o la versión servida en tu red. No hace falta crear cuenta para ver si encaja contigo.</p>
+            </div>
+            <div class="step">
+              <h3>Pones tus números</h3>
+              <p>Ingresos del mes, gastos con cadencia, deudas, metas, servicios y suscripciones. Todo queda guardado en tu dispositivo.</p>
+            </div>
+            <div class="step">
+              <h3>Actúas con claridad</h3>
+              <p>Lees el resumen, ajustas una cifra, cancelas una suscripción o marcas el pago de la renta. Decisiones pequeñas, efecto grande.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section id="confianza">
+      <div class="wrap">
+        <p class="section-label">Confianza</p>
+        <h2 class="section-title">Por qué es fiable usarlo (aunque sea una idea en evolución)</h2>
+        <p class="section-intro">
+          Transparencia vende más que el marketing vacío. Comfort Ledger es <strong>local-first</strong>: no sustituye a tu banco ni da consejo de inversión; te da una foto honesta con lo que tú introduces.
+        </p>
+        <div class="trust-panel">
+          <blockquote>“Por fin tengo una sola pantalla donde veo si el mes cierra o no, sin dar mis claves a nadie.”</blockquote>
+          <cite>— Formulación tipo testimonio; sustituye cuando tengas usuarios reales.</cite>
+        </div>
+        <p class="section-intro" style="margin-top: 28px; margin-bottom: 0;">
+          <strong>Checklist de confianza:</strong> sin enlazar cuenta bancaria · datos en <code>localStorage</code> de tu navegador · puedes usar en <code>localhost</code> o HTTPS para PWA y notificaciones · código visible en un HTML si quieres auditarlo.
+        </p>
+      </div>
+    </section>
+
+    <div class="band-light" id="faq">
+      <section>
+        <div class="wrap">
+          <p class="section-label">FAQ</p>
+          <h2 class="section-title">Objeciones resueltas antes del “comprar”</h2>
+          <p class="section-intro">Las FAQs al final reducen dudas de último minuto y suben clics al CTA.</p>
+          <div class="faq">
+            <details>
+              <summary>¿Es seguro?</summary>
+              <p>No pedimos contraseñas ni tokens bancarios. Lo que escribes se guarda en tu propio navegador en este dispositivo (salvo que uses sincronización del propio navegador).</p>
+            </details>
+            <details>
+              <summary>¿Funciona en el móvil?</summary>
+              <p>Sí. Sirve la carpeta por HTTPS o en tu red local, instala como PWA y usa recordatorios con permiso del sistema.</p>
+            </details>
+            <details>
+              <summary>¿Qué me cuesta?</summary>
+              <p>Hoy puedes usar la demo sin pago. Si más adelante ofrecemos una versión “pro”, será con valor claro (más automatización, no vender tus datos).</p>
+            </details>
+            <details>
+              <summary>¿Sustituye a un asesor financiero?</summary>
+              <p>No. Es una herramienta de claridad y hábito. Para decisiones legales o de inversión, consulta a un profesional.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="cta-final">
+      <div class="wrap">
+        <h2>Tu mes no va a organizarse solo.</h2>
+        <p>Abre Comfort Ledger, mete tus números en 5 minutos y mira el resumen. Si no te sirve, cierras la pestaña y listo.</p>
+        <a class="btn btn-primary" href="./COMFORT-LEDGER-abrir-aqui.html" style="font-size: 1.05rem; padding-inline: 28px;">Abrir Comfort Ledger — gratis</a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      Comfort Ledger · local-first · <a href="./COMFORT-LEDGER-abrir-aqui.html">Ir a la app</a>
+      · Hecho para vender claridad, no ansiedad.
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,26 @@
+.DS_Store
+blackledger-omega-beta-access.md
+blackledger-public-beta-url.txt
+
+# Secretos y datos locales (nunca subir)
+.env
+.env.*
+!.env.example
+# Solo el JSON de la raíz (texto plano); data/beta-users.json del servidor sí se versiona (hashes).
+/beta-users.json
+comfort-ledger-beta/data/beta-sessions.json
+node_modules/
+
+# Binarios / artefactos pesados del proyecto
+*.numbers
+*.zip
+blackledger-omega-beta-deploy/
+blackledger_elite*.numbers
+blackledger_elite*.pdf
+chart_test.numbers
+pagina_final_proyecto_exito_export.pdf
+listing_assets/
+
+# Otros productos (muy pesados; no hacen falta para Comfort en Render)
+blackledger-elite-app/
+blackledger-omega-beta-deploy/

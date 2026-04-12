@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.">
+  <title>Comfort Ledger — Resumen y coach</title>
+  <link rel="stylesheet" href="./styles.css?v=10">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell" aria-hidden="true"></div>
+  <div class="app">
+    <header class="masthead">
+      <div class="masthead-grid">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <div>
+            <p class="brand-eyebrow" data-i18n="brand_eyebrow">Vista patrimonial</p>
+            <h1>Comfort Ledger</h1>
+            <p class="tagline" data-i18n="tagline">Menos ruido. Más claridad.</p>
+          </div>
+        </div>
+        <div class="masthead-aside">
+          <div class="lang-switch" role="group" aria-labelledby="langSwitchLabel">
+            <span id="langSwitchLabel" class="lang-switch-label" data-i18n="lang_label">Idioma</span>
+            <div class="lang-switch-btns">
+              <button type="button" class="lang-btn" data-set-lang="es" aria-pressed="true">ES</button>
+              <button type="button" class="lang-btn" data-set-lang="en" aria-pressed="false">EN</button>
+              <button type="button" class="lang-btn" data-set-lang="zh" aria-pressed="false">中文</button>
+            </div>
+          </div>
+          <div class="trust-row">
+            <span class="pill-trust" data-i18n="pill_local">100% local</span>
+            <span class="pill-trust pill-trust--muted" data-i18n="pill_offline">Sin conexión a red</span>
+          </div>
+          <p class="hint" data-i18n-html="hint_offline_html">¿No carga? En la carpeta del proyecto abre <strong>COMFORT-LEDGER-abrir-aqui.html</strong> (un solo archivo, sin servidor).</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel health" id="healthPanel" aria-labelledby="healthTitle">
+      <h2 id="healthTitle" data-i18n="health_title">Resumen de salud</h2>
+      <div class="health-score" id="healthScore" role="status">
+        <span class="health-ring" id="healthRing" aria-hidden="true"></span>
+        <div class="health-copy">
+          <strong id="healthLabel">—</strong>
+          <p id="healthNarrative"></p>
+        </div>
+      </div>
+      <ul class="health-metrics" id="healthMetrics"></ul>
+    </section>
+
+    <section class="panel goals-panel" id="goalsPanel" aria-labelledby="goalsTitle">
+      <div class="section-head">
+        <h2 id="goalsTitle" data-i18n="goals_title">Metas con tus cobros</h2>
+        <button type="button" class="btn-ghost" id="addGoalBtn" data-i18n="goals_add">+ Meta</button>
+      </div>
+      <p class="sub" data-i18n-html="goals_sub_html">Define <strong>monto objetivo</strong> (vacaciones, enganche de auto, etc.) y <strong>meses</strong> para lograrlo. Calculamos cuánto apartar <strong>cada mes del cheque</strong>; los totales aparecen en el <strong>Resumen de salud</strong> de arriba.</p>
+      <div id="goalsList" class="goals-list"></div>
+    </section>
+
+    <div class="grid-main">
+      <div class="charts-column">
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_flow_title">Flujo del mes</h3>
+          <p class="sub" data-i18n="chart_flow_sub">Ingreso vs gasto mensualizado vs carga de deuda</p>
+          <div class="donut-wrap">
+            <div class="donut" id="donutFlow" role="img" data-i18n-attr="aria-label|donut_aria" aria-label="Gráfico de flujo"></div>
+            <ul class="donut-legend" id="donutLegend"></ul>
+          </div>
+        </section>
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_cushion_title">Colchón vs deuda</h3>
+          <p class="sub" data-i18n="chart_cushion_sub">Visual honesto: ahorros frente a lo que debes</p>
+          <div class="bar-compare" id="barCompare" role="img" data-i18n-attr="aria-label|cushion_aria" aria-label="Comparación ahorros y deuda"></div>
+          <p class="chart-footnote" id="cushionFootnote"></p>
+        </section>
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_cadence_title">Ritmo de gastos</h3>
+          <p class="sub" data-i18n="chart_cadence_sub">Por cadencia: diario, semanal o mensual (equivalente al mes)</p>
+          <div class="cadence-bars" id="cadenceBars" role="img" data-i18n-attr="aria-label|cadence_aria" aria-label="Gastos por cadencia"></div>
+        </section>
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_card_title">Deuda en tarjetas vs ingreso</h3>
+          <p class="sub" data-i18n-html="chart_card_sub_html">Suma solo filas marcadas como <strong>Tarjeta</strong>; comparado a tu ingreso mensual total</p>
+          <div id="cardDebtChart" class="card-debt-chart" role="img" data-i18n-attr="aria-label|card_debt_aria" aria-label="Deuda tarjetas versus ingreso"></div>
+        </section>
+      </div>
+
+      <aside class="coach-column">
+        <section class="panel coach" id="coachPanel" aria-labelledby="coachTitle">
+          <div class="coach-head">
+            <h2 id="coachTitle" data-i18n="coach_title">Coach IA</h2>
+            <span class="coach-badge" data-i18n="coach_badge">Asesor local</span>
+          </div>
+          <p class="coach-intro" data-i18n-html="coach_intro_html">Pregunta por tu mes, deudas o zona de confort. Este coach es <strong>local</strong> (reglas + tus números): no conecta con BlackLedger Omega ni con internet.</p>
+          <div class="coach-thread" id="coachThread" aria-live="polite"></div>
+          <form class="coach-form" id="coachForm">
+            <label class="sr-only" for="coachInput" data-i18n="coach_input_label">Mensaje al coach</label>
+            <textarea id="coachInput" rows="3" data-i18n-attr="placeholder|coach_placeholder" placeholder="Ej.: ¿Estoy cómodo con 10k ahorrados si debo 9.2k?" required></textarea>
+            <button type="submit" class="btn-coach" data-i18n="coach_send">Enviar</button>
+          </form>
+          <p class="coach-status" id="coachStatus" role="status"></p>
+        </section>
+        <section class="panel world-clocks" aria-labelledby="worldClocksTitle">
+          <h3 id="worldClocksTitle" class="world-clocks-heading" data-i18n="world_title">Horarios en calma</h3>
+          <p class="sub world-clocks-lede" data-i18n="world_sub">Chicago · Nueva York. Solo tu dispositivo, sin red. El icono indica día o noche local.</p>
+          <div class="world-clocks-grid" id="worldClocks" role="timer" aria-live="polite"></div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="grid-inputs">
+      <section class="panel inputs-card">
+        <div class="section-head">
+          <h2 data-i18n="income_title">Ingresos</h2>
+          <button type="button" class="btn-ghost" id="addIncomeBtn" data-i18n="add_row">+ Agregar</button>
+        </div>
+        <p class="sub" data-i18n-html="income_sub_html">Cada cobro lleva <strong>fecha</strong> (calendario). El resumen y los gráficos suman solo lo del <strong>mes calendario en curso</strong>. Lo nuevo queda arriba.</p>
+        <div class="list-scroll">
+          <div id="incomeList" class="income-list"></div>
+        </div>
+        <label class="field field-tight">
+          <span data-i18n="liquid_label">Efectivo / ahorros líquidos hoy</span>
+          <input type="text" inputmode="decimal" id="liquidSavings" autocomplete="off" placeholder="10000">
+        </label>
+      </section>
+
+      <section class="panel inputs-card">
+        <div class="section-head">
+          <h2 data-i18n="expenses_title">Gastos</h2>
+          <button type="button" class="btn-ghost" id="addExpenseBtn" data-i18n="add_row">+ Agregar</button>
+        </div>
+        <p class="sub" data-i18n-html="expenses_sub_html"><strong>Categoría</strong> + concepto. Cadencia <strong>diaria, semanal o mensual</strong>. Lo nuevo queda arriba.</p>
+        <div class="list-scroll">
+          <div id="expenseList" class="expense-list"></div>
+        </div>
+      </section>
+
+      <section class="panel inputs-card">
+        <div class="section-head">
+          <h2 data-i18n="debts_title">Deudas</h2>
+          <button type="button" class="btn-ghost" id="addDebtBtn" data-i18n="add_row">+ Agregar</button>
+        </div>
+        <p class="sub" data-i18n-html="debts_sub_html">Marca <strong>Tarjeta</strong> para que cuente en el gráfico vs ingreso. Lo nuevo queda arriba.</p>
+        <div class="list-scroll">
+          <div id="debtList" class="debt-list"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="dash-tactical" aria-labelledby="dashTacticalTitle">
+      <h2 id="dashTacticalTitle" class="dash-tactical-title" data-i18n="dash_title">Informe ejecutivo</h2>
+      <p class="sub dash-tactical-lede" data-i18n="dash_sub">Misma información que arriba, en porcentaje del ingreso del mes y lectura compacta tipo sala de juntas.</p>
+      <div class="dash-grid" id="dashTacticalGrid"></div>
+    </section>
+  </div>
+  <script src="./app.js?v=18" defer></script>
+</body>
+</html>

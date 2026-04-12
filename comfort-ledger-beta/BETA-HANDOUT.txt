@@ -1,0 +1,22 @@
+Comfort Ledger — acceso beta (10 testers)
+========================================
+
+URL de la app (sustituye por tu dominio real):
+  https://TU-DOMINIO/
+
+Usuarios (uno por persona; no compartir fuera del grupo beta):
+  beta01, beta02, beta03, beta04, beta05,
+  beta06, beta07, beta08, beta09, beta10
+
+Contraseña inicial (la misma para todos en esta plantilla; cámbiala en producción):
+  ComfortDemo2026
+
+Sesión beta: sin límite de tiempo en el servidor (pueden probar cada día con la misma cuenta).
+
+Demo corta solo para visitantes sin login (p. ej. enlace desde el landing): configurable con COMFORT_LANDING_DEMO_MINUTES en el servidor; al terminar se borran datos de prueba en ese navegador y se muestra suscripción.
+
+Para exigir login a todo el mundo: COMFORT_REQUIRE_BETA_LOGIN=true (por defecto si hay usuarios beta). Para permitir probar sin cuenta desde el landing: COMFORT_REQUIRE_BETA_LOGIN=false.
+
+Cambiar contraseña de un usuario:
+  cd comfort-ledger-beta && npm run hash-password "NuevaClaveSegura"
+  Copia pinSalt y pinHash en data/beta-users.json para ese usuario.

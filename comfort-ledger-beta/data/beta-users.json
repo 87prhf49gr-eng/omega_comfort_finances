@@ -1,0 +1,92 @@
+[
+  {
+    "id": "comfort-beta-01",
+    "slot": 1,
+    "displayName": "Beta tester 1",
+    "username": "beta01",
+    "pinSalt": "eb9149dafed29bd9af0d973355aba00a",
+    "pinHash": "15b4e3d54d52312b0bb3c2b7aa885cb7faef75937ee38fd0a5eb670379819f1127ac4810d9d0bc481345feed7253a47950aae8943558c1e594730fd13c75c146",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-02",
+    "slot": 2,
+    "displayName": "Beta tester 2",
+    "username": "beta02",
+    "pinSalt": "32ee30a3b8b70ab04b83fa0fe92e1248",
+    "pinHash": "36d943dc93f3fa4223cd6df07abe7a5c7dc82be9d42e884957aceefc4bf775f1f410f1d819e115f299ddbf04d11e2d4c318672afc7d78a165d389dbb0b6b1100",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-03",
+    "slot": 3,
+    "displayName": "Beta tester 3",
+    "username": "beta03",
+    "pinSalt": "39f08fb139a298dda1e4a966d9f7e44f",
+    "pinHash": "40d40f16c659d12c14c145724385b21f52f049d346c5413fbe35537fcab5debac1b744f95ffb504b0731947ac4b6f5e83bcaa7954eda185f9c63e4738bbfd159",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-04",
+    "slot": 4,
+    "displayName": "Beta tester 4",
+    "username": "beta04",
+    "pinSalt": "03a8551eac433b911e9c4f361d1a31d4",
+    "pinHash": "85dce90ab326e21c4ab07b6db2c81fea1bbfb4a3dd49b0376f324d7b90ef186c3b79ef5f2d73a6cece51b18bbf864cf2a0fb818f7ea2ed5ea8ed688637e89da6",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-05",
+    "slot": 5,
+    "displayName": "Beta tester 5",
+    "username": "beta05",
+    "pinSalt": "5e8798e7b019fe2cfd246762893cb1b6",
+    "pinHash": "cbf63fe036216d454f33ffe339f6d7f8ee6455798ac2be272fd769400fbc200113f39f46f9e5d9e8a87dfceda69d6c441e418d8ffdb09eb5f2044932c34fa116",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-06",
+    "slot": 6,
+    "displayName": "Beta tester 6",
+    "username": "beta06",
+    "pinSalt": "8efd49a18091a107808a7b31e603aa80",
+    "pinHash": "93ed05a203bf372fbac9199b6f00624af27d7b778d5d88a2664098effd66edb74d8dc7a16b65f8f2f160d9c86d4f47101ca0882dacb83aaa1a28c1ef46118e50",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-07",
+    "slot": 7,
+    "displayName": "Beta tester 7",
+    "username": "beta07",
+    "pinSalt": "38a26515f80e6a3b5205db7219b793ec",
+    "pinHash": "8069a663daf7e5c13335b3cfef438db44442d446b2db799499d860f049f84c440faf61e119af2b83e10fd47027a51c5cbfbe1fd28ecacc48328d61e7f12c8ea4",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-08",
+    "slot": 8,
+    "displayName": "Beta tester 8",
+    "username": "beta08",
+    "pinSalt": "cc84f9d7ad322ea3b0498d2a75383135",
+    "pinHash": "78eaeec62cd2e82b0951eddcdc44ce8e81ce2b1c26b81265f2f4611085b64331949ade15485b22fc5276437d03d2c36f6baf5640f537075fd8147a7742e287b4",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-09",
+    "slot": 9,
+    "displayName": "Beta tester 9",
+    "username": "beta09",
+    "pinSalt": "51d6d0c7b403ef25682e61d19e3c747f",
+    "pinHash": "4b196247191905fe70bd12218d4f0d95a58135ac08873a886e862b30a5923d68fe1612fd72dbad37c3aa8329d3748f72523254f83eb626df909a66f264ebbf97",
+    "active": true
+  },
+  {
+    "id": "comfort-beta-10",
+    "slot": 10,
+    "displayName": "Beta tester 10",
+    "username": "beta10",
+    "pinSalt": "1fb6fabca6e41bf960a7b551f7ec4254",
+    "pinHash": "d1839fb111e300f960f9d6ec9325843f99ca0cb11d9eed390f57af026f670fd16f7f4bee134c6ba8ac40191d65a66ce04990c7a96c07de26a478aeea1fdeeb41",
+    "active": true
+  }
+]
