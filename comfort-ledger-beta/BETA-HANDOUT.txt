@@ -1,5 +1,5 @@
-Comfort Ledger — acceso beta (10 testers)
-========================================
+Comfort Ledger — acceso beta (plantilla segura)
+==============================================
 
 URL de la app (sustituye por tu dominio real):
   https://TU-DOMINIO/
@@ -8,8 +8,11 @@ Usuarios (uno por persona; no compartir fuera del grupo beta):
   beta01, beta02, beta03, beta04, beta05,
   beta06, beta07, beta08, beta09, beta10
 
-Contraseña inicial (la misma para todos en esta plantilla; cámbiala en producción):
+Contraseña inicial de ejemplo para esta plantilla; cámbiala antes de compartir:
   ComfortDemo2026
+
+No guardes contraseñas reales en texto plano dentro del repo. Si necesitas repartir accesos reales,
+crea un archivo local ignorado, por ejemplo `BETA-HANDOUT.local.txt`, o compártelos por un canal privado.
 
 Sesión beta: sin límite de tiempo en el servidor (pueden probar cada día con la misma cuenta).
 

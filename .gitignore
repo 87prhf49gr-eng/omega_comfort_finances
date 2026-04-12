@@ -6,15 +6,16 @@ blackledger-public-beta-url.txt
 .env
 .env.*
 !.env.example
-# Solo el JSON de la raíz (texto plano); data/beta-users.json del servidor sí se versiona (hashes).
+# Nunca guardar usuarios beta en texto plano dentro del repo raíz.
 /beta-users.json
+beta-users.local.json
+comfort-ledger-beta/BETA-HANDOUT.local.txt
 comfort-ledger-beta/data/beta-sessions.json
 node_modules/
 
 # Binarios / artefactos pesados del proyecto
 *.numbers
 *.zip
-blackledger-omega-beta-deploy/
 blackledger_elite*.numbers
 blackledger_elite*.pdf
 chart_test.numbers
