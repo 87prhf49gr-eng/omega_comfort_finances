@@ -15,6 +15,8 @@ const OpenAI = require("openai");
 const PORT = Number(process.env.PORT || 8787);
 const __ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.resolve(process.env.COMFORT_DATA_DIR || path.join(__dirname, "data"));
+const BUNDLED_DATA_DIR = path.join(__dirname, "data");
+const BUNDLED_BETA_USERS_FILE = path.join(BUNDLED_DATA_DIR, "beta-users.json");
 const BETA_USERS_FILE = path.join(DATA_DIR, "beta-users.json");
 const BETA_SESSIONS_FILE = path.join(DATA_DIR, "beta-sessions.json");
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
@@ -234,7 +236,11 @@ function ensureStorage() {
     fs.writeFileSync(BETA_SESSIONS_FILE, "[]\n", "utf8");
   }
   if (!fs.existsSync(BETA_USERS_FILE)) {
-    fs.writeFileSync(BETA_USERS_FILE, "[]\n", "utf8");
+    if (BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE && fs.existsSync(BUNDLED_BETA_USERS_FILE)) {
+      fs.copyFileSync(BUNDLED_BETA_USERS_FILE, BETA_USERS_FILE);
+    } else {
+      fs.writeFileSync(BETA_USERS_FILE, "[]\n", "utf8");
+    }
   }
 }
 

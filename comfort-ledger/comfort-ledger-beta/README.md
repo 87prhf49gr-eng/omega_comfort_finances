@@ -20,6 +20,7 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
 ## Render
 
 - **Tipo:** `Web Service`
+- **Root Directory:** `comfort-ledger`
 - **Build command:** `cd comfort-ledger/comfort-ledger-beta && npm ci`
   - Si `npm ci` falla por un lockfile desalineado, usa `cd comfort-ledger/comfort-ledger-beta && npm install`.
 - **Start command:** `cd comfort-ledger/comfort-ledger-beta && npm start`
@@ -35,13 +36,15 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - `COMFORT_REQUIRE_BETA_LOGIN`
   - `COMFORT_DATA_DIR`
 - **Persistencia:** `data/beta-sessions.json` no va en git. En un servicio con filesystem efímero, las sesiones se reinician al redeploy o reinicio salvo que montes disco persistente.
+- **Disk recomendado para beta estable:** monta un disco en `/var/data` y define `COMFORT_DATA_DIR=/var/data`. Si el disco arranca vacío, el servidor ahora copia automáticamente `beta-users.json` versionado a ese directorio.
 
 ### Pasos rápidos
 
 1. **New → Web Service** conectado a este repositorio.
-2. Si el repo contiene más carpetas además de Comfort, deja el repo en la raíz y usa los comandos anteriores con `cd comfort-ledger/comfort-ledger-beta && ...`.
+2. **Root Directory:** `comfort-ledger`
 3. Carga las variables de entorno.
-4. Despliega y abre la URL pública.
+4. Si quieres sesiones más estables, añade un **Disk** y monta en `/var/data`, luego define `COMFORT_DATA_DIR=/var/data`.
+5. Despliega y abre la URL pública.
 
 ## Usuarios beta
 
