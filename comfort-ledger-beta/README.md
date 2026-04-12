@@ -17,18 +17,31 @@ npm start
 
 Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
 
-## Render (Web Service)
+## Render
+
+- **Tipo:** `Web Service`
+- **Build command:** `cd comfort-ledger-beta && npm ci`
+  - Si `npm ci` falla por un lockfile desalineado, usa `cd comfort-ledger-beta && npm install`.
+- **Start command:** `cd comfort-ledger-beta && npm start`
+- **Health check opcional:** `/api/health`
+- **Variables mínimas:**
+  - `OPENAI_API_KEY`
+  - `COMFORT_SESSION_SECRET`
+  - `NODE_ENV=production`
+  - `PORT` lo inyecta Render automáticamente
+- **Opcionales:**
+  - `COMFORT_SUBSCRIBE_URL`
+  - `COMFORT_LANDING_DEMO_MINUTES`
+  - `COMFORT_REQUIRE_BETA_LOGIN`
+  - `COMFORT_DATA_DIR`
+- **Persistencia:** `data/beta-sessions.json` no va en git. En un servicio con filesystem efímero, las sesiones se reinician al redeploy o reinicio salvo que montes disco persistente.
+
+### Pasos rápidos
 
 1. **New → Web Service** conectado a este repositorio.
-2. **Root directory:** deja vacío si el repo es solo Comfort; si el monorepo tiene más cosas, pon la raíz del repo y ajusta **Build / Start**:
-   - **Build command:** `cd comfort-ledger-beta && npm install`
-   - **Start command:** `cd comfort-ledger-beta && npm start`
-3. **Environment variables** (mínimo):
-   - `OPENAI_API_KEY` — para el coach en servidor.
-   - `COMFORT_SESSION_SECRET` — cadena larga aleatoria en producción.
-   - `NODE_ENV=production`
-   - Opcional: `COMFORT_SUBSCRIBE_URL`, `COMFORT_LANDING_DEMO_MINUTES`, `COMFORT_REQUIRE_BETA_LOGIN`, `PORT` (Render inyecta `PORT`; el servidor ya usa `process.env.PORT`).
-4. **Persistencia:** `data/beta-users.json` y `data/beta-sessions.json` se escriben en disco. En Render, sin disco persistente las sesiones se pierden al reiniciar; para beta estable usa **Disk** o regenera sesiones.
+2. Si el repo contiene más carpetas además de Comfort, deja el repo en la raíz y usa los comandos anteriores con `cd comfort-ledger-beta && ...`.
+3. Carga las variables de entorno.
+4. Despliega y abre la URL pública.
 
 ## Usuarios beta
 
