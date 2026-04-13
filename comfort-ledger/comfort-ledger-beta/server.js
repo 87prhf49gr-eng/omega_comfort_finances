@@ -373,7 +373,7 @@ function pruneExpiredSessions() {
 }
 
 function resolveAccessMode(betaEnabled = readBetaUsers().length > 0) {
-  const raw = String(process.env.COMFORT_ACCESS_MODE || "onboarding")
+  const raw = String(process.env.COMFORT_ACCESS_MODE || (betaEnabled ? "beta" : "onboarding"))
     .trim()
     .toLowerCase();
   if (raw === "beta" && betaEnabled) {
@@ -834,7 +834,14 @@ function isBlockedComfortPath(rel) {
 }
 
 function safeStaticPath(pathname) {
-  const rel = pathname === "/" ? "COMFORT-LEDGER-abrir-aqui.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
+  let rel;
+  if (pathname === "/") {
+    rel = "index.html";
+  } else if (pathname === "/app" || pathname === "/app/") {
+    rel = "COMFORT-LEDGER-abrir-aqui.html";
+  } else {
+    rel = decodeURIComponent(pathname).replace(/^\/+/, "");
+  }
   if (isBlockedComfortPath(`/${rel}`)) {
     return null;
   }

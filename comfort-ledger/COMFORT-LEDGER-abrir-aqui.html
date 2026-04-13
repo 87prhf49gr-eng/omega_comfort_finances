@@ -6460,7 +6460,7 @@ if (document.readyState === "loading") {
   if (!secure) return;
   window.addEventListener("load", function () {
     navigator.serviceWorker
-      .register("comfort-ledger-sw.js", { scope: "./" })
+      .register("comfort-ledger-sw.js", { scope: "/app" })
       .catch(function () {});
   });
 })();

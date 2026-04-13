@@ -1,6 +1,6 @@
 # Comfort Ledger (hosted)
 
-Sirve `COMFORT-LEDGER-abrir-aqui.html` desde la carpeta padre del repo, con onboarding persistente en el navegador y coach OpenAI. Si hace falta, también puede volver al modo beta clásico con usuario/contraseña.
+Sirve una landing pública en `/` y el web app financiero en `/app`, con coach OpenAI. Durante la beta, el acceso por defecto es con usuario y contraseña.
 
 ## Requisitos
 
@@ -31,7 +31,7 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - `NODE_ENV=production`
   - `PORT` lo inyecta Render automáticamente
 - **Opcionales:**
-  - `COMFORT_ACCESS_MODE` (`onboarding` por defecto; usa `beta` para volver al login con usuarios)
+  - `COMFORT_ACCESS_MODE` (`beta` por defecto mientras existan usuarios; usa `onboarding` cuando quieras abrir el acceso)
   - `COMFORT_SUBSCRIBE_URL`
   - `COMFORT_LANDING_DEMO_MINUTES`
   - `COMFORT_REQUIRE_BETA_LOGIN`
@@ -45,15 +45,15 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
 2. **Root Directory:** `comfort-ledger`
 3. Carga las variables de entorno.
 4. Si quieres sesiones más estables, añade un **Disk** y monta en `/var/data`, luego define `COMFORT_DATA_DIR=/var/data`.
-5. Despliega y abre la URL pública.
+5. Despliega y abre la URL pública. La landing vive en `/` y el app protegido en `/app`.
 
 ## Acceso
 
-- **Por defecto:** `COMFORT_ACCESS_MODE=onboarding`
-  - Cada usuario nuevo deja nombre/correo/enfoque al entrar.
-  - El perfil queda guardado en ese navegador y el servidor crea una sesión ligera para el coach.
-- **Fallback beta:** `COMFORT_ACCESS_MODE=beta`
-  - Usa `data/beta-users.json` y el flujo de usuario/contraseña de siempre.
+- **Por defecto en beta:** `COMFORT_ACCESS_MODE=beta`
+  - La landing pública explica el producto en `/`.
+  - El web app financiero vive en `/app` y usa `data/beta-users.json` con usuario/contraseña.
+- **Más adelante:** `COMFORT_ACCESS_MODE=onboarding`
+  - Cambia a acceso más abierto cuando quieras pasar de beta privada a pre-lanzamiento o venta.
 
 ## Usuarios beta
 
