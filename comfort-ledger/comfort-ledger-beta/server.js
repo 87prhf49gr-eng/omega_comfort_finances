@@ -1,8 +1,9 @@
 /**
- * Comfort Ledger beta server: static parent folder + beta login + OpenAI coach.
+ * Comfort Ledger hosted server: static parent folder + onboarding/beta access + OpenAI coach.
  * Run from repo: cd comfort-ledger/comfort-ledger-beta && npm install && npm start
  * Env: OPENAI_API_KEY, COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
- * COMFORT_REQUIRE_BETA_LOGIN (default true if hay usuarios beta),
+ * COMFORT_ACCESS_MODE (default onboarding; set beta to enforce username/password),
+ * COMFORT_REQUIRE_BETA_LOGIN (solo en access mode beta),
  * COMFORT_LANDING_DEMO_MINUTES (default 10; solo visitantes sin sesión beta, p. ej. desde el landing)
  */
 
@@ -91,18 +92,23 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/public-config" && req.method === "GET") {
       const users = readBetaUsers();
       const betaEnabled = users.length > 0;
+      const accessMode = resolveAccessMode(betaEnabled);
       const requireBetaLogin =
+        accessMode === "beta" &&
         String(process.env.COMFORT_REQUIRE_BETA_LOGIN || (betaEnabled ? "true" : "false"))
           .toLowerCase()
           .trim() !== "false";
+      const landingDemoMs = accessMode === "beta" && !requireBetaLogin ? LANDING_DEMO_MS : 0;
       return sendJson(res, 200, {
         ok: true,
         comfortHosted: true,
+        accessMode,
+        onboardingEnabled: accessMode === "onboarding",
         betaEnabled,
         requireBetaLogin: betaEnabled ? requireBetaLogin : false,
         subscribeUrl: SUBSCRIBE_URL,
-        landingDemoMinutes: Math.round(LANDING_DEMO_MS / 60000),
-        landingDemoMs: LANDING_DEMO_MS,
+        landingDemoMinutes: Math.round(landingDemoMs / 60000),
+        landingDemoMs,
         aiCoachConfigured: Boolean(openaiClient)
       });
     }
@@ -170,11 +176,64 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
     }
 
+    if (pathname === "/api/onboarding/session" && req.method === "GET") {
+      const auth = authenticateOnboardingRequest(req);
+      if (!auth) {
+        return sendJson(res, 200, {
+          ok: true,
+          authenticated: false,
+          profile: null
+        });
+      }
+      return sendJson(res, 200, {
+        ok: true,
+        authenticated: true,
+        profile: publicOnboardingProfile(auth.profile)
+      });
+    }
+
+    if (pathname === "/api/onboarding/start" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const profile = normalizeOnboardingProfile(body?.profile || body);
+      const validationError = validateOnboardingProfile(profile);
+      if (validationError) {
+        return sendJson(res, 400, { ok: false, error: validationError });
+      }
+      const session = createOnboardingSession(profile);
+      return sendJson(
+        res,
+        200,
+        {
+          ok: true,
+          profile: publicOnboardingProfile(session.profile)
+        },
+        { "Set-Cookie": createSessionCookie(session.token) }
+      );
+    }
+
+    if (pathname === "/api/onboarding/logout" && req.method === "POST") {
+      const cookies = parseCookies(req.headers.cookie || "");
+      destroyBetaSession(cookies[SESSION_COOKIE_NAME]);
+      await readJsonBody(req).catch(() => ({}));
+      return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
+    }
+
     if (pathname === "/api/ai-coach" && req.method === "POST") {
       const body = await readJsonBody(req);
-      const auth = authenticateBetaRequest(req);
+      const accessMode = resolveAccessMode(readBetaUsers().length > 0);
+      const auth = accessMode === "beta" ? authenticateBetaRequest(req) : authenticateOnboardingRequest(req);
       if (!auth) {
-        return sendJson(res, 401, { ok: false, error: "Inicia sesión para usar el coach." });
+        return sendJson(
+          res,
+          401,
+          {
+            ok: false,
+            error:
+              accessMode === "beta"
+                ? "Inicia sesión para usar el coach."
+                : "Completa tu onboarding para usar el coach."
+          }
+        );
       }
       if (!openaiClient) {
         return sendJson(res, 503, { ok: false, error: "Coach no configurado (falta OPENAI_API_KEY en el servidor)." });
@@ -185,7 +244,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { ok: false, error: "Escribe una pregunta." });
       }
 
-      const userId = auth.user.id;
+      const userId = accessMode === "beta" ? auth.user.id : auth.profile.id;
       const monthKey = currentMonthKey();
       const queriesThisMonth = countMonthlyQueries(userId, monthKey);
       if (queriesThisMonth >= AI_MONTHLY_LIMIT) {
@@ -222,11 +281,10 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Comfort Ledger beta → http://127.0.0.1:${PORT}/`);
+  const betaEnabled = readBetaUsers().length > 0;
+  console.log(`Comfort Ledger hosted → http://127.0.0.1:${PORT}/`);
   console.log(
-    `Landing demo: ${LANDING_DEMO_MS / 60000} min (sin sesión) · Subscribe: ${SUBSCRIBE_URL} · COMFORT_REQUIRE_BETA_LOGIN=${String(
-      process.env.COMFORT_REQUIRE_BETA_LOGIN || "(default if beta users)"
-    )}`
+    `Access mode: ${resolveAccessMode(betaEnabled)} · Landing demo: ${LANDING_DEMO_MS / 60000} min · Subscribe: ${SUBSCRIBE_URL}`
   );
 });
 
@@ -314,21 +372,45 @@ function pruneExpiredSessions() {
   return activeSessions;
 }
 
-function createBetaSession(userId) {
+function resolveAccessMode(betaEnabled = readBetaUsers().length > 0) {
+  const raw = String(process.env.COMFORT_ACCESS_MODE || "onboarding")
+    .trim()
+    .toLowerCase();
+  if (raw === "beta" && betaEnabled) {
+    return "beta";
+  }
+  return "onboarding";
+}
+
+function createHostedSession(payload = {}) {
+  const kind = payload.kind === "beta" ? "beta" : "onboarding";
   const sessions = pruneExpiredSessions();
   const now = new Date();
   const token = crypto.randomBytes(32).toString("hex");
   const session = {
     id: `session-${crypto.randomUUID()}`,
+    kind,
     tokenHash: hashSessionToken(token),
-    userId,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString()
   };
+  if (kind === "beta") {
+    session.userId = String(payload.userId || "");
+  } else {
+    session.profile = normalizeOnboardingProfile(payload.profile);
+  }
   sessions.unshift(session);
   writeBetaSessions(sessions);
   return { ...session, token };
+}
+
+function createBetaSession(userId) {
+  return createHostedSession({ kind: "beta", userId });
+}
+
+function createOnboardingSession(profile) {
+  return createHostedSession({ kind: "onboarding", profile });
 }
 
 function destroyBetaSession(token) {
@@ -340,11 +422,7 @@ function destroyBetaSession(token) {
   writeBetaSessions(sessions);
 }
 
-function authenticateBetaRequest(req) {
-  const users = readBetaUsers();
-  if (!users.length) {
-    return null;
-  }
+function readSessionFromRequest(req) {
   const cookies = parseCookies(req.headers.cookie || "");
   const token = cookies[SESSION_COOKIE_NAME];
   if (!token) {
@@ -356,18 +434,43 @@ function authenticateBetaRequest(req) {
   if (sessionIndex < 0) {
     return null;
   }
-  const user = users.find((entry) => entry.id === sessions[sessionIndex].userId);
-  if (!user) {
-    destroyBetaSession(token);
-    return null;
-  }
   sessions[sessionIndex] = {
     ...sessions[sessionIndex],
     updatedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
   };
   writeBetaSessions(sessions);
-  return { session: sessions[sessionIndex], user };
+  return { token, session: sessions[sessionIndex] };
+}
+
+function authenticateBetaRequest(req) {
+  const users = readBetaUsers();
+  if (!users.length) {
+    return null;
+  }
+  const activeSession = readSessionFromRequest(req);
+  if (!activeSession || activeSession.session.kind !== "beta") {
+    return null;
+  }
+  const user = users.find((entry) => entry.id === activeSession.session.userId);
+  if (!user) {
+    destroyBetaSession(activeSession.token);
+    return null;
+  }
+  return { session: activeSession.session, user };
+}
+
+function authenticateOnboardingRequest(req) {
+  const activeSession = readSessionFromRequest(req);
+  if (!activeSession || activeSession.session.kind !== "onboarding") {
+    return null;
+  }
+  const profile = normalizeOnboardingProfile(activeSession.session.profile);
+  if (!profile) {
+    destroyBetaSession(activeSession.token);
+    return null;
+  }
+  return { session: activeSession.session, profile };
 }
 
 function publicBetaUser(user) {
@@ -376,6 +479,60 @@ function publicBetaUser(user) {
     displayName: user.displayName || "Beta",
     slot: user.slot || null,
     username: normalizeUsername(user.username)
+  };
+}
+
+function normalizeOnboardingProfile(input) {
+  if (!input || typeof input !== "object") {
+    return null;
+  }
+  const displayName = String(input.displayName || input.name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 60);
+  if (!displayName) {
+    return null;
+  }
+  const rawId = String(input.id || "").trim();
+  const rawEmail = String(input.email || "").trim().toLowerCase();
+  const focus = String(input.focus || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 180);
+  const createdAt = String(input.createdAt || new Date().toISOString());
+  return {
+    id: rawId || `visitor-${crypto.randomUUID()}`,
+    displayName,
+    email: rawEmail.slice(0, 120),
+    focus,
+    createdAt
+  };
+}
+
+function validateOnboardingProfile(profile) {
+  if (!profile || !profile.displayName) {
+    return "Escribe tu nombre para continuar.";
+  }
+  if (profile.displayName.length < 2) {
+    return "Tu nombre debe tener al menos 2 caracteres.";
+  }
+  if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+    return "Revisa el correo antes de continuar.";
+  }
+  return "";
+}
+
+function publicOnboardingProfile(profile) {
+  const normalized = normalizeOnboardingProfile(profile);
+  if (!normalized) {
+    return null;
+  }
+  return {
+    id: normalized.id,
+    displayName: normalized.displayName,
+    email: normalized.email,
+    focus: normalized.focus,
+    createdAt: normalized.createdAt
   };
 }
 
@@ -553,6 +710,8 @@ function buildComfortCoachPrompt(body, history, question) {
   const goals = sanitizeSensitiveText(JSON.stringify(body?.goals || []));
   const priorityDebt = sanitizeSensitiveText(String(body?.priorityDebt || "N/A"));
   const narrative = sanitizeSensitiveText(String(body?.comfortNarrative || ""));
+  const viewerName = sanitizeSensitiveText(String(body?.viewerName || "N/A"));
+  const viewerFocus = sanitizeSensitiveText(String(body?.viewerFocus || "N/A"));
   const uiLanguage = normalizeUiLanguage(body?.language);
   const historyText = history.length
     ? history.map((entry, index) => `(${index + 1}) Q: ${entry.question} | A: ${entry.answer}`).join("\n")
@@ -564,6 +723,7 @@ function buildComfortCoachPrompt(body, history, question) {
     "Comfort Ledger snapshot (numbers; labels in English):",
     `income_month ${income}, monthly_expenses ${monthlyExpenses}, monthly_debt_min ${monthlyDebtPay},`,
     `liquid_savings ${savings}, total_debt ${totalDebt}, free_cash_after_goals_hint ${freeCash}, expense_ratio_of_income ${expenseLoad}.`,
+    `viewer_name: ${viewerName}. viewer_focus: ${viewerFocus}.`,
     `goals_json: ${goals}. priority_debt_label: ${priorityDebt}.`,
     `health_narrative: ${narrative}`,
     "",

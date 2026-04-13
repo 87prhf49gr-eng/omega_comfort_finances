@@ -303,6 +303,36 @@ body.lang-zh .dash-tactical-title {
   margin-left: auto;
 }
 
+.host-profile {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+}
+
+.host-profile[hidden] {
+  display: none !important;
+}
+
+.host-profile-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.host-profile-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.host-profile-note {
+  font-size: 0.74rem;
+  color: var(--text-soft);
+}
+
 @media (max-width: 640px) {
   .app {
     padding-top: 22px;
@@ -334,6 +364,14 @@ body.lang-zh .dash-tactical-title {
 
   .hint {
     margin-left: 0;
+  }
+
+  .host-profile {
+    justify-content: flex-start;
+  }
+
+  .host-profile-copy {
+    align-items: flex-start;
   }
 
   .donut-wrap {
@@ -2174,7 +2212,8 @@ body.lang-zh .dash-tactical-title {
   font-size: 0.85rem;
   color: var(--text-soft);
 }
-.comfort-beta-field input {
+.comfort-beta-field input,
+.comfort-beta-field textarea {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.55rem 0.65rem;
@@ -2182,10 +2221,19 @@ body.lang-zh .dash-tactical-title {
   background: var(--surface-2);
   color: var(--text);
 }
+.comfort-beta-field textarea {
+  min-height: 84px;
+  resize: vertical;
+}
 .comfort-beta-err {
   color: var(--negative);
   font-size: 0.85rem;
   margin: 0 0 0.5rem;
+}
+.comfort-beta-note {
+  margin: 0 0 0.8rem;
+  font-size: 0.82rem;
+  color: var(--text-soft);
 }
 .comfort-beta-actions {
   display: flex;
@@ -2222,6 +2270,43 @@ body.comfort--hosted .app {
 </style>
 </head>
 <body>
+  <div
+    id="comfortOnboardingGate"
+    class="comfort-beta-overlay comfort-beta-overlay--hidden"
+    aria-hidden="true"
+  >
+    <div class="comfort-beta-card" role="dialog" aria-modal="true" aria-labelledby="comfortOnboardingTitle">
+      <h2 id="comfortOnboardingTitle" data-i18n="onboarding_title">Welcome to Comfort Ledger</h2>
+      <p class="beta-lede" data-i18n-html="onboarding_intro_html">Leave your name and how you want to use the app. We keep it on this device so you can come back straight in.</p>
+      <p class="comfort-beta-note" data-i18n="onboarding_saved_note">Saved on this device.</p>
+      <form id="comfortOnboardingForm" autocomplete="on">
+        <div class="comfort-beta-field">
+          <label for="comfortOnboardingName" data-i18n="onboarding_name">Name</label>
+          <input id="comfortOnboardingName" name="displayName" autocomplete="name" required />
+        </div>
+        <div class="comfort-beta-field">
+          <label for="comfortOnboardingEmail" data-i18n="onboarding_email">Email</label>
+          <input id="comfortOnboardingEmail" name="email" type="email" autocomplete="email" />
+        </div>
+        <div class="comfort-beta-field">
+          <label for="comfortOnboardingFocus" data-i18n="onboarding_focus">What do you want to organize first?</label>
+          <textarea
+            id="comfortOnboardingFocus"
+            name="focus"
+            data-i18n-attr="placeholder|onboarding_focus_placeholder"
+            placeholder="Example: subscriptions, card debt, monthly cash flow."
+          ></textarea>
+        </div>
+        <p id="comfortOnboardingErr" class="comfort-beta-err" hidden></p>
+        <div class="comfort-beta-actions">
+          <button type="submit" class="btn-coach" data-i18n="onboarding_submit">Continue</button>
+          <button type="button" class="btn-ghost" id="comfortOnboardingCancel" data-i18n="onboarding_cancel" hidden>
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
   <div
     id="comfortBetaLogin"
     class="comfort-beta-overlay comfort-beta-overlay--hidden"
@@ -2300,6 +2385,13 @@ body.comfort--hosted .app {
           <div class="trust-row">
             <span class="pill-trust" data-i18n="pill_local">100% local</span>
             <span class="pill-trust pill-trust--muted" data-i18n="pill_offline">Sin conexión a red</span>
+          </div>
+          <div class="host-profile" id="comfortProfileCard" hidden>
+            <div class="host-profile-copy">
+              <strong class="host-profile-name" id="comfortProfileName">—</strong>
+              <span class="host-profile-note" data-i18n="onboarding_saved_note">Guardado en este dispositivo.</span>
+            </div>
+            <button type="button" class="btn-ghost" id="comfortProfileEditBtn" data-i18n="onboarding_edit">Editar</button>
           </div>
           <p class="hint" data-i18n-html="hint_offline_html">¿No carga? En la carpeta del proyecto abre <strong>COMFORT-LEDGER-abrir-aqui.html</strong> (un solo archivo, sin servidor).</p>
         </div>
@@ -2508,6 +2600,7 @@ const NOTIFY_LOG_KEY = "comfort_ledger_notify_v1";
 
 window.__COMFORT_HOSTED = false;
 window.__COMFORT_AI_COACH = false;
+window.__COMFORT_ACCESS_MODE = "onboarding";
 window.__COMFORT_SUBSCRIBE_URL = "";
 window.__COMFORT_DEMO_EXPIRES_AT = null;
 window.__COMFORT_SESSION_ACTIVE = false;
@@ -2714,6 +2807,151 @@ function wireTrialModal() {
   }
 }
 
+async function fetchHostedSession(endpoint) {
+  try {
+    const res = await fetch(endpoint, { credentials: "include" });
+    if (!res.ok) {
+      return {};
+    }
+    return await res.json();
+  } catch {
+    return {};
+  }
+}
+
+async function startOnboardingSession(profile) {
+  const normalized = normalizeProfile(profile);
+  if (!normalized) {
+    throw new Error(t("onboarding_error"));
+  }
+  const res = await fetch("/api/onboarding/start", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile: normalized, language: UI_LOCALE })
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || t("onboarding_error"));
+  }
+  return normalizeProfile(data.profile || normalized) || normalized;
+}
+
+async function showOnboardingUntilDone(existingProfile = null) {
+  const shell = document.getElementById("comfortOnboardingGate");
+  if (!shell) {
+    return existingProfile;
+  }
+  const profile = normalizeProfile(existingProfile);
+  const form = document.getElementById("comfortOnboardingForm");
+  const nameInput = document.getElementById("comfortOnboardingName");
+  const emailInput = document.getElementById("comfortOnboardingEmail");
+  const focusInput = document.getElementById("comfortOnboardingFocus");
+  const err = document.getElementById("comfortOnboardingErr");
+  const cancel = document.getElementById("comfortOnboardingCancel");
+
+  if (nameInput) nameInput.value = profile?.displayName || "";
+  if (emailInput) emailInput.value = profile?.email || "";
+  if (focusInput) focusInput.value = profile?.focus || "";
+  if (err) {
+    err.hidden = true;
+    err.textContent = "";
+  }
+  if (cancel) {
+    cancel.hidden = !profile;
+  }
+
+  shell.classList.remove("comfort-beta-overlay--hidden");
+  shell.setAttribute("aria-hidden", "false");
+  document.body.classList.add("comfort--gate-active");
+  applyStaticI18n();
+
+  return new Promise((resolve) => {
+    if (!form) {
+      document.body.classList.remove("comfort--gate-active");
+      resolve(profile);
+      return;
+    }
+
+    const closeShell = () => {
+      shell.classList.add("comfort-beta-overlay--hidden");
+      shell.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("comfort--gate-active");
+      form.removeEventListener("submit", onSubmit);
+      cancel?.removeEventListener("click", onCancel);
+    };
+
+    const onCancel = () => {
+      closeShell();
+      resolve(profile);
+    };
+
+    const onSubmit = async (ev) => {
+      ev.preventDefault();
+      if (err) {
+        err.hidden = true;
+        err.textContent = "";
+      }
+      const nextProfile = normalizeProfile({
+        id: profile?.id,
+        createdAt: profile?.createdAt,
+        displayName: nameInput?.value || "",
+        email: emailInput?.value || "",
+        focus: focusInput?.value || ""
+      });
+      if (!nextProfile) {
+        if (err) {
+          err.textContent = t("onboarding_error");
+          err.hidden = false;
+        }
+        return;
+      }
+      try {
+        const savedProfile = await startOnboardingSession(nextProfile);
+        setStoredProfile(savedProfile);
+        window.__COMFORT_SESSION_ACTIVE = true;
+        stopDemoBar();
+        window.__COMFORT_DEMO_EXPIRES_AT = null;
+        window.__COMFORT_LANDING_DEMO = false;
+        closeShell();
+        resolve(savedProfile);
+      } catch (error) {
+        if (err) {
+          err.textContent = String(error?.message || t("onboarding_error"));
+          err.hidden = false;
+        }
+      }
+    };
+
+    form.addEventListener("submit", onSubmit);
+    cancel?.addEventListener("click", onCancel);
+  });
+}
+
+async function ensureOnboardingSession() {
+  let sessionJson = await fetchHostedSession("/api/onboarding/session");
+  if (sessionJson.authenticated) {
+    const sessionProfile = normalizeProfile(sessionJson.profile);
+    if (sessionProfile) {
+      setStoredProfile(sessionProfile);
+    }
+    return sessionProfile || getStoredProfile();
+  }
+
+  const localProfile = getStoredProfile();
+  if (localProfile) {
+    try {
+      const restoredProfile = await startOnboardingSession(localProfile);
+      setStoredProfile(restoredProfile);
+      return restoredProfile;
+    } catch {
+      /* ignore and fall through to modal */
+    }
+  }
+
+  return showOnboardingUntilDone(localProfile);
+}
+
 async function showBetaLoginUntilDone() {
   const shell = document.getElementById("comfortBetaLogin");
   if (!shell) {
@@ -2721,6 +2959,7 @@ async function showBetaLoginUntilDone() {
   }
   shell.classList.remove("comfort-beta-overlay--hidden");
   shell.setAttribute("aria-hidden", "false");
+  document.body.classList.add("comfort--gate-active");
   applyStaticI18n();
   return new Promise((resolve) => {
     const form = document.getElementById("comfortBetaLoginForm");
@@ -2803,45 +3042,16 @@ async function initComfortHostedMode() {
   }
 
   window.__COMFORT_HOSTED = true;
+  window.__COMFORT_ACCESS_MODE = String(cfg.accessMode || "onboarding");
   window.__COMFORT_SUBSCRIBE_URL = String(cfg.subscribeUrl || "").trim() || "https://example.com";
   window.__COMFORT_AI_COACH = Boolean(cfg.aiCoachConfigured);
   window.__COMFORT_REQUIRE_BETA_LOGIN = Boolean(cfg.requireBetaLogin);
   window.__COMFORT_LANDING_DEMO_MS = Number(cfg.landingDemoMs) || 0;
   document.body.classList.add("comfort--hosted");
 
-  let sessionJson = {};
-  try {
-    const sessionRes = await fetch("/api/beta/session", { credentials: "include" });
-    if (sessionRes.ok) {
-      sessionJson = await sessionRes.json();
-    }
-  } catch {
-    sessionJson = {};
-  }
-
-  const wantsBetaGate = Boolean(cfg.requireBetaLogin && cfg.betaEnabled);
-
-  if (sessionJson.authenticated) {
-    try {
-      sessionStorage.removeItem("comfort_landing_demo_until_ms");
-    } catch {
-      /* ignore */
-    }
-    window.__COMFORT_DEMO_EXPIRES_AT = null;
-    window.__COMFORT_LANDING_DEMO = false;
-    window.__COMFORT_SESSION_ACTIVE = true;
-    stopDemoBar();
-    applyHostedCoachCopy();
-  } else if (wantsBetaGate) {
-    await showBetaLoginUntilDone();
-    let j2 = {};
-    try {
-      const s2 = await fetch("/api/beta/session", { credentials: "include" });
-      j2 = s2.ok ? await s2.json() : {};
-    } catch {
-      j2 = {};
-    }
-    window.__COMFORT_SESSION_ACTIVE = Boolean(j2.authenticated);
+  if (window.__COMFORT_ACCESS_MODE === "onboarding") {
+    const onboardingProfile = await ensureOnboardingSession();
+    window.__COMFORT_SESSION_ACTIVE = Boolean(onboardingProfile);
     try {
       sessionStorage.removeItem("comfort_landing_demo_until_ms");
     } catch {
@@ -2850,11 +3060,41 @@ async function initComfortHostedMode() {
     window.__COMFORT_DEMO_EXPIRES_AT = null;
     window.__COMFORT_LANDING_DEMO = false;
     stopDemoBar();
+    renderHostedProfileCard();
     applyHostedCoachCopy();
   } else {
-    window.__COMFORT_SESSION_ACTIVE = false;
-    applyHostedCoachCopy();
-    startLandingDemoCountdown(window.__COMFORT_LANDING_DEMO_MS);
+    const sessionJson = await fetchHostedSession("/api/beta/session");
+    const wantsBetaGate = Boolean(cfg.requireBetaLogin && cfg.betaEnabled);
+
+    if (sessionJson.authenticated) {
+      try {
+        sessionStorage.removeItem("comfort_landing_demo_until_ms");
+      } catch {
+        /* ignore */
+      }
+      window.__COMFORT_DEMO_EXPIRES_AT = null;
+      window.__COMFORT_LANDING_DEMO = false;
+      window.__COMFORT_SESSION_ACTIVE = true;
+      stopDemoBar();
+      applyHostedCoachCopy();
+    } else if (wantsBetaGate) {
+      await showBetaLoginUntilDone();
+      const j2 = await fetchHostedSession("/api/beta/session");
+      window.__COMFORT_SESSION_ACTIVE = Boolean(j2.authenticated);
+      try {
+        sessionStorage.removeItem("comfort_landing_demo_until_ms");
+      } catch {
+        /* ignore */
+      }
+      window.__COMFORT_DEMO_EXPIRES_AT = null;
+      window.__COMFORT_LANDING_DEMO = false;
+      stopDemoBar();
+      applyHostedCoachCopy();
+    } else {
+      window.__COMFORT_SESSION_ACTIVE = false;
+      applyHostedCoachCopy();
+      startLandingDemoCountdown(window.__COMFORT_LANDING_DEMO_MS);
+    }
   }
 
   if (comfortSessionPoll) {
@@ -2868,11 +3108,23 @@ async function initComfortHostedMode() {
       return;
     }
     try {
-      const r = await fetch("/api/beta/session", { credentials: "include" });
-      const j = r.ok ? await r.json() : {};
+      const endpoint =
+        window.__COMFORT_ACCESS_MODE === "onboarding" ? "/api/onboarding/session" : "/api/beta/session";
+      const j = await fetchHostedSession(endpoint);
       if (!j.authenticated) {
-        window.__COMFORT_SESSION_ACTIVE = false;
-        applyHostedCoachCopy();
+        if (window.__COMFORT_ACCESS_MODE === "onboarding") {
+          const restoredProfile = await ensureOnboardingSession();
+          window.__COMFORT_SESSION_ACTIVE = Boolean(restoredProfile);
+          renderHostedProfileCard();
+        } else {
+          window.__COMFORT_SESSION_ACTIVE = false;
+          applyHostedCoachCopy();
+        }
+      } else if (window.__COMFORT_ACCESS_MODE === "onboarding") {
+        const sessionProfile = normalizeProfile(j.profile);
+        if (sessionProfile) {
+          setStoredProfile(sessionProfile);
+        }
       }
     } catch {
       /* ignore */
@@ -2888,6 +3140,7 @@ async function comfortCoachAskOpenAI(text, snap) {
     months: Number(g.months) || 0
   }));
   const cardRow = (state.debts || []).find((d) => d && d.debtType === "card");
+  const profile = getStoredProfile();
   const payload = {
     question: text,
     language: UI_LOCALE,
@@ -2901,7 +3154,9 @@ async function comfortCoachAskOpenAI(text, snap) {
     collectionRate: 0,
     goals,
     priorityDebt: cardRow ? String(cardRow.label || "").slice(0, 80) : "",
-    comfortNarrative: String(snap.narrative || "").slice(0, 500)
+    comfortNarrative: String(snap.narrative || "").slice(0, 500),
+    viewerName: profile?.displayName || "",
+    viewerFocus: profile?.focus || ""
   };
   const res = await fetch("/api/ai-coach", {
     method: "POST",
@@ -3090,6 +3345,18 @@ const UI_STRINGS = {
     coach_placeholder: "Ej.: ¿Estoy cómodo con 10k ahorrados si debo 9.2k?",
     coach_send: "Enviar",
     coach_status: "Coach local (reglas + tus números). No llama a Omega ni a internet.",
+    onboarding_title: "Tu espacio en Comfort Ledger",
+    onboarding_intro_html:
+      "Antes de entrar, deja tu <strong>nombre</strong> y, si quieres, tu <strong>correo</strong> y tu enfoque. Lo guardamos <strong>en este dispositivo</strong> para que vuelvas directo.",
+    onboarding_name: "Nombre",
+    onboarding_email: "Correo (opcional)",
+    onboarding_focus: "¿Qué quieres ordenar primero?",
+    onboarding_focus_placeholder: "Ej.: suscripciones, tarjetas, flujo mensual o metas.",
+    onboarding_submit: "Continuar",
+    onboarding_cancel: "Cerrar",
+    onboarding_error: "No se pudo guardar tu acceso. Revisa tus datos e inténtalo otra vez.",
+    onboarding_saved_note: "Guardado en este dispositivo.",
+    onboarding_edit: "Editar perfil",
     beta_login_title: "Comfort Ledger — Beta",
     beta_login_intro: "Acceso restringido. Usa el usuario y contraseña que te enviaron.",
     beta_login_user: "Usuario",
@@ -3331,6 +3598,18 @@ const UI_STRINGS = {
     coach_placeholder: "E.g.: Am I comfortable with 10k saved if I owe 9.2k?",
     coach_send: "Send",
     coach_status: "Local coach (rules + your numbers). Does not call Omega or the internet.",
+    onboarding_title: "Your space in Comfort Ledger",
+    onboarding_intro_html:
+      "Before you enter, leave your <strong>name</strong> and, if you want, your <strong>email</strong> and focus. We keep it <strong>on this device</strong> so you come back straight in.",
+    onboarding_name: "Name",
+    onboarding_email: "Email (optional)",
+    onboarding_focus: "What do you want to organize first?",
+    onboarding_focus_placeholder: "E.g. subscriptions, card debt, monthly cash flow, or goals.",
+    onboarding_submit: "Continue",
+    onboarding_cancel: "Close",
+    onboarding_error: "Could not save your access. Check your details and try again.",
+    onboarding_saved_note: "Saved on this device.",
+    onboarding_edit: "Edit profile",
     beta_login_title: "Comfort Ledger — Beta",
     beta_login_intro: "Restricted access. Use the username and password you were sent.",
     beta_login_user: "Username",
@@ -3569,6 +3848,18 @@ const UI_STRINGS = {
     coach_placeholder: "例：若欠款 9.2k，储蓄 1 万是否安心？",
     coach_send: "发送",
     coach_status: "本地顾问（规则+你的数据）。不调用 Omega 或互联网。",
+    onboarding_title: "你的 Comfort Ledger 空间",
+    onboarding_intro_html:
+      "进入前先留下你的<strong>姓名</strong>，以及可选的<strong>邮箱</strong>和使用重点。资料会<strong>保存在此设备</strong>，下次可直接进入。",
+    onboarding_name: "姓名",
+    onboarding_email: "邮箱（可选）",
+    onboarding_focus: "你想先整理什么？",
+    onboarding_focus_placeholder: "例如：订阅、信用卡债务、每月现金流或目标。",
+    onboarding_submit: "继续",
+    onboarding_cancel: "关闭",
+    onboarding_error: "无法保存你的访问资料，请检查后重试。",
+    onboarding_saved_note: "已保存在此设备。",
+    onboarding_edit: "编辑资料",
     beta_login_title: "Comfort Ledger — 内测",
     beta_login_intro: "仅限受邀。请输入运营方提供的用户名与密码。",
     beta_login_user: "用户名",
@@ -3919,6 +4210,7 @@ function setLocale(next) {
   const meta = document.querySelector('meta[name="description"]');
   if (meta) meta.setAttribute("content", t("meta_description"));
   applyStaticI18n();
+  renderHostedProfileCard();
   applyHostedCoachCopy();
   updateLangButtons();
   renderAll();
@@ -3944,6 +4236,7 @@ function monthIncomeLabel(ref = new Date()) {
 }
 
 const defaultState = () => ({
+  profile: null,
   incomeLines: [{ id: "inc-main", label: "Cobro principal", amount: 6000, date: formatDateInput() }],
   liquidSavings: 10000,
   expenses: [
@@ -3997,6 +4290,29 @@ function fmtMoney(n) {
 
 function createId(prefix) {
   return `${prefix}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function normalizeProfile(profile) {
+  if (!profile || typeof profile !== "object") {
+    return null;
+  }
+  const displayName = String(profile.displayName || profile.name || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 60);
+  if (!displayName) {
+    return null;
+  }
+  const id = String(profile.id || "").trim().slice(0, 80) || `visitor-${createId("profile")}`;
+  const email = String(profile.email || "")
+    .trim()
+    .slice(0, 120);
+  const focus = String(profile.focus || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .slice(0, 180);
+  const createdAt = String(profile.createdAt || new Date().toISOString());
+  return { id, displayName, email, focus, createdAt };
 }
 
 function normalizeCadence(c) {
@@ -4257,8 +4573,10 @@ function loadState() {
       : base.subscriptions.slice();
     const lsParsed = parseNum(data.liquidSavings);
     const liquidSavings = Number.isFinite(lsParsed) ? lsParsed : base.liquidSavings;
+    const profile = normalizeProfile(data.profile) || base.profile;
     return {
       ...base,
+      profile,
       incomeLines,
       liquidSavings,
       expenses,
@@ -4274,6 +4592,32 @@ function loadState() {
 
 function saveState(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function getStoredProfile() {
+  return normalizeProfile(state?.profile);
+}
+
+function setStoredProfile(profile) {
+  state.profile = normalizeProfile(profile);
+  saveState(state);
+  renderHostedProfileCard();
+}
+
+function renderHostedProfileCard() {
+  const card = document.getElementById("comfortProfileCard");
+  const name = document.getElementById("comfortProfileName");
+  const profile = getStoredProfile();
+  const shouldShow = Boolean(window.__COMFORT_HOSTED && window.__COMFORT_ACCESS_MODE === "onboarding" && profile);
+  if (!card || !name) {
+    return;
+  }
+  card.hidden = !shouldShow;
+  if (!shouldShow) {
+    name.textContent = "—";
+    return;
+  }
+  name.textContent = profile.displayName;
 }
 
 function monthlyFromExpense(exp) {
@@ -4568,6 +4912,8 @@ function collectEls() {
     coachForm: document.getElementById("coachForm"),
     coachInput: document.getElementById("coachInput"),
     coachStatus: document.getElementById("coachStatus"),
+    profileCard: document.getElementById("comfortProfileCard"),
+    profileEditBtn: document.getElementById("comfortProfileEditBtn"),
     addIncomeBtn: document.getElementById("addIncomeBtn"),
     addExpenseBtn: document.getElementById("addExpenseBtn"),
     addDebtBtn: document.getElementById("addDebtBtn"),
@@ -6032,6 +6378,10 @@ function bind() {
       setLocale(loc);
     });
   });
+
+  els.profileEditBtn?.addEventListener("click", () => {
+    void showOnboardingUntilDone(getStoredProfile());
+  });
 }
 
 function coerceParsedNumber(raw) {
@@ -6052,6 +6402,7 @@ function bootComfortLedger() {
   const metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc) metaDesc.setAttribute("content", t("meta_description"));
   applyStaticI18n();
+  renderHostedProfileCard();
   updateLangButtons();
   applyHostedCoachCopy();
   comfortWirePostDashOnce();
