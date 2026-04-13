@@ -36,7 +36,7 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - `COMFORT_REQUIRE_BETA_LOGIN`
   - `COMFORT_DATA_DIR`
 - **Persistencia:** `data/beta-sessions.json` no va en git. En un servicio con filesystem efímero, las sesiones se reinician al redeploy o reinicio salvo que montes disco persistente.
-- **Disk recomendado para beta estable:** monta un disco en `/var/data` y define `COMFORT_DATA_DIR=/var/data`. Si el disco arranca vacío, el servidor ahora copia automáticamente `beta-users.json` versionado a ese directorio.
+- **Disk recomendado para beta estable:** monta un disco en `/var/data` y define `COMFORT_DATA_DIR=/var/data`. Si el disco arranca vacío, el servidor copia automáticamente `beta-users.json` versionado a ese directorio. En deploys posteriores, si el `beta-users.json` del repo cambia, el servidor lo resincroniza al disco persistente y vacía `beta-sessions.json` para forzar login con las credenciales nuevas.
 
 ### Pasos rápidos
 

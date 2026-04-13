@@ -4,8 +4,8 @@
     "slot": 1,
     "displayName": "Beta tester 1",
     "username": "beta01",
-    "pinSalt": "eb9149dafed29bd9af0d973355aba00a",
-    "pinHash": "15b4e3d54d52312b0bb3c2b7aa885cb7faef75937ee38fd0a5eb670379819f1127ac4810d9d0bc481345feed7253a47950aae8943558c1e594730fd13c75c146",
+    "pinSalt": "2fcf8c62789f89773bd691357b160071",
+    "pinHash": "e1b63d6dc8ea82bf9c7ef37b00cc5f95137e0bc3b363923c8cc953cc9f731d480a6169a30907739e63a906ee61ab377ee1736022d9095a54ffc32a2c77582767",
     "active": true
   },
   {
@@ -13,8 +13,8 @@
     "slot": 2,
     "displayName": "Beta tester 2",
     "username": "beta02",
-    "pinSalt": "32ee30a3b8b70ab04b83fa0fe92e1248",
-    "pinHash": "36d943dc93f3fa4223cd6df07abe7a5c7dc82be9d42e884957aceefc4bf775f1f410f1d819e115f299ddbf04d11e2d4c318672afc7d78a165d389dbb0b6b1100",
+    "pinSalt": "9aa2439fa99fab127a330cbdaaaa4e41",
+    "pinHash": "42c8308e7faeb6c78fc550a80ea318b893840299b92aa6834bb84a02e87a97e8c75004cbcbfd9a33f530b2a0b992511f214c4004d29a2f13bb99716ac25dc567",
     "active": true
   },
   {
@@ -22,8 +22,8 @@
     "slot": 3,
     "displayName": "Beta tester 3",
     "username": "beta03",
-    "pinSalt": "39f08fb139a298dda1e4a966d9f7e44f",
-    "pinHash": "40d40f16c659d12c14c145724385b21f52f049d346c5413fbe35537fcab5debac1b744f95ffb504b0731947ac4b6f5e83bcaa7954eda185f9c63e4738bbfd159",
+    "pinSalt": "28c7e2001112b8ffb106bc2f725d8910",
+    "pinHash": "289f2dfa7fff6d77de793a5e6278895b4f18eefeb7ebd2ec3219612b4dded4dec27ac349e1a07b653f2f980c8b7e742d4d1cb6f2b1f31c735ee7e7e411d3a756",
     "active": true
   },
   {
@@ -31,8 +31,8 @@
     "slot": 4,
     "displayName": "Beta tester 4",
     "username": "beta04",
-    "pinSalt": "03a8551eac433b911e9c4f361d1a31d4",
-    "pinHash": "85dce90ab326e21c4ab07b6db2c81fea1bbfb4a3dd49b0376f324d7b90ef186c3b79ef5f2d73a6cece51b18bbf864cf2a0fb818f7ea2ed5ea8ed688637e89da6",
+    "pinSalt": "fcad2dd9b98880a4fabd07296b4a8d1a",
+    "pinHash": "277cf122159c25b1e9446441f9eff3b652d0ab4e9297729954fa220f3eeac2b718fc97897b99bdc4ccbd2f5408d9cb56f1ce38d81ed972658b763cb8f1e31855",
     "active": true
   },
   {
@@ -40,8 +40,8 @@
     "slot": 5,
     "displayName": "Beta tester 5",
     "username": "beta05",
-    "pinSalt": "5e8798e7b019fe2cfd246762893cb1b6",
-    "pinHash": "cbf63fe036216d454f33ffe339f6d7f8ee6455798ac2be272fd769400fbc200113f39f46f9e5d9e8a87dfceda69d6c441e418d8ffdb09eb5f2044932c34fa116",
+    "pinSalt": "d676bf04b8ef63834517cccbe80e0327",
+    "pinHash": "07b28dd89e3cff88f2a2e36b602881cc4f7286f5fdee171e7a47aba32a88742f3bd19db2f56521712ebd9021ba6b63b06e34f929d7861f05d8226c687fdce535",
     "active": true
   },
   {
@@ -49,8 +49,8 @@
     "slot": 6,
     "displayName": "Beta tester 6",
     "username": "beta06",
-    "pinSalt": "8efd49a18091a107808a7b31e603aa80",
-    "pinHash": "93ed05a203bf372fbac9199b6f00624af27d7b778d5d88a2664098effd66edb74d8dc7a16b65f8f2f160d9c86d4f47101ca0882dacb83aaa1a28c1ef46118e50",
+    "pinSalt": "eaad32cdafd45ead22fa0115a4cc798f",
+    "pinHash": "9cbc9f4be1474f8ece8712d16653878cd1fa7c346419fc12527f276dcc3647160901e40060845caf9b7af15a9d9170e8f08f795a868fb5f11fbd01913e7e6a9f",
     "active": true
   },
   {
@@ -58,8 +58,8 @@
     "slot": 7,
     "displayName": "Beta tester 7",
     "username": "beta07",
-    "pinSalt": "38a26515f80e6a3b5205db7219b793ec",
-    "pinHash": "8069a663daf7e5c13335b3cfef438db44442d446b2db799499d860f049f84c440faf61e119af2b83e10fd47027a51c5cbfbe1fd28ecacc48328d61e7f12c8ea4",
+    "pinSalt": "bb3c2472b1dbda13036e7a896eca9396",
+    "pinHash": "30a0a91791c79baa981d22b1a5fc23dd32dfabdb3f33869ee25a4aae11f5c90f937c32dda4c255cd4ab65f030da9ec0574b53c8f3dbbf82279a62f5d1adbb771",
     "active": true
   },
   {
@@ -67,8 +67,8 @@
     "slot": 8,
     "displayName": "Beta tester 8",
     "username": "beta08",
-    "pinSalt": "cc84f9d7ad322ea3b0498d2a75383135",
-    "pinHash": "78eaeec62cd2e82b0951eddcdc44ce8e81ce2b1c26b81265f2f4611085b64331949ade15485b22fc5276437d03d2c36f6baf5640f537075fd8147a7742e287b4",
+    "pinSalt": "2335a742aa587a79024b75401bd1b682",
+    "pinHash": "c185b93fc6852441998d3104468fefd0e28c410cf7b6fb93606780e324e2aef59edc369e2a03e5722b69ad3591382b7b7a4d1f6f657936bf6b4e67765f7a5e4d",
     "active": true
   },
   {
@@ -76,8 +76,8 @@
     "slot": 9,
     "displayName": "Beta tester 9",
     "username": "beta09",
-    "pinSalt": "51d6d0c7b403ef25682e61d19e3c747f",
-    "pinHash": "4b196247191905fe70bd12218d4f0d95a58135ac08873a886e862b30a5923d68fe1612fd72dbad37c3aa8329d3748f72523254f83eb626df909a66f264ebbf97",
+    "pinSalt": "4600ca1146b02a828950a7c9080c3185",
+    "pinHash": "1ae50f1278de170af01ee0bdc96f570a57e6d528863c0e4900c2daa2d03b9ee63b1e0a4647adb057690cab55bf0ca24a091507d4a283b1481f6da00ec8930aa4",
     "active": true
   },
   {
@@ -85,8 +85,8 @@
     "slot": 10,
     "displayName": "Beta tester 10",
     "username": "beta10",
-    "pinSalt": "1fb6fabca6e41bf960a7b551f7ec4254",
-    "pinHash": "d1839fb111e300f960f9d6ec9325843f99ca0cb11d9eed390f57af026f670fd16f7f4bee134c6ba8ac40191d65a66ce04990c7a96c07de26a478aeea1fdeeb41",
+    "pinSalt": "7849d6d49d20eaf8d87efd88acfd9a5a",
+    "pinHash": "d48a353ae8ce84bff199f593631fc3c135ffb7a469e5119646e70a8868db3ad97729e4d73b4f2f729d4e6696bc31ae662b5d9ae5586c2a4075efea213e5d6e74",
     "active": true
   }
 ]

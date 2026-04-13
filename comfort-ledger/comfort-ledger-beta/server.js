@@ -235,12 +235,18 @@ function ensureStorage() {
   if (!fs.existsSync(BETA_SESSIONS_FILE)) {
     fs.writeFileSync(BETA_SESSIONS_FILE, "[]\n", "utf8");
   }
-  if (!fs.existsSync(BETA_USERS_FILE)) {
-    if (BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE && fs.existsSync(BUNDLED_BETA_USERS_FILE)) {
-      fs.copyFileSync(BUNDLED_BETA_USERS_FILE, BETA_USERS_FILE);
-    } else {
-      fs.writeFileSync(BETA_USERS_FILE, "[]\n", "utf8");
+  if (BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE && fs.existsSync(BUNDLED_BETA_USERS_FILE)) {
+    const bundledUsers = readJsonFile(BUNDLED_BETA_USERS_FILE, null);
+    const storedUsers = readJsonFile(BETA_USERS_FILE, null);
+    if (Array.isArray(bundledUsers) && JSON.stringify(bundledUsers) !== JSON.stringify(storedUsers)) {
+      writeJsonFile(BETA_USERS_FILE, bundledUsers);
+      writeJsonFile(BETA_SESSIONS_FILE, []);
+      console.log("Synced versioned beta-users.json to data dir and cleared beta sessions.");
+      return;
     }
+  }
+  if (!fs.existsSync(BETA_USERS_FILE)) {
+    fs.writeFileSync(BETA_USERS_FILE, "[]\n", "utf8");
   }
 }
 
