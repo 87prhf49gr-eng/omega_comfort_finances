@@ -6,12 +6,13 @@
   <meta name="description" content="Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'">
   <title>Comfort Ledger — Resumen y coach</title>
-  <meta name="theme-color" content="#05070d">
+  <meta name="theme-color" content="#121212">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Comfort Ledger">
   <link rel="manifest" href="comfort-ledger.webmanifest">
-  <link rel="icon" href="pwa-icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="icon" href="branding/comfort-ledger-nav-icon.png" type="image/png" sizes="256x256">
+  <!-- apple-touch + manifest: icono PWA al instalar -->
   <link rel="apple-touch-icon" href="pwa-icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -259,17 +260,16 @@ body.lang-zh .dash-tactical-title {
 }
 
 .brand-mark-img {
-  width: clamp(56px, 11vw, 66px);
-  height: clamp(56px, 11vw, 66px);
-  border-radius: clamp(14px, 2.4vw, 18px);
+  width: auto;
+  height: clamp(48px, 10vw, 62px);
+  max-width: clamp(58px, 12vw, 74px);
+  aspect-ratio: 221 / 188;
+  border-radius: 0;
   object-fit: contain;
   object-position: center;
   flex-shrink: 0;
   background: transparent;
-  box-shadow:
-    0 14px 40px rgba(0, 0, 0, 0.48),
-    0 0 0 1px rgba(94, 234, 212, 0.22),
-    0 0 32px rgba(34, 211, 238, 0.18);
+  filter: drop-shadow(0 6px 20px rgba(0, 0, 0, 0.35));
 }
 
 .brand-copy {
@@ -2535,9 +2535,9 @@ body.comfort--hosted .app {
         <div class="brand">
           <img
             class="brand-mark-img"
-            src="branding/comfort-ledger-mark.png"
-            width="66"
-            height="66"
+            src="branding/comfort-ledger-nav-icon.png"
+            width="221"
+            height="188"
             alt=""
             decoding="async"
           />
