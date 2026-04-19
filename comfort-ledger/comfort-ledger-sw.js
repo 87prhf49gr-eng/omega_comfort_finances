@@ -1,7 +1,8 @@
 /* Comfort Ledger — service worker (caché PWA + clic en notificaciones) */
-const CACHE_NAME = "comfort-ledger-v17";
+const CACHE_NAME = "comfort-ledger-v18";
+const APP_SHELL = "./COMFORT-LEDGER-abrir-aqui.html";
 const PRECACHE = [
-  "./app",
+  APP_SHELL,
   "./comfort-ledger.webmanifest",
   "./pwa-icons/icon-192.png",
   "./pwa-icons/icon-512.png"
@@ -78,9 +79,7 @@ self.addEventListener("fetch", (event) => {
           }
           return response;
         })
-        .catch(() =>
-          caches.match("./app", { ignoreSearch: true })
-        )
+        .catch(() => caches.match(APP_SHELL, { ignoreSearch: true }))
     );
     return;
   }

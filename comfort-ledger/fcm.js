@@ -5,7 +5,9 @@ export async function enablePushNotifications(firebaseConfig, vapidKey) {
   if (!("Notification" in window) || !("serviceWorker" in navigator)) return null;
   const app = initializeApp(firebaseConfig);
   const messaging = getMessaging(app);
-  const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+  const registration = await navigator.serviceWorker.register("./firebase-messaging-sw.js", {
+    scope: "./"
+  });
   if (await Notification.requestPermission() !== "granted") return null;
   const token = await getToken(messaging, { vapidKey, serviceWorkerRegistration: registration });
   onMessage(messaging, ({ notification }) => notification && new Notification(notification.title, { body: notification.body, icon: "/pwa-icons/icon-192.png" }));

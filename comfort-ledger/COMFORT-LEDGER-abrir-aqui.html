@@ -4,63 +4,79 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'">
   <title>Comfort Ledger — Resumen y coach</title>
-  <meta name="theme-color" content="#8f6b3d">
+  <meta name="theme-color" content="#05070d">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Comfort Ledger">
   <link rel="manifest" href="comfort-ledger.webmanifest">
+  <link rel="icon" href="pwa-icons/icon-192.png" type="image/png" sizes="192x192">
   <link rel="apple-touch-icon" href="pwa-icons/icon-192.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Noto+Sans+SC:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #ebe6dc;
-  --bg-warm: #f3efe6;
-  --bg-grid: rgba(26, 29, 36, 0.035);
-  --surface: #fdfcfa;
-  --surface-2: #f7f4ee;
-  --text: #1a1d24;
-  --text-soft: #5c5f68;
-  --border: #d4cec3;
-  --accent: #8f6b3d;
-  --accent-soft: rgba(143, 107, 61, 0.12);
-  --accent-line: linear-gradient(180deg, #c4a574, #8f6b3d);
-  --positive: #1d6b52;
-  --positive-soft: rgba(29, 107, 82, 0.12);
-  --alert: #b45309;
-  --alert-soft: rgba(180, 83, 9, 0.12);
-  --negative: #9b2c45;
-  --negative-glow: 0 0 0 1px rgba(155, 44, 69, 0.25);
-  --negative-soft: rgba(155, 44, 69, 0.1);
-  --ink-deep: #12141a;
-  --holo-cyan: #3d6b8f;
-  --holo-cyan-dim: rgba(61, 107, 143, 0.35);
-  --holo-glow: 0 12px 40px rgba(26, 29, 36, 0.06);
-  --holo-glow-strong: 0 20px 50px rgba(26, 29, 36, 0.08);
+  /* Midnight / OLED-adjacent dark (tendencia UI 2025–26): void blue-black + teal */
+  --bg: #05070d;
+  --bg-warm: #080b12;
+  --bg-grid: rgba(100, 116, 139, 0.045);
+  --surface: #0e131d;
+  --surface-2: #121a27;
+  --text: #f1f5f9;
+  --text-soft: #94a3b8;
+  --border: rgba(148, 163, 184, 0.14);
+  --accent: #2dd4bf;
+  --accent-soft: rgba(45, 212, 191, 0.14);
+  --accent-line: linear-gradient(180deg, #5eead4, #0f766e);
+  --positive: #34d399;
+  --positive-soft: rgba(52, 211, 153, 0.14);
+  --alert: #fb923c;
+  --alert-soft: rgba(251, 146, 60, 0.14);
+  --negative: #fb7185;
+  --negative-glow: 0 0 0 1px rgba(251, 113, 133, 0.35);
+  --negative-soft: rgba(251, 113, 133, 0.12);
+  --ink-deep: #f8fafc;
+  --navy-deep: #7dd3fc;
+  --holo-cyan: #22d3ee;
+  --holo-cyan-dim: rgba(34, 211, 238, 0.28);
+  --holo-glow: 0 12px 40px rgba(0, 0, 0, 0.42);
+  --holo-glow-strong: 0 24px 64px rgba(0, 0, 0, 0.55);
   --holo-scan: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(196, 165, 116, 0.04) 45%,
-    rgba(196, 165, 116, 0.09) 50%,
-    rgba(196, 165, 116, 0.04) 55%,
+    rgba(45, 212, 191, 0.05) 45%,
+    rgba(45, 212, 191, 0.12) 50%,
+    rgba(45, 212, 191, 0.05) 55%,
     transparent 100%
   );
-  --holo-panel: linear-gradient(160deg, #fdfcfa 0%, #f5f1ea 55%, #ebe6dc 100%);
+  --holo-panel: linear-gradient(165deg, #0f141c 0%, #121a28 48%, #0c1018 100%);
   --holo-rail: var(--accent-line);
-  --donut-exp: #b8860b;
-  --donut-debt: #9b2c45;
-  --donut-free: #1d6b52;
-  --coach-bg: linear-gradient(165deg, #f7f3ec 0%, #fdfcfa 50%, #f0ebe2 100%);
-  --coach-border: #c9b89a;
-  --coach-accent: #3d4f3a;
-  --coach-accent-soft: #e8e4dc;
+  --donut-exp: #22d3ee;
+  --donut-debt: #fb7185;
+  --donut-free: #2dd4bf;
+  --coach-bg: linear-gradient(165deg, #0d121c 0%, #111827 50%, #0a0e16 100%);
+  --coach-border: rgba(45, 212, 191, 0.22);
+  --coach-accent: #99f6e4;
+  --coach-accent-soft: rgba(13, 148, 136, 0.2);
   --radius: 12px;
-  --shadow: 0 14px 40px rgba(26, 29, 36, 0.07);
-  --font-sans: "Source Sans 3", "Noto Sans SC", system-ui, sans-serif;
-  --font-display: "Cormorant Garamond", "Noto Sans SC", "Times New Roman", serif;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+  /* Neon / glossy accents (revert by removing uses below) */
+  --neon-border: rgba(94, 234, 212, 0.22);
+  --neon-border-strong: rgba(94, 234, 212, 0.3);
+  --neon-outer: 0 0 0 1px rgba(34, 211, 238, 0.07), 0 0 36px rgba(34, 211, 238, 0.1);
+  --neon-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --neon-rail: 0 0 16px rgba(94, 234, 212, 0.85), 4px 0 28px rgba(34, 211, 238, 0.28);
+  --input-bg: #0c121c;
+  --track-bg: #1e293b;
+  --font-sans: "Plus Jakarta Sans", "Noto Sans SC", system-ui, sans-serif;
+  --font-display: "Outfit", "Noto Sans SC", system-ui, sans-serif;
   font-family: var(--font-sans);
+}
+
+html {
+  color-scheme: dark;
 }
 
 *,
@@ -74,14 +90,29 @@ body {
   min-height: 100vh;
   min-height: 100dvh;
   background-color: var(--bg);
+  /* Photo layer + dark wash so panels/type stay readable; path vs COMFORT-LEDGER-abrir-aqui.html */
   background-image:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(196, 165, 116, 0.18), transparent 55%),
+    radial-gradient(ellipse 130% 90% at 50% -30%, rgba(45, 212, 191, 0.09), transparent 58%),
+    radial-gradient(ellipse 70% 55% at 100% 0%, rgba(14, 165, 233, 0.06), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 0% 100%, rgba(99, 102, 241, 0.04), transparent 45%),
     linear-gradient(var(--bg-grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px);
-  background-size: auto, 32px 32px, 32px 32px;
+    linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(5, 7, 13, 0.76) 0%, rgba(5, 7, 13, 0.84) 45%, rgba(5, 7, 13, 0.9) 100%),
+    url("assets/page-background.png");
+  background-size: auto, auto, auto, 32px 32px, 32px 32px, auto, cover;
+  background-position: center, center, center, 0 0, 0 0, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat, repeat, repeat, no-repeat, no-repeat;
+  background-attachment: fixed, fixed, fixed, fixed, fixed, fixed, fixed;
   color: var(--text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 900px) {
+  /* iOS often paints fixed backgrounds poorly; scroll attachment is safer on small viewports */
+  body {
+    background-attachment: scroll;
+  }
 }
 
 body.lang-zh {
@@ -92,14 +123,17 @@ body.lang-zh .brand h1,
 body.lang-zh .panel h2,
 body.lang-zh .panel h3,
 body.lang-zh .dash-tactical-title {
-  font-family: "Noto Sans SC", "Cormorant Garamond", serif;
+  font-family: "Noto Sans SC", "Outfit", system-ui, sans-serif;
 }
 
 .app-shell {
   position: fixed;
   inset: 0 0 auto 0;
   height: 3px;
-  background: linear-gradient(90deg, #6b5344, #c4a574 35%, #e8d5b0 50%, #c4a574 65%, #6b5344);
+  background: linear-gradient(90deg, #1e3a5f, #0e7490 28%, #5eead4 50%, #0e7490 72%, #1e3a5f);
+  box-shadow:
+    0 0 12px rgba(45, 212, 191, 0.55),
+    0 0 28px rgba(34, 211, 238, 0.35);
   z-index: 50;
   pointer-events: none;
 }
@@ -127,11 +161,11 @@ body.lang-zh .dash-tactical-title {
 @keyframes holoPulseGlow {
   0%,
   100% {
-    box-shadow: var(--shadow), 0 0 32px rgba(34, 211, 238, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    box-shadow: var(--shadow), 0 0 32px rgba(34, 211, 238, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   }
 
   50% {
-    box-shadow: var(--shadow), 0 0 48px rgba(34, 211, 238, 0.2), 0 0 72px rgba(56, 189, 248, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    box-shadow: var(--shadow), 0 0 48px rgba(34, 211, 238, 0.22), 0 0 72px rgba(56, 189, 248, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.09);
   }
 }
 
@@ -150,16 +184,64 @@ body.lang-zh .dash-tactical-title {
 .app {
   max-width: 1140px;
   margin: 0 auto;
-  padding: 28px max(16px, env(safe-area-inset-left)) 48px max(16px, env(safe-area-inset-right));
+  padding: 24px max(16px, env(safe-area-inset-left)) 48px max(16px, env(safe-area-inset-right));
 }
 
+/* Landing hero: masthead only (look) */
 .masthead {
-  margin-bottom: 22px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid rgba(26, 29, 36, 0.1);
+  position: relative;
+  margin-bottom: 28px;
+  padding: clamp(20px, 3.6vw, 30px) clamp(18px, 2.6vw, 28px) clamp(22px, 3.6vw, 32px);
+  border-radius: clamp(16px, 2.8vw, 22px);
+  border: 1px solid var(--neon-border);
+  background: linear-gradient(
+    165deg,
+    rgba(12, 17, 26, 0.82) 0%,
+    rgba(10, 14, 22, 0.58) 52%,
+    rgba(8, 11, 18, 0.44) 100%
+  );
+  backdrop-filter: blur(18px) saturate(1.12);
+  -webkit-backdrop-filter: blur(18px) saturate(1.12);
+  box-shadow:
+    var(--shadow),
+    var(--neon-outer),
+    0 0 100px rgba(45, 212, 191, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.masthead::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(ellipse 95% 75% at 14% 0%, rgba(45, 212, 191, 0.11), transparent 58%),
+    radial-gradient(ellipse 50% 42% at 92% 6%, rgba(56, 189, 248, 0.08), transparent 52%);
+  pointer-events: none;
+}
+
+.masthead::after {
+  content: "";
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(94, 234, 212, 0.38) 18%,
+    rgba(56, 189, 248, 0.28) 50%,
+    rgba(94, 234, 212, 0.38) 82%,
+    transparent
+  );
+  pointer-events: none;
 }
 
 .masthead-grid {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -171,43 +253,68 @@ body.lang-zh .dash-tactical-title {
   display: flex;
   align-items: center;
   gap: 18px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: min(100%, 260px);
 }
 
-.brand-mark {
-  width: 48px;
-  height: 48px;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #2c241c 0%, #4a3f32 40%, #8f6b3d 78%, #c4a574 100%);
+.brand-mark-img {
+  width: clamp(56px, 11vw, 66px);
+  height: clamp(56px, 11vw, 66px);
+  border-radius: clamp(14px, 2.4vw, 18px);
+  object-fit: contain;
+  object-position: center;
+  flex-shrink: 0;
+  background: transparent;
   box-shadow:
-    0 10px 28px rgba(44, 36, 28, 0.35),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+    0 14px 40px rgba(0, 0, 0, 0.48),
+    0 0 0 1px rgba(94, 234, 212, 0.22),
+    0 0 32px rgba(34, 211, 238, 0.18);
+}
+
+.brand-copy {
+  flex: 1;
+  min-width: 180px;
 }
 
 .brand-eyebrow {
-  margin: 0 0 2px;
+  margin: 0 0 4px;
   font-family: var(--font-sans);
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 600;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--accent);
+  text-shadow: 0 0 28px rgba(45, 212, 191, 0.28);
 }
 
 .brand h1 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: clamp(1.85rem, 4vw, 2.35rem);
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.05;
-  color: var(--ink-deep);
+  font-size: clamp(1.95rem, 4.6vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 1.04;
+  color: #ecfeff;
+}
+
+@supports ((-webkit-background-clip: text) and ((-webkit-text-fill-color: transparent) or (color: transparent))) {
+  .brand h1 {
+    background: linear-gradient(118deg, #f8fafc 6%, #e0fdfa 38%, #5eead4 68%, #7dd3fc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
 }
 
 .tagline {
-  margin: 6px 0 0;
-  color: var(--text-soft);
-  font-size: 0.92rem;
+  margin: 10px 0 0;
+  max-width: 38ch;
+  color: rgba(148, 163, 184, 0.96);
+  font-size: clamp(0.9rem, 1.5vw, 1.02rem);
   font-weight: 500;
+  line-height: 1.45;
 }
 
 .masthead-aside {
@@ -245,9 +352,9 @@ body.lang-zh .dash-tactical-title {
   min-width: 44px;
   min-height: 40px;
   padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(143, 107, 61, 0.35);
-  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  background: rgba(15, 23, 42, 0.5);
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.04em;
@@ -255,17 +362,20 @@ body.lang-zh .dash-tactical-title {
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .lang-btn:hover {
-  border-color: var(--accent);
+  border-color: rgba(45, 212, 191, 0.45);
   color: var(--accent);
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .lang-btn--active {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-  color: var(--ink-deep);
+  border-color: rgba(45, 212, 191, 0.55);
+  background: linear-gradient(165deg, rgba(45, 212, 191, 0.18) 0%, rgba(45, 212, 191, 0.08) 100%);
+  color: var(--text);
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .trust-row {
@@ -282,25 +392,49 @@ body.lang-zh .dash-tactical-title {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
-  background: var(--accent-soft);
-  border: 1px solid rgba(143, 107, 61, 0.28);
-  padding: 5px 12px;
+  background: linear-gradient(165deg, rgba(45, 212, 191, 0.14) 0%, rgba(45, 212, 191, 0.06) 100%);
+  border: 1px solid rgba(94, 234, 212, 0.32);
+  padding: 6px 13px;
   border-radius: 999px;
+  box-shadow: 0 0 22px rgba(45, 212, 191, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .pill-trust--muted {
   color: var(--text-soft);
-  background: rgba(26, 29, 36, 0.05);
-  border-color: rgba(26, 29, 36, 0.1);
+  background: rgba(15, 23, 42, 0.45);
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
-.hint {
-  margin: 0;
+.backup-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.backup-toolbar .btn-ghost {
   font-size: 0.78rem;
+  padding: 0.38rem 0.7rem;
+}
+
+.comfort-backup-status {
+  width: 100%;
+  margin: 0;
+  font-size: 0.76rem;
   color: var(--text-soft);
-  max-width: 34rem;
-  line-height: 1.45;
-  margin-left: auto;
+  line-height: 1.35;
+  text-align: right;
+}
+
+.comfort-backup-status--ok {
+  color: var(--positive);
+}
+
+.comfort-backup-status--err {
+  color: var(--negative);
 }
 
 .host-profile {
@@ -362,8 +496,12 @@ body.lang-zh .dash-tactical-title {
     justify-content: flex-start;
   }
 
-  .hint {
-    margin-left: 0;
+  .backup-toolbar {
+    justify-content: flex-start;
+  }
+
+  .comfort-backup-status {
+    text-align: left;
   }
 
   .host-profile {
@@ -422,10 +560,10 @@ body.lang-zh .dash-tactical-title {
 
 .panel {
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--neon-border);
   border-radius: var(--radius);
   padding: 18px 20px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow), var(--neon-outer), var(--neon-inset);
 }
 
 .panel h2,
@@ -451,18 +589,26 @@ body.lang-zh .dash-tactical-title {
 
 .health {
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #fdfcfa 0%, #f4efe6 100%);
-  border-color: rgba(143, 107, 61, 0.22);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #0f141c 0%, #121a28 55%, #0c1018 100%);
+  border-color: var(--neon-border-strong);
+  box-shadow:
+    var(--shadow),
+    var(--neon-outer),
+    0 0 48px rgba(45, 212, 191, 0.07),
+    var(--neon-inset);
 }
 
 .goals-panel {
   margin-bottom: 16px;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(165deg, #faf7f2 0%, #ffffff 52%, #f2ebe0 100%);
-  border-color: rgba(143, 107, 61, 0.2);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  background: linear-gradient(165deg, #0e131d 0%, #121a27 52%, #0a0e16 100%);
+  border-color: var(--neon-border-strong);
+  box-shadow:
+    var(--shadow),
+    var(--neon-outer),
+    0 0 44px rgba(34, 211, 238, 0.08),
+    var(--neon-inset);
 }
 
 .goals-panel > * {
@@ -476,7 +622,7 @@ body.lang-zh .dash-tactical-title {
   inset: 0;
   width: 100%;
   height: 100%;
-  background: radial-gradient(ellipse 90% 55% at 100% 0%, rgba(196, 165, 116, 0.12), transparent 55%);
+  background: radial-gradient(ellipse 90% 55% at 100% 0%, rgba(20, 184, 166, 0.12), transparent 55%);
   pointer-events: none;
   z-index: 0;
   border-radius: inherit;
@@ -666,14 +812,16 @@ body.lang-zh .dash-tactical-title {
   border-radius: 10px;
   background: linear-gradient(165deg, #14161c 0%, #1a1c24 42%, #12141a 100%);
   color: #e8e4dc;
-  border: 1px solid rgba(196, 165, 116, 0.28);
+  border: 1px solid var(--neon-border-strong);
   font-size: 0.88rem;
   line-height: 1.45;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow:
+    var(--neon-inset),
+    0 0 28px rgba(34, 211, 238, 0.1);
 }
 
 .post-dash-summary--dark strong {
-  color: #f5e6c8;
+  color: #99f6e4;
   font-weight: 600;
 }
 
@@ -776,18 +924,18 @@ body.lang-zh .dash-tactical-title {
   font-size: 0.82rem;
   text-decoration: none;
   cursor: pointer;
-  border: 1px solid rgba(196, 165, 116, 0.38);
+  border: 1px solid rgba(20, 184, 166, 0.45);
   background: linear-gradient(165deg, #1a1c24 0%, #14161c 100%);
-  color: #fde68a;
-  text-shadow: 0 0 10px rgba(251, 191, 36, 0.65), 0 0 22px rgba(245, 158, 11, 0.35);
+  color: #ccfbf1;
+  text-shadow: 0 0 12px rgba(45, 212, 191, 0.55), 0 0 28px rgba(6, 182, 212, 0.35);
   box-shadow: 0 8px 22px rgba(18, 20, 26, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   max-width: 100%;
   word-break: break-word;
 }
 
 .btn-dash-unsub:hover {
-  color: #fffbeb;
-  border-color: rgba(251, 191, 36, 0.55);
+  color: #f0fdfa;
+  border-color: rgba(45, 212, 191, 0.65);
 }
 
 .post-dash-sub-row .row-remove,
@@ -860,7 +1008,7 @@ body.lang-zh .dash-tactical-title {
 .health-metrics li {
   padding: 8px 10px;
   border-radius: 10px;
-  background: var(--bg);
+  background: var(--surface-2);
   font-size: 0.8rem;
   color: var(--text-soft);
   word-break: break-word;
@@ -907,8 +1055,12 @@ body.lang-zh .dash-tactical-title {
 
 .panel.chart-card {
   background: var(--holo-panel);
-  border-color: rgba(26, 29, 36, 0.08);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  border-color: var(--neon-border);
+  box-shadow:
+    var(--shadow),
+    var(--neon-outer),
+    0 0 52px rgba(45, 212, 191, 0.06),
+    var(--neon-inset);
   position: relative;
   overflow: hidden;
 }
@@ -927,6 +1079,7 @@ body.lang-zh .dash-tactical-title {
   width: 3px;
   border-radius: 0 2px 2px 0;
   background: var(--holo-rail);
+  box-shadow: var(--neon-rail);
   pointer-events: none;
   z-index: 2;
 }
@@ -938,7 +1091,7 @@ body.lang-zh .dash-tactical-title {
   right: 0;
   width: 55%;
   height: 100%;
-  background: radial-gradient(ellipse 70% 80% at 100% 0%, rgba(196, 165, 116, 0.08), transparent 70%);
+  background: radial-gradient(ellipse 70% 80% at 100% 0%, rgba(20, 184, 166, 0.08), transparent 70%);
   pointer-events: none;
   z-index: 0;
   border-radius: inherit;
@@ -975,10 +1128,10 @@ body.lang-zh .dash-tactical-title {
   flex-shrink: 0;
   position: relative;
   box-shadow:
-    0 0 0 1px rgba(26, 29, 36, 0.08),
-    0 12px 32px rgba(26, 29, 36, 0.1),
-    inset 0 0 0 10px rgba(255, 255, 255, 0.96),
-    inset 0 0 24px rgba(143, 107, 61, 0.06);
+    0 0 0 1px rgba(148, 163, 184, 0.12),
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    inset 0 0 0 10px rgba(15, 20, 28, 0.94),
+    inset 0 0 24px rgba(45, 212, 191, 0.06);
 }
 
 .donut::after {
@@ -986,7 +1139,7 @@ body.lang-zh .dash-tactical-title {
   position: absolute;
   inset: 14px;
   border-radius: 50%;
-  border: 1px dashed rgba(143, 107, 61, 0.22);
+  border: 1px dashed rgba(14, 116, 144, 0.22);
   pointer-events: none;
 }
 
@@ -1014,7 +1167,7 @@ body.lang-zh .dash-tactical-title {
   border-radius: 2px;
   flex-shrink: 0;
   margin-top: 0.28em;
-  box-shadow: 0 1px 2px rgba(26, 29, 36, 0.12);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 }
 
 .bar-compare {
@@ -1022,22 +1175,26 @@ body.lang-zh .dash-tactical-title {
   border-radius: 4px;
   overflow: hidden;
   display: flex;
-  background: #e5e0d8;
+  background: var(--track-bg);
   margin-bottom: 8px;
-  border: 1px solid rgba(26, 29, 36, 0.1);
-  box-shadow: inset 0 1px 3px rgba(26, 29, 36, 0.06);
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.35),
+    0 0 18px rgba(34, 211, 238, 0.08);
 }
 
 .bar-compare .seg-savings {
-  background: linear-gradient(90deg, #1a5a45, #2d7a62 55%, #3d8f72);
+  background: linear-gradient(90deg, #145239, #2d7a62 40%, #4ade80 92%, #86efac);
   min-width: 4px;
   transition: width 0.25s ease;
+  box-shadow: 0 0 14px rgba(52, 211, 153, 0.45);
 }
 
 .bar-compare .seg-debt {
-  background: linear-gradient(90deg, #7a1f32, #9b2c45 50%, #b83a52);
+  background: linear-gradient(90deg, #7a1f32, #9b2c45 45%, #fb7185 85%, #fda4af);
   min-width: 4px;
   transition: width 0.25s ease;
+  box-shadow: 0 0 14px rgba(251, 113, 133, 0.42);
 }
 
 .chart-footnote {
@@ -1064,18 +1221,21 @@ body.lang-zh .dash-tactical-title {
 .cadence-row .bar {
   height: 10px;
   border-radius: 3px;
-  background: #e0dbd4;
+  background: var(--track-bg);
   overflow: hidden;
-  border: 1px solid rgba(26, 29, 36, 0.08);
-  box-shadow: inset 0 1px 2px rgba(26, 29, 36, 0.05);
+  border: 1px solid rgba(94, 234, 212, 0.14);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.3),
+    0 0 14px rgba(34, 211, 238, 0.07);
 }
 
 .cadence-row .bar > i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #4a5d6a, #6b7f8f 50%, #8f6b3d);
+  background: linear-gradient(90deg, #1e3a5f, #0e7490 35%, #14b8a6 70%, #5eead4);
   max-width: 100%;
+  box-shadow: 0 0 12px rgba(45, 212, 191, 0.5);
 }
 
 .cadence-row strong {
@@ -1091,8 +1251,12 @@ body.lang-zh .dash-tactical-title {
   position: relative;
   overflow: hidden;
   background: var(--coach-bg);
-  border-color: rgba(143, 107, 61, 0.25);
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  border-color: var(--neon-border-strong);
+  box-shadow:
+    var(--shadow),
+    var(--neon-outer),
+    0 0 48px rgba(45, 212, 191, 0.07),
+    var(--neon-inset);
 }
 
 .coach > * {
@@ -1107,7 +1271,7 @@ body.lang-zh .dash-tactical-title {
   right: 0;
   width: 50%;
   height: 100%;
-  background: radial-gradient(ellipse 80% 70% at 100% 0%, rgba(196, 165, 116, 0.1), transparent 65%);
+  background: radial-gradient(ellipse 80% 70% at 100% 0%, rgba(20, 184, 166, 0.1), transparent 65%);
   pointer-events: none;
   z-index: 0;
   border-radius: inherit;
@@ -1128,7 +1292,7 @@ body.lang-zh .dash-tactical-title {
   letter-spacing: 0.08em;
   color: var(--accent);
   background: var(--accent-soft);
-  border: 1px solid rgba(143, 107, 61, 0.22);
+  border: 1px solid rgba(14, 116, 144, 0.22);
   padding: 4px 10px;
   border-radius: 999px;
 }
@@ -1146,7 +1310,7 @@ body.lang-zh .dash-tactical-title {
   overflow-y: auto;
   padding: 10px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(8, 12, 20, 0.65);
   border: 1px solid var(--coach-border);
   margin-bottom: 10px;
   font-size: 0.84rem;
@@ -1161,15 +1325,15 @@ body.lang-zh .dash-tactical-title {
 
 .coach-msg.user {
   background: var(--coach-accent-soft);
-  color: #0d3d66;
+  color: #ccfbf1;
   margin-left: 12px;
 }
 
 .coach-msg.bot {
-  background: #f5f9fd;
-  color: #1a3a52;
+  background: var(--surface-2);
+  color: var(--text-soft);
   margin-right: 12px;
-  border: 1px solid #e2ecf7;
+  border: 1px solid var(--border);
 }
 
 .coach-form textarea {
@@ -1180,13 +1344,13 @@ body.lang-zh .dash-tactical-title {
   font: inherit;
   resize: vertical;
   min-height: 64px;
-  background: #fff;
+  background: var(--input-bg);
   color: var(--text);
   margin-bottom: 8px;
 }
 
 .coach-form textarea:focus {
-  outline: 2px solid rgba(21, 101, 192, 0.25);
+  outline: 2px solid rgba(13, 148, 136, 0.35);
   outline-offset: 1px;
 }
 
@@ -1200,9 +1364,9 @@ body.lang-zh .dash-tactical-title {
   text-transform: uppercase;
   font-size: 0.78rem;
   cursor: pointer;
-  background: linear-gradient(165deg, #2c241c 0%, #4a3f32 45%, #6b5344 100%);
-  color: #faf6ef;
-  box-shadow: 0 8px 24px rgba(44, 36, 28, 0.28);
+  background: linear-gradient(165deg, #0e7490 0%, #14b8a6 50%, #2dd4bf 100%);
+  color: #f0fdfa;
+  box-shadow: 0 8px 28px rgba(13, 148, 136, 0.35);
 }
 
 .btn-coach:hover {
@@ -1384,10 +1548,10 @@ body.lang-zh .dash-tactical-title {
 .vs-track {
   height: 12px;
   border-radius: 3px;
-  background: #e0dbd4;
+  background: var(--track-bg);
   overflow: hidden;
-  border: 1px solid rgba(26, 29, 36, 0.1);
-  box-shadow: inset 0 1px 3px rgba(26, 29, 36, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
 .vs-fill {
@@ -1447,7 +1611,7 @@ body.lang-zh .dash-tactical-title {
   border-radius: 8px;
   border: 1px solid var(--border);
   font: inherit;
-  background: #fdfcfa;
+  background: var(--input-bg);
   color: var(--text);
 }
 
@@ -1459,7 +1623,7 @@ body.lang-zh .dash-tactical-title {
 .debt-list select:focus,
 .expense-list select:focus,
 .income-list select:focus {
-  outline: 2px solid rgba(13, 122, 82, 0.2);
+  outline: 2px solid rgba(13, 148, 136, 0.28);
   outline-offset: 1px;
 }
 
@@ -1476,8 +1640,8 @@ body.lang-zh .dash-tactical-title {
 }
 
 .btn-ghost {
-  border: 1px solid rgba(143, 107, 61, 0.35);
-  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: rgba(148, 163, 184, 0.08);
   padding: 8px 14px;
   border-radius: 8px;
   font-size: 0.8rem;
@@ -1491,7 +1655,7 @@ body.lang-zh .dash-tactical-title {
 .btn-ghost:hover {
   border-color: var(--accent);
   background: var(--accent-soft);
-  color: var(--ink-deep);
+  color: var(--text);
 }
 
 .income-row {
@@ -1739,10 +1903,11 @@ body.lang-zh .dash-tactical-title {
   overflow: hidden;
   background: linear-gradient(165deg, #14161c 0%, #1a1c24 38%, #12141a 100%);
   color: #e8e4dc;
-  border: 1px solid rgba(196, 165, 116, 0.28);
+  border: 1px solid var(--neon-border-strong);
   box-shadow:
     0 24px 60px rgba(18, 20, 26, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 0 56px rgba(45, 212, 191, 0.1),
+    var(--neon-inset);
 }
 
 .dash-tactical > * {
@@ -1757,7 +1922,7 @@ body.lang-zh .dash-tactical-title {
   right: 0;
   width: 55%;
   height: 100%;
-  background: radial-gradient(ellipse 70% 90% at 100% 0%, rgba(196, 165, 116, 0.12), transparent 55%);
+  background: radial-gradient(ellipse 70% 90% at 100% 0%, rgba(20, 184, 166, 0.12), transparent 55%);
   pointer-events: none;
   z-index: 0;
   border-radius: inherit;
@@ -1770,11 +1935,11 @@ body.lang-zh .dash-tactical-title {
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: none;
-  color: #f4efe6;
+  color: #f0fdfa;
 }
 
 .dash-tactical-lede {
-  color: #a8a5a0;
+  color: var(--text-soft);
   margin-bottom: 16px;
   max-width: 70ch;
 }
@@ -1787,10 +1952,12 @@ body.lang-zh .dash-tactical-title {
 
 .dash-card {
   background: rgba(26, 28, 34, 0.85);
-  border: 1px solid rgba(196, 165, 116, 0.15);
+  border: 1px solid var(--neon-border);
   border-radius: 10px;
   padding: 14px 16px 16px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    var(--neon-inset),
+    0 0 24px rgba(34, 211, 238, 0.08);
 }
 
 .dash-card--dyn {
@@ -1819,20 +1986,20 @@ body.lang-zh .dash-tactical-title {
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #c4a574;
+  color: #5eead4;
 }
 
 .dash-card-hint {
   margin: 0 0 10px;
   font-size: 0.74rem;
-  color: #8c8983;
+  color: var(--text-soft);
   line-height: 1.35;
 }
 
 .dash-empty {
   margin: 0;
   font-size: 0.78rem;
-  color: #8c8983;
+  color: var(--text-soft);
   line-height: 1.45;
 }
 
@@ -1861,7 +2028,7 @@ body.lang-zh .dash-tactical-title {
   height: 72px;
   border-radius: 6px;
   background: linear-gradient(180deg, #22252e, #181a20);
-  border: 1px solid rgba(196, 165, 116, 0.12);
+  border: 1px solid rgba(20, 184, 166, 0.12);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1873,16 +2040,16 @@ body.lang-zh .dash-tactical-title {
   width: 100%;
   border-radius: 4px;
   min-height: 3px;
-  background: linear-gradient(180deg, #6b7f8f, #4a5d6a);
+  background: linear-gradient(180deg, #0e7490, #1e3a5f);
   transition: height 0.2s ease;
 }
 
 .dyn-cell:nth-child(2) .dyn-bar {
-  background: linear-gradient(180deg, #b8707a, #8b3a48);
+  background: linear-gradient(180deg, #e11d48, #9f1239);
 }
 
 .dyn-cell:nth-child(3) .dyn-bar {
-  background: linear-gradient(180deg, #d4b87a, #a67c52);
+  background: linear-gradient(180deg, #22d3ee, #0891b2);
 }
 
 .dyn-cell:nth-child(4) .dyn-bar {
@@ -1890,19 +2057,19 @@ body.lang-zh .dash-tactical-title {
 }
 
 .dyn-cell:nth-child(5) .dyn-bar {
-  background: linear-gradient(180deg, #c49a6c, #8f6b3d);
+  background: linear-gradient(180deg, #14b8a6, #0f766e);
 }
 
 .dyn-cell span {
   font-size: 0.62rem;
-  color: #8c8983;
+  color: var(--text-soft);
   line-height: 1.2;
 }
 
 .dyn-cell strong {
   font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
-  color: #f4efe6;
+  color: #f0fdfa;
 }
 
 .dash-radar-wrap {
@@ -1920,13 +2087,13 @@ body.lang-zh .dash-tactical-title {
 
 .dash-radar-grid {
   fill: rgba(36, 38, 46, 0.5);
-  stroke: rgba(196, 165, 116, 0.2);
+  stroke: rgba(20, 184, 166, 0.2);
   stroke-width: 1;
 }
 
 .dash-radar-fill {
-  fill: rgba(196, 165, 116, 0.18);
-  stroke: #c4a574;
+  fill: rgba(45, 212, 191, 0.16);
+  stroke: #2dd4bf;
   stroke-width: 1.5;
 }
 
@@ -1940,7 +2107,7 @@ body.lang-zh .dash-tactical-title {
   margin: 0;
   padding: 0;
   font-size: 0.72rem;
-  color: #a8a5a0;
+  color: var(--text-soft);
   flex: 1;
   min-width: 120px;
 }
@@ -1960,8 +2127,8 @@ body.lang-zh .dash-tactical-title {
 }
 
 .dash-dot--0 {
-  background: #6b7f8f;
-  color: #6b7f8f;
+  background: #0e7490;
+  color: #0e7490;
 }
 
 .dash-dot--1 {
@@ -1970,18 +2137,18 @@ body.lang-zh .dash-tactical-title {
 }
 
 .dash-dot--2 {
-  background: #c4a574;
-  color: #c4a574;
+  background: #14b8a6;
+  color: #5eead4;
 }
 
 .dash-dot--3 {
-  background: #3d8f72;
-  color: #3d8f72;
+  background: #0f766e;
+  color: #0f766e;
 }
 
 .dash-dot--4 {
-  background: #8c8983;
-  color: #8c8983;
+  background: var(--text-soft);
+  color: var(--text-soft);
 }
 
 .dash-orbit-stage {
@@ -2000,7 +2167,7 @@ body.lang-zh .dash-tactical-title {
     radial-gradient(circle at 50% 50%, #1a1c24 54%, transparent 56%),
     var(--orbit-conic, conic-gradient(#2a2d35 0deg 360deg));
   box-shadow:
-    0 0 0 1px rgba(196, 165, 116, 0.2),
+    0 0 0 1px rgba(20, 184, 166, 0.2),
     0 12px 32px rgba(0, 0, 0, 0.35),
     inset 0 0 22px rgba(0, 0, 0, 0.28);
 }
@@ -2010,7 +2177,7 @@ body.lang-zh .dash-tactical-title {
   margin: 0;
   padding: 0;
   font-size: 0.7rem;
-  color: #a8a5a0;
+  color: var(--text-soft);
 }
 
 .dash-orbit-legend li {
@@ -2035,7 +2202,7 @@ body.lang-zh .dash-tactical-title {
 }
 
 .dash-cat-name {
-  color: #d4d0c8;
+  color: var(--text-soft);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2045,7 +2212,7 @@ body.lang-zh .dash-tactical-title {
   height: 10px;
   border-radius: 999px;
   background: #22252e;
-  border: 1px solid rgba(196, 165, 116, 0.12);
+  border: 1px solid rgba(20, 184, 166, 0.12);
   overflow: hidden;
   box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.35);
 }
@@ -2054,7 +2221,7 @@ body.lang-zh .dash-tactical-title {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #8f6b3d, #c4a574);
+  background: linear-gradient(90deg, #0e7490, #2dd4bf);
   max-width: 100%;
   transition: width 0.2s ease;
 }
@@ -2062,7 +2229,7 @@ body.lang-zh .dash-tactical-title {
 .dash-cat-amt {
   font-size: 0.74rem;
   font-variant-numeric: tabular-nums;
-  color: #f4efe6;
+  color: #f0fdfa;
   text-align: right;
 }
 
@@ -2081,7 +2248,7 @@ body.lang-zh .dash-tactical-title {
 }
 
 .dash-goal-name {
-  color: #d4d0c8;
+  color: var(--text-soft);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2091,7 +2258,7 @@ body.lang-zh .dash-tactical-title {
   height: 12px;
   border-radius: 999px;
   background: #22252e;
-  border: 1px solid rgba(196, 165, 116, 0.15);
+  border: 1px solid rgba(20, 184, 166, 0.15);
   overflow: hidden;
   box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.35);
 }
@@ -2100,14 +2267,14 @@ body.lang-zh .dash-tactical-title {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #a67c52, #d4b87a);
+  background: linear-gradient(90deg, #0e7490, #2dd4bf);
   max-width: 100%;
   transition: width 0.2s ease;
 }
 
 .dash-goal-pct {
   font-variant-numeric: tabular-nums;
-  color: #e8d5b0;
+  color: #99f6e4;
   text-align: right;
 }
 
@@ -2194,9 +2361,9 @@ body.lang-zh .dash-tactical-title {
 }
 .comfort-beta-card h2 {
   margin: 0 0 0.35rem;
-  font-family: "Cormorant Garamond", serif;
+  font-family: var(--font-display), system-ui, sans-serif;
   font-size: 1.55rem;
-  color: var(--text);
+  color: var(--ink-deep);
 }
 .comfort-beta-card .beta-lede {
   margin: 0 0 1rem;
@@ -2256,9 +2423,9 @@ body.lang-zh .dash-tactical-title {
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: 0.04em;
-  color: #1a1d24;
-  background: linear-gradient(90deg, #e8dcc8, #f5edd8, #e8dcc8);
-  border-bottom: 1px solid var(--border);
+  color: #ecfeff;
+  background: linear-gradient(90deg, #0f172a, #134e4a, #0f172a);
+  border-bottom: 1px solid rgba(45, 212, 191, 0.25);
 }
 .comfort-beta-demo--hidden {
   display: none !important;
@@ -2366,8 +2533,15 @@ body.comfort--hosted .app {
     <header class="masthead">
       <div class="masthead-grid">
         <div class="brand">
-          <span class="brand-mark" aria-hidden="true"></span>
-          <div>
+          <img
+            class="brand-mark-img"
+            src="branding/comfort-ledger-mark.png"
+            width="66"
+            height="66"
+            alt=""
+            decoding="async"
+          />
+          <div class="brand-copy">
             <p class="brand-eyebrow" data-i18n="brand_eyebrow">Vista patrimonial</p>
             <h1>Comfort Ledger</h1>
             <p class="tagline" data-i18n="tagline">Menos ruido. Más claridad.</p>
@@ -2383,9 +2557,19 @@ body.comfort--hosted .app {
             </div>
           </div>
           <div class="trust-row">
-            <span class="pill-trust" data-i18n="pill_local">100% local</span>
-            <span class="pill-trust pill-trust--muted" data-i18n="pill_offline">Sin conexión a red</span>
+            <span class="pill-trust" id="comfortTrustPillPrimary">100% local</span>
+            <span class="pill-trust pill-trust--muted" id="comfortTrustPillSecondary">Sin conexión a red</span>
           </div>
+          <div class="backup-toolbar">
+            <button type="button" class="btn-ghost" id="comfortExportBtn" data-i18n="backup_export">
+              Exportar respaldo
+            </button>
+            <button type="button" class="btn-ghost" id="comfortImportBtn" data-i18n="backup_import">
+              Importar…
+            </button>
+            <input type="file" id="comfortImportFile" class="sr-only" accept="application/json,.json" />
+          </div>
+          <p id="comfortBackupStatus" class="comfort-backup-status" role="status" aria-live="polite" hidden></p>
           <div class="host-profile" id="comfortProfileCard" hidden>
             <div class="host-profile-copy">
               <strong class="host-profile-name" id="comfortProfileName">—</strong>
@@ -2393,7 +2577,6 @@ body.comfort--hosted .app {
             </div>
             <button type="button" class="btn-ghost" id="comfortProfileEditBtn" data-i18n="onboarding_edit">Editar</button>
           </div>
-          <p class="hint" data-i18n-html="hint_offline_html">¿No carga? En la carpeta del proyecto abre <strong>COMFORT-LEDGER-abrir-aqui.html</strong> (un solo archivo, sin servidor).</p>
         </div>
       </div>
     </header>
@@ -2638,7 +2821,7 @@ function applyHostedCoachCopy() {
     badge.textContent = t("coach_badge_cloud");
   }
   if (intro) {
-    intro.innerHTML = t("coach_intro_cloud_html");
+    intro.innerHTML = sanitizeI18nHtml(t("coach_intro_cloud_html"));
   }
   if (status) {
     status.textContent = t("coach_status_cloud");
@@ -3317,8 +3500,15 @@ const UI_STRINGS = {
     tagline: "Menos ruido. Más claridad.",
     pill_local: "100% local",
     pill_offline: "Sin conexión a red",
-    hint_offline_html:
-      "Uso directo: abre <strong>COMFORT-LEDGER-abrir-aqui.html</strong> desde la carpeta. Para <strong>instalar como app (PWA)</strong> y poder abrirla sin red tras la primera visita, sirve esta carpeta por <strong>HTTPS</strong> o <code>http://127.0.0.1</code> (por ejemplo Live Server) y elige <strong>Instalar aplicación</strong> o <strong>Añadir a la pantalla de inicio</strong>.",
+    pill_device_data: "Datos en este dispositivo",
+    pill_network_coach: "Coach vía servidor (IA)",
+    backup_export: "Exportar respaldo",
+    backup_import: "Importar…",
+    backup_import_confirm:
+      "¿Reemplazar todos los datos actuales con el archivo importado? Esta acción no se puede deshacer.",
+    backup_import_ok: "Importación correcta. Datos guardados en este dispositivo.",
+    backup_import_err_invalid: "El archivo no es un respaldo válido de Comfort Ledger.",
+    backup_import_err_read: "No se pudo leer el archivo.",
     health_title: "Resumen de salud",
     goals_title: "Metas con tus cobros",
     goals_add: "+ Meta",
@@ -3571,8 +3761,15 @@ const UI_STRINGS = {
     tagline: "Less noise. More clarity.",
     pill_local: "100% on-device",
     pill_offline: "No network",
-    hint_offline_html:
-      "Quick open: use <strong>COMFORT-LEDGER-abrir-aqui.html</strong> from the folder. To <strong>install as a PWA</strong> and open it offline after the first visit, serve the folder over <strong>HTTPS</strong> or <code>http://127.0.0.1</code> (e.g. Live Server), then use <strong>Install app</strong> or <strong>Add to Home Screen</strong>.",
+    pill_device_data: "Data stays on this device",
+    pill_network_coach: "Coach uses network (AI)",
+    backup_export: "Export backup",
+    backup_import: "Import…",
+    backup_import_confirm:
+      "Replace all current data with the imported file? This cannot be undone.",
+    backup_import_ok: "Import complete. Data saved on this device.",
+    backup_import_err_invalid: "This file is not a valid Comfort Ledger backup.",
+    backup_import_err_read: "Could not read the file.",
     health_title: "Health summary",
     goals_title: "Goals from your paychecks",
     goals_add: "+ Goal",
@@ -3821,8 +4018,14 @@ const UI_STRINGS = {
     tagline: "少噪音，更清晰。",
     pill_local: "100% 本地",
     pill_offline: "离线",
-    hint_offline_html:
-      "快速使用：在项目文件夹中打开 <strong>COMFORT-LEDGER-abrir-aqui.html</strong>。若要<strong>安装为 PWA</strong>并在首次访问后离线打开，请用 <strong>HTTPS</strong> 或 <code>http://127.0.0.1</code> 提供该目录（如 Live Server），然后选择<strong>安装应用</strong>或<strong>添加到主屏幕</strong>。",
+    pill_device_data: "数据保存在本机",
+    pill_network_coach: "顾问走网络（AI）",
+    backup_export: "导出备份",
+    backup_import: "导入…",
+    backup_import_confirm: "用导入文件替换当前全部数据？此操作无法撤销。",
+    backup_import_ok: "导入成功。数据已保存在本机。",
+    backup_import_err_invalid: "该文件不是有效的 Comfort Ledger 备份。",
+    backup_import_err_read: "无法读取该文件。",
     health_title: "健康摘要",
     goals_title: "与工资挂钩的目标",
     goals_add: "+ 目标",
@@ -4169,6 +4372,61 @@ function categoryDisplayLabel(esKey) {
   return esKey;
 }
 
+/** Solo etiquetas de copy estático; el resto se convierte a texto plano (mitiga XSS vía i18n). */
+function sanitizeI18nHtml(html) {
+  const allowed = new Set(["strong", "em", "br", "span", "a", "p", "code"]);
+  const doc = new DOMParser().parseFromString(`<div>${String(html)}</div>`, "text/html");
+  const root = doc.body.firstElementChild;
+  if (!root) return escapeHtml(String(html));
+
+  function appendCleaned(parent, nodeList) {
+    for (const ch of Array.from(nodeList)) {
+      const c = clean(ch);
+      if (!c) continue;
+      if (c.nodeType === Node.DOCUMENT_FRAGMENT_NODE) {
+        appendCleaned(parent, c.childNodes);
+      } else {
+        parent.appendChild(c);
+      }
+    }
+  }
+
+  function clean(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return document.createTextNode(node.nodeValue);
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return null;
+    const name = node.tagName.toLowerCase();
+    if (name === "script" || name === "style") return null;
+    if (!allowed.has(name)) {
+      const frag = document.createDocumentFragment();
+      appendCleaned(frag, node.childNodes);
+      return frag;
+    }
+    if (name === "br") return document.createElement("br");
+    const el = document.createElement(name);
+    if (name === "a") {
+      const href = node.getAttribute("href") || "";
+      if (!/^https?:\/\//i.test(href)) {
+        const frag = document.createDocumentFragment();
+        appendCleaned(frag, node.childNodes);
+        return frag;
+      }
+      el.setAttribute("href", href);
+      el.setAttribute("rel", "noopener noreferrer");
+      el.setAttribute("target", "_blank");
+    }
+    appendCleaned(el, node.childNodes);
+    return el;
+  }
+
+  const out = document.createDocumentFragment();
+  appendCleaned(out, root.childNodes);
+  const sink = document.createElement("div");
+  sink.appendChild(out);
+  return sink.innerHTML;
+}
+
 function applyStaticI18n() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
@@ -4178,7 +4436,7 @@ function applyStaticI18n() {
   document.querySelectorAll("[data-i18n-html]").forEach((el) => {
     const key = el.getAttribute("data-i18n-html");
     if (!key) return;
-    el.innerHTML = t(key);
+    el.innerHTML = sanitizeI18nHtml(t(key));
   });
   document.querySelectorAll("[data-i18n-attr]").forEach((el) => {
     const raw = el.getAttribute("data-i18n-attr");
@@ -4212,6 +4470,7 @@ function setLocale(next) {
   applyStaticI18n();
   renderHostedProfileCard();
   applyHostedCoachCopy();
+  comfortApplyTrustPills();
   updateLangButtons();
   renderAll();
   renderWorldClocks();
@@ -4533,11 +4792,14 @@ function formatRecurringShortDate(d) {
   });
 }
 
-function loadState() {
+const COMFORT_BACKUP_FORMAT = "comfortLedgerBackup";
+const COMFORT_BACKUP_VERSION = 1;
+
+function hydrateComfortStateFromRaw(data) {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    const data = JSON.parse(raw);
     const base = defaultState();
     let incomeLines = Array.isArray(data.incomeLines) ? data.incomeLines.map(normalizeIncomeLine) : [];
     if (!incomeLines.length) {
@@ -4586,12 +4848,97 @@ function loadState() {
       subscriptions
     };
   } catch {
+    return null;
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const data = JSON.parse(raw);
+    const hydrated = hydrateComfortStateFromRaw(data);
+    return hydrated || defaultState();
+  } catch {
     return defaultState();
   }
 }
 
 function saveState(state) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function comfortApplyTrustPills() {
+  const p1 = document.getElementById("comfortTrustPillPrimary");
+  const p2 = document.getElementById("comfortTrustPillSecondary");
+  if (!p1 || !p2) {
+    return;
+  }
+  if (window.__COMFORT_HOSTED && window.__COMFORT_AI_COACH) {
+    p1.textContent = t("pill_device_data");
+    p2.textContent = t("pill_network_coach");
+  } else {
+    p1.textContent = t("pill_local");
+    p2.textContent = t("pill_offline");
+  }
+}
+
+function comfortSnapshotForExport() {
+  return {
+    profile: state.profile,
+    incomeLines: state.incomeLines,
+    liquidSavings: state.liquidSavings,
+    expenses: state.expenses,
+    debts: state.debts,
+    savingsGoals: state.savingsGoals,
+    utilityBills: state.utilityBills,
+    subscriptions: state.subscriptions
+  };
+}
+
+function comfortExportBackup() {
+  const wrap = {
+    [COMFORT_BACKUP_FORMAT]: true,
+    version: COMFORT_BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    appLocale: UI_LOCALE,
+    data: comfortSnapshotForExport()
+  };
+  const blob = new Blob([JSON.stringify(wrap, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  const objUrl = URL.createObjectURL(blob);
+  a.href = objUrl;
+  a.download = `comfort-ledger-backup-${stamp}.json`;
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objUrl), 2500);
+}
+
+function comfortParseBackupText(text) {
+  const parsed = JSON.parse(text);
+  let inner = parsed;
+  if (parsed && parsed[COMFORT_BACKUP_FORMAT] === true && parsed.data && typeof parsed.data === "object") {
+    inner = parsed.data;
+  }
+  return hydrateComfortStateFromRaw(inner);
+}
+
+function comfortSetBackupStatus(msg, kind) {
+  const el = document.getElementById("comfortBackupStatus");
+  if (!el) return;
+  if (!msg) {
+    el.hidden = true;
+    el.textContent = "";
+    el.classList.remove("comfort-backup-status--ok", "comfort-backup-status--err");
+    return;
+  }
+  el.hidden = false;
+  el.textContent = msg;
+  el.classList.toggle("comfort-backup-status--ok", kind === "ok");
+  el.classList.toggle("comfort-backup-status--err", kind === "err");
 }
 
 function getStoredProfile() {
@@ -4773,16 +5120,16 @@ function compute(state) {
   const ringSum = re + rd + rg + rf;
   const orbitScale = Math.max(income, ringSum, 1);
   const orbitWeights = [re, rd, rg, rf, Math.max(0, orbitScale - ringSum)];
-  const orbitColors = ["#6b7f8f", "#9b4c5c", "#c4a574", "#3d8f72", "rgba(36, 38, 46, 0.92)"];
+  const orbitColors = ["#0e7490", "#be123c", "#14b8a6", "#0f766e", "rgba(36, 38, 46, 0.92)"];
   const orbitConic = tacticalOrbitConic(orbitWeights, orbitColors);
 
   const goalsForTactical = (state.savingsGoals || [])
     .filter((g) => (Number(g.targetAmount) || 0) > 0)
     .map((g) => {
-      const t = Math.max(Number(g.targetAmount) || 0, 1);
+      const gTarget = Math.max(Number(g.targetAmount) || 0, 1);
       return {
         label: String(g.label || t("default_goal_name")).slice(0, 32),
-        pct: Math.min(100, (savings / t) * 100)
+        pct: Math.min(100, (savings / gTarget) * 100)
       };
     })
     .slice(0, 6);
@@ -4929,7 +5276,10 @@ function collectEls() {
     subscriptionsSummary: document.getElementById("subscriptionsSummary"),
     addSubscriptionBtn: document.getElementById("addSubscriptionBtn"),
     recurringNotifyBtn: document.getElementById("recurringNotifyBtn"),
-    recurringNotifyStatus: document.getElementById("recurringNotifyStatus")
+    recurringNotifyStatus: document.getElementById("recurringNotifyStatus"),
+    comfortExportBtn: document.getElementById("comfortExportBtn"),
+    comfortImportBtn: document.getElementById("comfortImportBtn"),
+    comfortImportFile: document.getElementById("comfortImportFile")
   };
 }
 
@@ -5251,18 +5601,18 @@ function updateGoalsSummary() {
     el.innerHTML = `<span class="post-dash-summary-muted">${escapeHtml(t("goals_summary_empty"))}</span>`;
     return;
   }
-  const t = Math.max(0, Number(g.targetAmount) || 0);
+  const goalTarget = Math.max(0, Number(g.targetAmount) || 0);
   const mo = Math.max(1, Math.min(600, Math.floor(Number(g.months) || 1)));
   const per = goalMonthlyApartado(g);
   const name = (g.label || "").trim() || "—";
-  el.innerHTML = `<strong>${escapeHtml(t("goals_last_label"))}</strong> ${escapeHtml(name)} · <strong>${escapeHtml(fmtMoney(t))}</strong> / ${mo} ${escapeHtml(t("goal_months"))} · <strong>${escapeHtml(fmtMoney(per))}</strong> ${escapeHtml(t("goal_apart_hint"))}`;
+  el.innerHTML = `<strong>${escapeHtml(t("goals_last_label"))}</strong> ${escapeHtml(name)} · <strong>${escapeHtml(fmtMoney(goalTarget))}</strong> / ${mo} ${escapeHtml(t("goal_months"))} · <strong>${escapeHtml(fmtMoney(per))}</strong> ${escapeHtml(t("goal_apart_hint"))}`;
 }
 
 function renderGoals() {
   if (!els.goalsList) return;
   const rows = state.savingsGoals || [];
   if (!rows.length) {
-    els.goalsList.innerHTML = `<p class="chart-footnote goals-empty">${t("goals_empty_html")}</p>`;
+    els.goalsList.innerHTML = `<p class="chart-footnote goals-empty">${sanitizeI18nHtml(t("goals_empty_html"))}</p>`;
     updateGoalsSummary();
     return;
   }
@@ -5392,6 +5742,9 @@ function startRecurringReminders() {
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) processRecurringReminders();
     });
+    // Extra wake/resume hooks: some browsers skip visibilitychange after sleep.
+    window.addEventListener("focus", () => processRecurringReminders());
+    window.addEventListener("pageshow", () => processRecurringReminders());
   }
 }
 
@@ -5933,6 +6286,8 @@ function renderAll() {
   renderUtilityBills();
   renderSubscriptions();
   updateRecurringNotifyUi();
+  // Keep reminders fresh after state reloads/mutations, not only on interval ticks.
+  processRecurringReminders();
 }
 
 /**
@@ -6382,6 +6737,50 @@ function bind() {
   els.profileEditBtn?.addEventListener("click", () => {
     void showOnboardingUntilDone(getStoredProfile());
   });
+
+  els.comfortExportBtn?.addEventListener("click", () => {
+    comfortSetBackupStatus("", null);
+    try {
+      comfortExportBackup();
+    } catch {
+      comfortSetBackupStatus(t("backup_import_err_read"), "err");
+    }
+  });
+
+  els.comfortImportBtn?.addEventListener("click", () => {
+    comfortSetBackupStatus("", null);
+    els.comfortImportFile?.click();
+  });
+
+  els.comfortImportFile?.addEventListener("change", (ev) => {
+    const input = ev.target;
+    const file = input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    if (!window.confirm(t("backup_import_confirm"))) {
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "");
+        const next = comfortParseBackupText(text);
+        if (!next) {
+          comfortSetBackupStatus(t("backup_import_err_invalid"), "err");
+          return;
+        }
+        Object.assign(state, next);
+        saveState(state);
+        syncLiquidityFromState();
+        renderAll();
+        comfortSetBackupStatus(t("backup_import_ok"), "ok");
+      } catch {
+        comfortSetBackupStatus(t("backup_import_err_invalid"), "err");
+      }
+    };
+    reader.onerror = () => comfortSetBackupStatus(t("backup_import_err_read"), "err");
+    reader.readAsText(file, "utf-8");
+  });
 }
 
 function coerceParsedNumber(raw) {
@@ -6405,6 +6804,7 @@ function bootComfortLedger() {
   renderHostedProfileCard();
   updateLangButtons();
   applyHostedCoachCopy();
+  comfortApplyTrustPills();
   comfortWirePostDashOnce();
 
   const coreOk =
@@ -6460,8 +6860,10 @@ if (document.readyState === "loading") {
   if (!secure) return;
   window.addEventListener("load", function () {
     navigator.serviceWorker
-      .register("comfort-ledger-sw.js", { scope: "/app" })
-      .catch(function () {});
+      .register("comfort-ledger-sw.js", { scope: "./" })
+      .catch(function (err) {
+        console.warn("Comfort Ledger: service worker no registrado", err);
+      });
   });
 })();
 </script>

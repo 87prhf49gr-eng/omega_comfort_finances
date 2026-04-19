@@ -2,12 +2,12 @@
   "name": "Comfort Ledger",
   "short_name": "Comfort",
   "description": "Resumen financiero: ingresos, gastos y deuda con coach local.",
-  "start_url": "./app",
-  "scope": "/app",
+  "start_url": "./COMFORT-LEDGER-abrir-aqui.html",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ebe6dc",
-  "theme_color": "#8f6b3d",
+  "background_color": "#05070d",
+  "theme_color": "#05070d",
   "lang": "es",
   "icons": [
     {

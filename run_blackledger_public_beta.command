@@ -115,7 +115,7 @@ if [ -z "${PUBLIC_BASE_URL}" ]; then
 fi
 
 PUBLIC_APP_URL="${PUBLIC_BASE_URL}/app?v=${APP_VERSION}&theme=sovereign"
-PUBLIC_LANDING_URL="${PUBLIC_BASE_URL}/landing.html?v=3"
+PUBLIC_LANDING_URL="${PUBLIC_BASE_URL}/"
 
 {
   echo "BlackLedger Omega Public Beta"
