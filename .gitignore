@@ -25,3 +25,9 @@ listing_assets/
 # Otros productos (muy pesados; no hacen falta para Comfort en Render)
 blackledger-elite-app/
 blackledger-omega-beta-deploy/
+
+# Comfort Ledger — regenerable / generado localmente
+comfort-ledger/.venv-*/
+comfort-ledger/marketing-ads/
+comfort-ledger/tmp_reel_*/
+comfort-ledger/output/

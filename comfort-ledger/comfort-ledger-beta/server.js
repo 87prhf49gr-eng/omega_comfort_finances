@@ -1,10 +1,19 @@
 /**
- * Comfort Ledger hosted server: static parent folder + onboarding/beta access + OpenAI coach.
+ * Comfort Ledger hosted server: static parent folder + onboarding/beta access + OpenAI coach + LemonSqueezy billing.
  * Run from repo: cd comfort-ledger/comfort-ledger-beta && npm install && npm start
- * Env: OPENAI_API_KEY, COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
- * COMFORT_ACCESS_MODE (default onboarding; set beta to enforce username/password),
- * COMFORT_REQUIRE_BETA_LOGIN (solo en access mode beta),
- * COMFORT_LANDING_DEMO_MINUTES (default 10; solo visitantes sin sesión beta, p. ej. desde el landing)
+ *
+ * Env (core):
+ *   OPENAI_API_KEY, COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
+ *   COMFORT_ACCESS_MODE (default onboarding; set beta to enforce username/password),
+ *   COMFORT_REQUIRE_BETA_LOGIN (solo en access mode beta),
+ *   COMFORT_LANDING_DEMO_MINUTES (default 10; visitantes sin sesión beta)
+ *
+ * Env (LemonSqueezy billing):
+ *   LEMONSQUEEZY_API_KEY, LEMONSQUEEZY_STORE_ID,
+ *   LEMONSQUEEZY_VARIANT_MONTHLY, LEMONSQUEEZY_VARIANT_ANNUAL,
+ *   LEMONSQUEEZY_WEBHOOK_SECRET,
+ *   COMFORT_CHECKOUT_REDIRECT_URL (opcional; destino tras pago exitoso),
+ *   COMFORT_PUBLIC_PURCHASE (true para mostrar botones de compra en el landing)
  */
 
 const http = require("http");
@@ -12,6 +21,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const OpenAI = require("openai");
+const lemon = require("./lemonsqueezy");
 
 const PORT = Number(process.env.PORT || 8787);
 const __ROOT = path.resolve(__dirname, "..");
@@ -20,6 +30,8 @@ const BUNDLED_DATA_DIR = path.join(__dirname, "data");
 const BUNDLED_BETA_USERS_FILE = path.join(BUNDLED_DATA_DIR, "beta-users.json");
 const BETA_USERS_FILE = path.join(DATA_DIR, "beta-users.json");
 const BETA_SESSIONS_FILE = path.join(DATA_DIR, "beta-sessions.json");
+const WAITLIST_FILE = path.join(DATA_DIR, "waitlist.json");
+const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "subscriptions.json");
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const SESSION_SECRET = String(process.env.COMFORT_SESSION_SECRET || crypto.randomBytes(32).toString("hex"));
 const SESSION_COOKIE_NAME = "comfort_beta_session";
@@ -99,6 +111,7 @@ const server = http.createServer(async (req, res) => {
           .toLowerCase()
           .trim() !== "false";
       const landingDemoMs = accessMode === "beta" && !requireBetaLogin ? LANDING_DEMO_MS : 0;
+      const lemonCfg = lemon.getConfig();
       return sendJson(res, 200, {
         ok: true,
         comfortHosted: true,
@@ -109,7 +122,8 @@ const server = http.createServer(async (req, res) => {
         subscribeUrl: SUBSCRIBE_URL,
         landingDemoMinutes: Math.round(landingDemoMs / 60000),
         landingDemoMs,
-        aiCoachConfigured: Boolean(openaiClient)
+        aiCoachConfigured: Boolean(openaiClient),
+        publicPurchaseEnabled: lemonCfg.publicPurchaseEnabled && lemon.isConfigured()
       });
     }
 
@@ -268,6 +282,97 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    if (pathname === "/api/waitlist" && req.method === "POST") {
+      const body = await readJsonBody(req);
+      const email = normalizeEmail(body?.email);
+      if (!email) {
+        return sendJson(res, 400, { ok: false, error: "Correo inválido." });
+      }
+      addToWaitlist(email, body?.source || "landing");
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (pathname === "/api/checkout" && (req.method === "POST" || req.method === "GET")) {
+      const body = req.method === "POST" ? await readJsonBody(req).catch(() => ({})) : {};
+      const plan =
+        body?.plan === "annual" || url.searchParams.get("plan") === "annual"
+          ? lemon.PLAN_ANNUAL
+          : lemon.PLAN_MONTHLY;
+      const email = normalizeEmail(body?.email || url.searchParams.get("email") || "");
+      const discount = String(body?.discount || url.searchParams.get("discount") || "").trim() || undefined;
+
+      if (!lemon.isConfigured()) {
+        return sendJson(res, 503, {
+          ok: false,
+          error: "Compra no disponible todavía. Déjanos tu email para avisarte al abrir."
+        });
+      }
+
+      const result = await lemon.createCheckoutUrl({ plan, email, discountCode: discount });
+      if (result.error) {
+        console.error("Checkout error:", result.error);
+        return sendJson(res, 502, { ok: false, error: "No pudimos iniciar el checkout. Intenta de nuevo." });
+      }
+
+      if (req.method === "GET") {
+        res.writeHead(302, { Location: result.url });
+        return res.end();
+      }
+      return sendJson(res, 200, { ok: true, url: result.url });
+    }
+
+    if (pathname === "/api/webhooks/lemonsqueezy" && req.method === "POST") {
+      const raw = await readRawBody(req);
+      const signature = req.headers["x-signature"] || req.headers["X-Signature"];
+      if (!lemon.verifyWebhookSignature(raw, signature)) {
+        return sendJson(res, 401, { ok: false, error: "Firma inválida." });
+      }
+      let payload;
+      try {
+        payload = JSON.parse(raw.toString("utf8"));
+      } catch {
+        return sendJson(res, 400, { ok: false, error: "JSON inválido." });
+      }
+      const event = lemon.parseWebhookEvent(payload);
+      if (!event) {
+        return sendJson(res, 202, { ok: true, ignored: true });
+      }
+      applySubscriptionEvent(event);
+      return sendJson(res, 200, { ok: true, event: event.eventName });
+    }
+
+    if (pathname === "/api/subscription/status" && req.method === "GET") {
+      const email = normalizeEmail(url.searchParams.get("email") || "");
+      if (!email) {
+        return sendJson(res, 400, { ok: false, error: "Falta email." });
+      }
+      const record = findSubscription(email);
+      return sendJson(res, 200, {
+        ok: true,
+        active: record ? lemon.isActiveStatus(record.status) : false,
+        status: record ? record.status : "none",
+        plan: record ? record.plan : null,
+        renewsAt: record ? record.renewsAt : null
+      });
+    }
+
+    if (pathname === "/api/customer-portal" && req.method === "GET") {
+      const email = normalizeEmail(url.searchParams.get("email") || "");
+      if (!email) {
+        return sendJson(res, 400, { ok: false, error: "Falta email." });
+      }
+      const record = findSubscription(email);
+      if (!record || !record.subscriptionId) {
+        return sendJson(res, 404, { ok: false, error: "No encontramos una suscripción para este email." });
+      }
+      const result = await lemon.getCustomerPortalUrl(record.subscriptionId);
+      if (result.error) {
+        return sendJson(res, 502, { ok: false, error: "No pudimos abrir el portal. Intenta luego." });
+      }
+      res.writeHead(302, { Location: result.url });
+      return res.end();
+    }
+
     if (req.method !== "GET" && req.method !== "HEAD") {
       return sendJson(res, 405, { ok: false, error: "Method not allowed" });
     }
@@ -282,9 +387,14 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   const betaEnabled = readBetaUsers().length > 0;
+  const lemonReady = lemon.isConfigured();
+  const publicPurchase = lemon.getConfig().publicPurchaseEnabled;
   console.log(`Comfort Ledger hosted → http://127.0.0.1:${PORT}/`);
   console.log(
     `Access mode: ${resolveAccessMode(betaEnabled)} · Landing demo: ${LANDING_DEMO_MS / 60000} min · Subscribe: ${SUBSCRIBE_URL}`
+  );
+  console.log(
+    `LemonSqueezy: ${lemonReady ? "configured" : "NOT configured"} · Public purchase: ${publicPurchase && lemonReady ? "ON" : "off"}`
   );
 });
 
@@ -292,6 +402,12 @@ function ensureStorage() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
   if (!fs.existsSync(BETA_SESSIONS_FILE)) {
     fs.writeFileSync(BETA_SESSIONS_FILE, "[]\n", "utf8");
+  }
+  if (!fs.existsSync(WAITLIST_FILE)) {
+    fs.writeFileSync(WAITLIST_FILE, "[]\n", "utf8");
+  }
+  if (!fs.existsSync(SUBSCRIPTIONS_FILE)) {
+    fs.writeFileSync(SUBSCRIPTIONS_FILE, "[]\n", "utf8");
   }
   if (BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE && fs.existsSync(BUNDLED_BETA_USERS_FILE)) {
     const bundledUsers = readJsonFile(BUNDLED_BETA_USERS_FILE, null);
@@ -756,6 +872,12 @@ async function generateComfortCoachAnswer(prompt, body = {}) {
 }
 
 async function readJsonBody(req) {
+  const raw = await readRawBody(req);
+  const text = raw.toString("utf8");
+  return text ? JSON.parse(text) : {};
+}
+
+async function readRawBody(req) {
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
@@ -765,8 +887,67 @@ async function readJsonBody(req) {
     }
     chunks.push(chunk);
   }
-  const raw = Buffer.concat(chunks).toString("utf8");
-  return raw ? JSON.parse(raw) : {};
+  return Buffer.concat(chunks);
+}
+
+function normalizeEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email) return "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "";
+  return email;
+}
+
+function addToWaitlist(email, source) {
+  const list = readJsonFile(WAITLIST_FILE, []);
+  const existing = Array.isArray(list) ? list : [];
+  if (!existing.some((entry) => entry.email === email)) {
+    existing.push({
+      email,
+      source: String(source || "landing"),
+      at: new Date().toISOString()
+    });
+    writeJsonFile(WAITLIST_FILE, existing);
+  }
+}
+
+function readSubscriptions() {
+  const list = readJsonFile(SUBSCRIPTIONS_FILE, []);
+  return Array.isArray(list) ? list : [];
+}
+
+function writeSubscriptions(list) {
+  writeJsonFile(SUBSCRIPTIONS_FILE, list);
+}
+
+function findSubscription(email) {
+  if (!email) return null;
+  return readSubscriptions().find((entry) => entry.email === email) || null;
+}
+
+function applySubscriptionEvent(event) {
+  if (!event || !event.email) return;
+  const list = readSubscriptions();
+  const idx = list.findIndex((entry) => entry.email === event.email);
+  const now = new Date().toISOString();
+  const next = {
+    email: event.email,
+    subscriptionId: event.subscriptionId || (idx >= 0 ? list[idx].subscriptionId : ""),
+    customerId: event.customerId || (idx >= 0 ? list[idx].customerId : ""),
+    variantId: event.variantId || (idx >= 0 ? list[idx].variantId : ""),
+    plan: event.plan || (idx >= 0 ? list[idx].plan : "monthly"),
+    status: event.status || (idx >= 0 ? list[idx].status : "unknown"),
+    renewsAt: event.renewsAt || null,
+    lastEvent: event.eventName,
+    updatedAt: now,
+    createdAt: idx >= 0 ? list[idx].createdAt : now
+  };
+  if (idx >= 0) {
+    list[idx] = next;
+  } else {
+    list.push(next);
+  }
+  writeSubscriptions(list);
+  console.log(`LS webhook: ${event.eventName} · ${event.email} · status=${next.status}`);
 }
 
 function sendJson(res, status, payload, extraHeaders = {}) {
@@ -786,7 +967,7 @@ function comfortCsp() {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data:",
-    "connect-src 'self'",
+    "connect-src 'self' https://api.openai.com",
     "manifest-src 'self'",
     "worker-src 'self'",
     "object-src 'none'",
@@ -827,7 +1008,12 @@ function isBlockedComfortPath(rel) {
     return true;
   }
   const lower = rel.toLowerCase();
-  if (lower.includes("beta-users") || lower.includes("beta-sessions")) {
+  if (
+    lower.includes("beta-users") ||
+    lower.includes("beta-sessions") ||
+    lower.includes("subscriptions.json") ||
+    lower.includes("waitlist.json")
+  ) {
     return true;
   }
   return blocked.some((p) => rel === p || rel.startsWith(`${p}/`));

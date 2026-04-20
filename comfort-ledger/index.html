@@ -5,9 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Comfort Ledger: deja de adivinar si te alcanza el mes. Una vista clara de ingresos, gastos y deuda — local, privada y lista en segundos.">
   <meta name="theme-color" content="#0c0d12">
-  <meta property="og:title" content="Comfort Ledger — Tu mes, sin adivinar">
-  <meta property="og:description" content="Resumen financiero local. Sin banco. Sin ruido. Abre y empieza.">
+  <meta property="og:title" content="Comfort Ledger — Deja de adivinar si te alcanza el mes">
+  <meta property="og:description" content="Una vista clara de ingresos, gastos y deuda. Local, privada y lista en segundos. Sin conectar tu banco.">
   <meta property="og:type" content="website">
+  <meta property="og:image" content="./branding/comfort-ledger-mark.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Comfort Ledger — Deja de adivinar si te alcanza el mes">
+  <meta name="twitter:description" content="Tus números no viajan a un servidor. Trabajan en tu navegador.">
+  <meta name="twitter:image" content="./branding/comfort-ledger-mark.png">
   <link rel="canonical" href="./">
   <link rel="manifest" href="./comfort-ledger.webmanifest">
   <link rel="icon" href="./branding/comfort-ledger-nav-icon.png" type="image/png" sizes="256x256">
@@ -557,6 +562,18 @@
     footer a { color: rgba(196, 208, 255, 0.85); font-weight: 500; }
     footer a:hover { color: var(--text); }
 
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
     code {
       font-size: 0.86em;
       font-family: ui-monospace, monospace;
@@ -564,6 +581,324 @@
       padding: 2px 6px;
       border-radius: 6px;
       border: 1px solid var(--line);
+    }
+
+    /* Hero eyebrow (brand lockup) */
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(196, 208, 255, 0.92);
+      margin: 0 0 18px;
+    }
+    .hero-eyebrow::before {
+      content: "";
+      width: 24px;
+      height: 1px;
+      background: rgba(196, 208, 255, 0.5);
+    }
+
+    /* Waitlist form */
+    .waitlist-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      max-width: 460px;
+      margin: 0 auto 14px;
+    }
+    .waitlist-form input[type="email"] {
+      flex: 1 1 240px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .waitlist-form input[type="email"]::placeholder { color: var(--text-soft); }
+    .waitlist-form input[type="email"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface-2);
+    }
+    .waitlist-note {
+      font-size: 0.82rem;
+      color: var(--text-soft);
+      margin: 0 0 22px;
+    }
+    .waitlist-ok {
+      font-size: 0.92rem;
+      color: var(--positive);
+      margin: 8px 0 18px;
+      font-weight: 500;
+    }
+    .beta-link {
+      font-size: 0.88rem;
+      color: var(--text-soft);
+      margin: 0 0 clamp(40px, 6vw, 56px);
+    }
+    .beta-link a {
+      color: rgba(196, 208, 255, 0.92);
+      font-weight: 500;
+      border-bottom: 1px solid rgba(196, 208, 255, 0.25);
+    }
+    .beta-link a:hover { color: var(--text); border-bottom-color: var(--text); }
+
+    /* Product mockup (fake screenshot via CSS) */
+    .preview {
+      max-width: 960px;
+      margin: clamp(40px, 6vw, 64px) auto 0;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.04) inset,
+        0 30px 80px -20px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(61, 108, 255, 0.06);
+      padding: 14px;
+      overflow: hidden;
+    }
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px 10px;
+    }
+    .preview-bar span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .preview-bar span:first-child { background: rgba(244, 114, 154, 0.55); }
+    .preview-bar span:nth-child(2) { background: rgba(247, 201, 72, 0.55); }
+    .preview-bar span:nth-child(3) { background: rgba(62, 207, 142, 0.55); }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 10px;
+    }
+    @media (max-width: 720px) {
+      .preview-grid { grid-template-columns: 1fr; }
+    }
+    .preview-panel {
+      background: var(--void-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .preview-panel h4 {
+      margin: 0 0 4px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-soft);
+    }
+    .preview-kpi {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 6px 0 4px;
+    }
+    .preview-kpi.positive { color: var(--positive); }
+    .preview-kpi small { font-size: 0.8rem; color: var(--text-soft); font-weight: 500; margin-left: 6px; }
+    .preview-bar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+    .preview-bar-row:first-of-type { border-top: none; }
+    .preview-bar-row strong { color: var(--text); font-weight: 500; }
+    .preview-bar-track {
+      flex: 0 0 110px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .preview-bar-fill {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+    .preview-bar-fill.warn { background: var(--negative); }
+    .preview-bar-fill.ok { background: var(--positive); }
+    .preview-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 90px;
+      margin-top: 12px;
+    }
+    .preview-chart i {
+      flex: 1;
+      background: linear-gradient(180deg, rgba(61, 108, 255, 0.55), rgba(61, 108, 255, 0.1));
+      border-radius: 3px 3px 0 0;
+      display: block;
+    }
+    .preview-caption {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      margin: 14px 0 0;
+      font-style: italic;
+    }
+
+    /* Transparency card (replaces fake testimonial) */
+    .creator-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: clamp(28px, 4vw, 40px);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .creator-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: rgba(238, 240, 244, 0.85);
+    }
+    .creator-card .creator-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-soft);
+    }
+
+    /* Pricing */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    @media (max-width: 640px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+    .price-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: left;
+      position: relative;
+    }
+    .price-card.featured {
+      border-color: rgba(61, 108, 255, 0.4);
+      background: rgba(61, 108, 255, 0.05);
+    }
+    .price-badge {
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .price-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-soft);
+      font-family: var(--font-display);
+    }
+    .price-amount {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin: 0 0 2px;
+      color: var(--text);
+    }
+    .price-amount small {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-soft);
+      margin-left: 4px;
+    }
+    .price-sub {
+      margin: 0 0 14px;
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+    .price-card ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.88rem;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+    .price-card li {
+      padding-left: 18px;
+      position: relative;
+      margin-bottom: 6px;
+    }
+    .price-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.58em;
+      width: 5px;
+      height: 5px;
+      border-radius: 1px;
+      background: var(--accent);
+    }
+    .price-card li strong { color: var(--text); font-weight: 500; }
+    .pricing-note {
+      text-align: center;
+      margin: 22px auto 0;
+      max-width: 34rem;
+      font-size: 0.88rem;
+      color: var(--text-soft);
+      line-height: 1.65;
+    }
+    .pricing-note strong { color: var(--text); }
+    .price-cta {
+      display: inline-flex;
+      margin-top: 18px;
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+
+    /* Footer legal */
+    .foot-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 18px;
+      margin-top: 10px;
+      font-size: 0.8rem;
     }
   </style>
 </head>
@@ -577,10 +912,10 @@
       <nav class="nav-links" aria-label="Secciones">
         <a href="#problema">El problema</a>
         <a href="#beneficios">Qué hace</a>
-        <a href="#confianza">Confianza</a>
+        <a href="#precio">Precio</a>
         <a href="#faq">FAQ</a>
       </nav>
-      <a class="btn btn-primary" href="/app">Entrar con acceso beta</a>
+      <a class="btn btn-ghost" href="/app">Entrar</a>
     </div>
   </header>
 
@@ -598,29 +933,41 @@
             aria-hidden="true"
           />
         </div>
-        <h1 class="hero-brand">Comfort <span class="hero-brand-sub">Ledger</span></h1>
+        <p class="hero-eyebrow">Comfort Ledger</p>
+        <h1 class="hero-brand">Deja de adivinar<br>si te alcanza el mes.</h1>
         <p class="hero-tagline">
-          <span class="hero-tagline-accent">Inteligencia</span> <span>financiera</span>
+          Una vista clara de ingresos, gastos y deuda. <span class="hero-tagline-accent">Local y privada.</span>
         </p>
 
         <div class="trust-strip">
           <span class="pill">100% en tu dispositivo</span>
           <span class="pill pill-muted">Sin conectar tu banco</span>
-          <span class="pill">Listo en segundos</span>
+          <span class="pill">Lista en segundos</span>
         </div>
 
         <p class="hero-lede">
-          <strong>Comfort Ledger</strong> es una vista única de ingresos, gastos y deuda — con recordatorios de renta, servicios y suscripciones, e informe ejecutivo. <strong>Tus números no viajan a un servidor:</strong> trabajan en tu navegador, privados y bajo tu control.
+          Ingresos, gastos mensualizados, deudas, metas, servicios del hogar y suscripciones — con avisos e informe ejecutivo. <strong>Tus números no viajan a un servidor:</strong> trabajan en tu navegador.
         </p>
 
-        <div class="hero-ctas">
-          <a class="btn btn-primary" href="/app">Entrar con acceso beta</a>
-          <a class="btn btn-ghost" href="#como-funciona">Ver cómo funciona</a>
-        </div>
+        <form id="waitlistForm" class="waitlist-form" novalidate>
+          <label class="sr-only" for="waitlistEmail">Correo electrónico</label>
+          <input
+            id="waitlistEmail"
+            type="email"
+            name="email"
+            inputmode="email"
+            autocomplete="email"
+            required
+            placeholder="tu@correo.com"
+          />
+          <button class="btn btn-primary" type="submit">Avísame al lanzar</button>
+        </form>
+        <p id="waitlistMsg" class="waitlist-note">
+          Te escribo solo al abrir al público. 30 % de descuento vitalicio. Sin spam.
+        </p>
 
-        <p class="micro-trust">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Beta privada con usuario y contraseña. Si ya tienes acceso, entra; si no, aquí puedes entender qué resuelve antes del lanzamiento público.
+        <p class="beta-link">
+          ¿Ya tienes acceso beta? <a href="/app">Entra a la app →</a>
         </p>
 
         <div class="feature-row">
@@ -661,11 +1008,59 @@
             <ul>
               <li>“¿Cuánto me queda después de todo?” — lo ves en una sola pantalla.</li>
               <li>Renta, luz, gas, seguro y suscripciones — organizados y con avisos.</li>
-              <li>Coach local con tus cifras: reglas claras, sin depender de la nube.</li>
+              <li>Coach con tus cifras: reglas claras, sin depender de la nube.</li>
               <li>Informe tipo “sala de juntas” para decidir en minutos, no en horas.</li>
             </ul>
           </div>
         </div>
+
+        <figure class="preview" aria-label="Vista previa del panel principal de Comfort Ledger">
+          <div class="preview-bar" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="preview-grid">
+            <div class="preview-panel">
+              <h4>Resumen de salud · Abril</h4>
+              <div class="preview-kpi positive">+ $412 <small>libres después de todo</small></div>
+              <div class="preview-bar-row">
+                <strong>Gastos fijos</strong>
+                <span class="preview-bar-track"><span class="preview-bar-fill" style="width: 58%"></span></span>
+                <span>58 %</span>
+              </div>
+              <div class="preview-bar-row">
+                <strong>Deuda del mes</strong>
+                <span class="preview-bar-track"><span class="preview-bar-fill warn" style="width: 22%"></span></span>
+                <span>22 %</span>
+              </div>
+              <div class="preview-bar-row">
+                <strong>Colchón restante</strong>
+                <span class="preview-bar-track"><span class="preview-bar-fill ok" style="width: 20%"></span></span>
+                <span>20 %</span>
+              </div>
+            </div>
+            <div class="preview-panel">
+              <h4>Flujo del mes</h4>
+              <div class="preview-chart" aria-hidden="true">
+                <i style="height: 45%"></i>
+                <i style="height: 62%"></i>
+                <i style="height: 38%"></i>
+                <i style="height: 78%"></i>
+                <i style="height: 55%"></i>
+                <i style="height: 70%"></i>
+                <i style="height: 48%"></i>
+              </div>
+              <div class="preview-bar-row" style="margin-top: 14px">
+                <strong>Suscripciones</strong>
+                <span>Netflix, Spotify · $18</span>
+              </div>
+              <div class="preview-bar-row">
+                <strong>Próximo aviso</strong>
+                <span>Luz · en 3 días</span>
+              </div>
+            </div>
+          </div>
+          <figcaption class="preview-caption">Vista ilustrativa. Datos de ejemplo.</figcaption>
+        </figure>
       </div>
     </section>
 
@@ -673,18 +1068,18 @@
       <section>
         <div class="wrap">
           <p class="section-label">Problema → solución</p>
-          <h2 class="section-title">Las apps ganadoras resuelven un miedo claro. El tuyo es el caos del mes.</h2>
+          <h2 class="section-title">El miedo no es gastar. Es no saber en qué vas.</h2>
           <p class="section-intro">
-            Las landings que más convierten (Notion, Linear, herramientas “prosumer”) repiten el mismo patrón: <strong>promesa específica arriba del todo</strong>, prueba de confianza temprana, beneficios concretos y un solo CTA principal. Aquí lo aplicamos a tu dinero del día a día.
+            La mayoría del mes no se pierde en compras raras: se pierde en cargos que se te olvidan, en suscripciones que ya no usas y en deuda que nadie te recuerda. Comfort Ledger pone todo eso en una pantalla.
           </p>
           <div class="problem-grid">
             <div class="problem-card">
               <h3>El dolor</h3>
-              <p>Notas en el teléfono, Excel a medias, apps que piden el banco y anuncios. Al final no sabes si estás cómodo o a nada de quedarte en rojo.</p>
+              <p>Notas en el teléfono, Excel a medias, apps que piden tu banco y te llenan de anuncios. Al final no sabes si estás cómodo o a nada de quedarte en rojo.</p>
             </div>
             <div class="solution-card">
               <h3>La promesa</h3>
-              <p>Un solo lienzo: ingresos del mes, gastos mensualizados, deudas, metas, servicios del hogar y suscripciones — con recordatorios y enlaces para pagar o darte de baja. <strong>Claridad primero.</strong> La app está cerrada hoy a usuarios beta con acceso.</p>
+              <p>Un solo lienzo: ingresos del mes, gastos mensualizados, deudas, metas, servicios del hogar y suscripciones — con recordatorios y enlaces para pagar o darte de baja. <strong>Claridad primero, sin ceder tus datos.</strong></p>
             </div>
           </div>
         </div>
@@ -695,7 +1090,7 @@
       <div class="wrap">
         <p class="section-label">Qué obtienes</p>
         <h2 class="section-title">Diseñado para decidir rápido y dormir tranquilo</h2>
-        <p class="section-intro">Cada bloque responde a una pregunta real. Nada de relleno: es lo que ya hace la app.</p>
+        <p class="section-intro">Cada bloque responde a una pregunta real. Esto es lo que ya hace la app.</p>
         <div class="bento">
           <div class="bento-card bento-wide">
             <h3>Resumen de salud + informe ejecutivo</h3>
@@ -714,8 +1109,8 @@
             <p>Permiso del navegador: aviso 3 días antes y el día del cargo. Si instalas la PWA, mejor experiencia en el móvil.</p>
           </div>
           <div class="bento-card">
-            <h3>Coach local</h3>
-            <p>Preguntas sobre tu mes y deudas con respuestas basadas en reglas y tus números — sin enviar datos a un modelo en la nube.</p>
+            <h3>Coach que entiende tu mes</h3>
+            <p>Por defecto es 100% local: reglas + tus cifras, sin salir del navegador. Si activas el modo nube, la consulta se envía a OpenAI — tú decides cuándo.</p>
           </div>
         </div>
       </div>
@@ -726,7 +1121,7 @@
         <div class="wrap">
           <p class="section-label">Cómo funciona</p>
           <h2 class="section-title">Tres pasos. Sin fricción.</h2>
-          <p class="section-intro">Menos pasos = más conversiones. Así lo hacen las product-led growth que escalan.</p>
+          <p class="section-intro">No hay sincronización forzada, ni contrato, ni onboarding de 15 pasos.</p>
           <div class="steps">
             <div class="step">
               <h3>Abres la app</h3>
@@ -747,17 +1142,60 @@
 
     <section id="confianza">
       <div class="wrap">
-        <p class="section-label">Confianza</p>
-        <h2 class="section-title">Por qué es fiable usarlo (aunque sea una idea en evolución)</h2>
+        <p class="section-label">Transparencia</p>
+        <h2 class="section-title">Por qué puedes confiar en usarlo hoy</h2>
         <p class="section-intro">
-          Transparencia vende más que el marketing vacío. Comfort Ledger es <strong>local-first</strong>: no sustituye a tu banco ni da consejo de inversión; te da una foto honesta con lo que tú introduces.
+          Comfort Ledger es <strong>local-first</strong>: no sustituye a tu banco ni da consejo de inversión. Te da una foto honesta con lo que tú introduces. Todavía no hay reseñas públicas, así que esto es lo que hay por ahora:
         </p>
-        <div class="trust-panel">
-          <blockquote>“Por fin tengo una sola pantalla donde veo si el mes cierra o no, sin dar mis claves a nadie.”</blockquote>
-          <cite>— Formulación tipo testimonio; sustituye cuando tengas usuarios reales.</cite>
+        <div class="creator-card">
+          <span class="creator-label">Nota del creador</span>
+          <p>
+            Estoy construyendo Comfort Ledger porque me cansé de apps que piden mi banco, llenan de anuncios o me bloquean funciones básicas tras un paywall. La versión que ves es la que uso cada mes. Está en beta privada para pulir la experiencia con usuarios reales antes de abrirla al público.
+          </p>
+          <p>
+            Si algo no cuadra, prefiero que me escribas antes que ponga un testimonio inventado aquí.
+          </p>
         </div>
         <p class="section-intro" style="margin-top: 28px; margin-bottom: 0;">
-          <strong>Checklist de confianza:</strong> sin enlazar cuenta bancaria · datos en <code>localStorage</code> de tu navegador · puedes usar en <code>localhost</code> o HTTPS para PWA y notificaciones · código visible en un HTML si quieres auditarlo.
+          <strong>Checklist técnica:</strong> sin enlazar cuenta bancaria · datos en <code>localStorage</code> del navegador · PWA instalable · exportas e importas tu JSON cuando quieras · código auditable (es HTML en tu máquina).
+        </p>
+      </div>
+    </section>
+
+    <section id="precio">
+      <div class="wrap">
+        <p class="section-label">Precio</p>
+        <h2 class="section-title">Simple. Sin letra pequeña.</h2>
+        <p class="section-intro">
+          Comfort Ledger es un producto vivo: cada mes añado mejoras y ajusto el coach con lo que descubro usándolo. La suscripción paga ese mantenimiento; a cambio, todo lo nuevo llega sin cargo extra.
+        </p>
+        <div class="pricing-grid">
+          <div class="price-card">
+            <h3>Mensual</h3>
+            <p class="price-amount">$4.99 <small>/ mes</small></p>
+            <p class="price-sub">Cancela cuando quieras.</p>
+            <ul>
+              <li><strong>Todas las funciones</strong> de la app</li>
+              <li>Actualizaciones incluidas</li>
+              <li>14 días de prueba sin tarjeta</li>
+            </ul>
+            <a class="btn btn-ghost price-cta" href="#waitlistForm" data-plan="monthly">Unirme a la lista</a>
+          </div>
+          <div class="price-card featured">
+            <span class="price-badge">Ahorras 35 %</span>
+            <h3>Anual</h3>
+            <p class="price-amount">$39 <small>/ año</small></p>
+            <p class="price-sub">≈ $3.25 al mes. Un café al mes.</p>
+            <ul>
+              <li>Todo lo del plan mensual</li>
+              <li><strong>Precio fijo</strong> mientras mantengas la suscripción</li>
+              <li>Acceso anticipado a lo nuevo</li>
+            </ul>
+            <a class="btn btn-primary price-cta" href="#waitlistForm" data-plan="annual">Unirme a la lista</a>
+          </div>
+        </div>
+        <p class="pricing-note">
+          <strong>Lista de espera:</strong> quien se apunte desde aquí se lleva <strong>30 % de descuento vitalicio</strong> al abrir al público. Beta gratuita hasta entonces. Tus datos siguen siendo tuyos incluso si cancelas — local-first en serio.
         </p>
       </div>
     </section>
@@ -766,24 +1204,34 @@
       <section>
         <div class="wrap">
           <p class="section-label">FAQ</p>
-          <h2 class="section-title">Objeciones resueltas antes del “comprar”</h2>
-          <p class="section-intro">Las FAQs al final reducen dudas de último minuto y suben clics al CTA.</p>
+          <h2 class="section-title">Lo que me han preguntado hasta ahora</h2>
+          <p class="section-intro">Si tu duda no está aquí, escríbeme y la añado.</p>
           <div class="faq">
             <details>
-              <summary>¿Es seguro?</summary>
-              <p>No pedimos contraseñas ni tokens bancarios. Lo que escribes se guarda en tu propio navegador en este dispositivo (salvo que uses sincronización del propio navegador).</p>
+              <summary>¿Cuánto va a costar?</summary>
+              <p>En beta es gratis. Al abrir al público: <strong>$4.99/mes</strong> o <strong>$39/año</strong> (≈ $3.25/mes pagando anual). Hay <strong>14 días de prueba sin tarjeta</strong> y puedes cancelar cuando quieras — tus datos siguen en tu dispositivo aunque canceles.</p>
+              <p>Quien se apunte a la lista de espera desde aquí tendrá <strong>descuento vitalicio del 30 %</strong> sobre cualquiera de los dos planes.</p>
+              <p>Es suscripción porque el producto se actualiza constantemente (nuevas categorías, mejoras del coach, sincronización cifrada en la hoja de ruta). Pagas el mantenimiento, no solo el software.</p>
+            </details>
+            <details>
+              <summary>¿Es seguro? ¿Qué pasa con mis datos?</summary>
+              <p>No pido contraseñas ni tokens bancarios. Todo lo que escribes se guarda en el <code>localStorage</code> de tu navegador, en ese dispositivo. Puedes exportarlo a un archivo JSON cuando quieras y borrar todo con un clic.</p>
+            </details>
+            <details>
+              <summary>¿El coach IA envía mis datos a la nube?</summary>
+              <p>Por defecto el coach es <strong>local</strong>: usa reglas + tus cifras dentro del navegador y nada sale de ahí. Existe un modo nube opcional que envía tu consulta (y un resumen anónimo) a OpenAI para una respuesta más rica. Tú eliges cuándo activarlo, y puedes seguir usando toda la app sin él.</p>
             </details>
             <details>
               <summary>¿Funciona en el móvil?</summary>
-              <p>Sí. Sirve la carpeta por HTTPS o en tu red local, instala como PWA y usa recordatorios con permiso del sistema.</p>
+              <p>Sí. La app es una PWA: instálala desde Safari o Chrome y úsala como cualquier app, con avisos del sistema para la renta, servicios y suscripciones.</p>
             </details>
             <details>
-              <summary>¿Qué me cuesta?</summary>
-              <p>Hoy está en beta privada por invitación. La venta pública llegará cuando el flujo y la experiencia queden más pulidos.</p>
+              <summary>¿Se sincroniza entre mis dispositivos?</summary>
+              <p>Hoy no, y lo aviso por delante: cada dispositivo es independiente. Puedes mover tus datos con Export/Import. Sincronización cifrada extremo a extremo está en la hoja de ruta.</p>
             </details>
             <details>
               <summary>¿Sustituye a un asesor financiero?</summary>
-              <p>No. Es una herramienta de claridad y hábito. Para decisiones legales o de inversión, consulta a un profesional.</p>
+              <p>No. Es una herramienta de claridad y hábito. Para decisiones legales, fiscales o de inversión, consulta a un profesional.</p>
             </details>
           </div>
         </div>
@@ -793,17 +1241,127 @@
     <section class="cta-final">
       <div class="wrap">
         <h2>Tu mes no va a organizarse solo.</h2>
-        <p>Si ya tienes acceso beta, entra al app. Si todavía no, esta página te deja claro qué hace y por qué vale la pena seguirlo hasta el lanzamiento.</p>
-        <a class="btn btn-primary" href="/app" style="font-size: 1.05rem; padding-inline: 28px;">Entrar a Comfort Ledger</a>
+        <p>Apúntate y serás de los primeros al abrir: <strong>30 % de descuento vitalicio</strong> y 14 días de prueba sin tarjeta.</p>
+        <form class="waitlist-form" id="waitlistFormBottom" novalidate>
+          <label class="sr-only" for="waitlistEmailBottom">Correo electrónico</label>
+          <input
+            id="waitlistEmailBottom"
+            type="email"
+            name="email"
+            inputmode="email"
+            autocomplete="email"
+            required
+            placeholder="tu@correo.com"
+          />
+          <button class="btn btn-primary" type="submit">Avísame al lanzar</button>
+        </form>
+        <p id="waitlistMsgBottom" class="waitlist-note">Sin spam. Cancela cuando quieras.</p>
       </div>
     </section>
   </main>
 
   <footer>
     <div class="wrap">
-      Comfort Ledger · local-first · <a href="/app">Ir a la app beta</a>
-      · Hecho para vender claridad, no ansiedad.
+      <div>Comfort Ledger · local-first · © 2026</div>
+      <div class="foot-links">
+        <a href="/app">App beta</a>
+        <a href="#faq">FAQ</a>
+        <a href="./privacidad.html">Privacidad</a>
+        <a href="./terminos.html">Términos</a>
+        <a href="mailto:hola@comfortledger.app">Contacto</a>
+      </div>
     </div>
   </footer>
+
+  <script>
+    (function () {
+      const STORAGE_KEY = "comfort_waitlist_v1";
+
+      function isValidEmail(email) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
+      }
+
+      function handleWaitlist(formId, msgId) {
+        const form = document.getElementById(formId);
+        const msg = document.getElementById(msgId);
+        if (!form || !msg) return;
+        form.addEventListener("submit", async function (event) {
+          event.preventDefault();
+          const input = form.querySelector('input[type="email"]');
+          const email = (input?.value || "").trim();
+          if (!isValidEmail(email)) {
+            msg.textContent = "Revisa el correo — parece que tiene algún error.";
+            msg.className = "waitlist-note";
+            input?.focus();
+            return;
+          }
+          const btn = form.querySelector('button[type="submit"]');
+          if (btn) btn.disabled = true;
+          try {
+            await fetch("/api/waitlist", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, source: formId })
+            });
+          } catch (_) {
+            /* backend opcional durante desarrollo local */
+          }
+          try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+            if (!saved.includes(email)) {
+              saved.push(email);
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+            }
+          } catch (_) {}
+          form.reset();
+          msg.textContent = "Listo. Te aviso en cuanto abramos al público.";
+          msg.className = "waitlist-ok";
+          if (btn) btn.disabled = false;
+        });
+      }
+
+      async function wirePurchaseButtons() {
+        let cfg = null;
+        try {
+          const r = await fetch("/api/public-config", { cache: "no-store" });
+          if (r.ok) cfg = await r.json();
+        } catch (_) {
+          /* sin backend: dejamos el comportamiento de lista de espera */
+        }
+        if (!cfg || !cfg.publicPurchaseEnabled) return;
+
+        document.querySelectorAll(".price-cta").forEach(function (cta) {
+          const plan = cta.getAttribute("data-plan") || "monthly";
+          cta.textContent = plan === "annual" ? "Empezar anual →" : "Empezar mensual →";
+          cta.setAttribute("href", "/api/checkout?plan=" + encodeURIComponent(plan));
+          cta.addEventListener("click", async function (event) {
+            event.preventDefault();
+            cta.setAttribute("aria-busy", "true");
+            try {
+              const response = await fetch("/api/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan })
+              });
+              const payload = await response.json().catch(() => ({}));
+              if (response.ok && payload.url) {
+                window.location.href = payload.url;
+                return;
+              }
+              alert(payload.error || "No pudimos abrir el checkout. Intenta luego.");
+            } catch (_) {
+              window.location.href = "/api/checkout?plan=" + encodeURIComponent(plan);
+            } finally {
+              cta.removeAttribute("aria-busy");
+            }
+          });
+        });
+      }
+
+      handleWaitlist("waitlistForm", "waitlistMsg");
+      handleWaitlist("waitlistFormBottom", "waitlistMsgBottom");
+      wirePurchaseButtons();
+    })();
+  </script>
 </body>
 </html>

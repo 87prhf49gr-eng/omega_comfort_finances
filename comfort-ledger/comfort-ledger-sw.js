@@ -1,5 +1,5 @@
 /* Comfort Ledger — service worker (caché PWA + clic en notificaciones) */
-const CACHE_NAME = "comfort-ledger-v22";
+const CACHE_NAME = "comfort-ledger-v25";
 const APP_SHELL = "./COMFORT-LEDGER-abrir-aqui.html";
 const PRECACHE = [
   APP_SHELL,

@@ -1,3 +1,5 @@
 node_modules/
 data/beta-sessions.json
+data/subscriptions.json
+data/waitlist.json
 .env

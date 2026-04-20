@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; manifest-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com; worker-src 'self'; manifest-src 'self'">
   <title>Comfort Ledger — Resumen y coach</title>
   <meta name="theme-color" content="#121212">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1297,6 +1297,89 @@ body.lang-zh .dash-tactical-title {
   border-radius: 999px;
 }
 
+.coach-settings-btn {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: color 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+.coach-settings-btn:hover {
+  color: var(--text);
+  border-color: var(--text-soft);
+  background: var(--surface-2);
+}
+
+.coach-mode-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0 0 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.coach-mode-option {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2);
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.coach-mode-option:has(input:checked) {
+  border-color: rgba(14, 116, 144, 0.5);
+  background: rgba(14, 116, 144, 0.08);
+}
+.coach-mode-option input[type="radio"] {
+  margin-top: 0.25rem;
+  accent-color: var(--accent);
+}
+.coach-mode-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+.coach-mode-body strong {
+  font-size: 0.92rem;
+  color: var(--text);
+}
+.coach-mode-body span {
+  font-size: 0.82rem;
+  color: var(--text-soft);
+  line-height: 1.45;
+}
+.coach-openai-setup {
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--border);
+}
+.coach-openai-hint {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.coach-openai-hint a {
+  color: var(--accent);
+  text-decoration: underline;
+}
+.coach-openai-warn {
+  margin: 0.1rem 0 0;
+  font-size: 0.78rem;
+  color: var(--negative);
+}
+
 .coach-intro {
   font-size: 0.84rem;
   color: var(--text-soft);
@@ -2341,9 +2424,11 @@ body.lang-zh .dash-tactical-title {
   inset: 0;
   z-index: 100000;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
-  padding: 1.25rem;
+  padding: clamp(1rem, 4vh, 3rem) 1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: rgba(26, 29, 36, 0.55);
   backdrop-filter: blur(6px);
   pointer-events: auto;
@@ -2358,6 +2443,194 @@ body.lang-zh .dash-tactical-title {
   border-radius: 14px;
   padding: 1.35rem 1.35rem 1.15rem;
   box-shadow: var(--holo-glow-strong);
+  margin: auto;
+}
+.comfort-beta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Empty states */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding: 1.25rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-soft);
+}
+.empty-state p {
+  margin: 0;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.98rem;
+}
+.empty-state span {
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.empty-state button {
+  margin-top: 0.45rem;
+}
+.empty-state--ok {
+  border-color: rgba(62, 207, 142, 0.32);
+  background: rgba(62, 207, 142, 0.06);
+}
+
+/* Saved indicator (discreto arriba a la derecha) */
+.comfort-saved-indicator {
+  position: fixed;
+  top: 14px;
+  right: 14px;
+  z-index: 99500;
+  padding: 6px 10px;
+  background: rgba(62, 207, 142, 0.14);
+  color: #3ecf8e;
+  border: 1px solid rgba(62, 207, 142, 0.35);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+  pointer-events: none;
+}
+.comfort-saved-indicator--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.comfort-saved-indicator::before {
+  content: "✓";
+  margin-right: 0.35rem;
+}
+
+/* Undo toast */
+.comfort-undo-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  z-index: 99600;
+  transform: translate(-50%, 20px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.65rem 0.9rem 0.65rem 1rem;
+  background: rgba(20, 22, 28, 0.96);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  max-width: calc(100vw - 32px);
+}
+.comfort-undo-toast--visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+.comfort-undo-action {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--accent, #8ab4ff);
+  font-weight: 600;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+}
+.comfort-undo-action:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* KPI hero (arriba de todo dentro de la app) */
+.kpi-hero {
+  margin: 0 0 1.25rem;
+  padding: 1.25rem 1.4rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-hero[data-tone="ok"] {
+  background: linear-gradient(135deg, rgba(62, 207, 142, 0.08), rgba(62, 207, 142, 0.02) 70%);
+  border-color: rgba(62, 207, 142, 0.3);
+}
+.kpi-hero[data-tone="tight"] {
+  background: linear-gradient(135deg, rgba(247, 201, 72, 0.08), rgba(247, 201, 72, 0.02) 70%);
+  border-color: rgba(247, 201, 72, 0.3);
+}
+.kpi-hero[data-tone="warn"] {
+  background: linear-gradient(135deg, rgba(244, 114, 154, 0.08), rgba(244, 114, 154, 0.02) 70%);
+  border-color: rgba(244, 114, 154, 0.3);
+}
+.kpi-hero[data-tone="empty"] {
+  background: var(--surface);
+  border-style: dashed;
+}
+.kpi-hero-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-soft);
+}
+.kpi-hero-value {
+  margin: 0;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-size: clamp(1.75rem, 4.5vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  color: var(--text);
+}
+.kpi-hero[data-tone="ok"] .kpi-hero-value { color: #3ecf8e; }
+.kpi-hero[data-tone="tight"] .kpi-hero-value { color: #f7c948; }
+.kpi-hero[data-tone="warn"] .kpi-hero-value { color: #f4729a; }
+.kpi-hero-status {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-soft);
+  line-height: 1.5;
+}
+.kpi-hero-status strong { color: var(--text); }
+
+/* Mobile polish */
+@media (max-width: 720px) {
+  .coach-clocks { display: none; }
+  .kpi-hero { padding: 1rem 1.05rem; }
+  .empty-state { padding: 1rem 0.9rem; }
+  .row-remove {
+    min-width: 40px;
+    min-height: 40px;
+  }
+  .comfort-undo-toast {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    transform: translate(0, 20px);
+    border-radius: 14px;
+    justify-content: space-between;
+  }
+  .comfort-undo-toast--visible { transform: translate(0, 0); }
+  .comfort-saved-indicator { top: 10px; right: 10px; }
+}
+@media (max-width: 400px) {
+  .kpi-hero-value { font-size: 1.6rem; }
 }
 .comfort-beta-card h2 {
   margin: 0 0 0.35rem;
@@ -2507,6 +2780,7 @@ body.comfort--hosted .app {
   <div
     id="comfortBetaTrialEnd"
     class="comfort-beta-overlay comfort-beta-overlay--hidden"
+    data-dismissible="true"
     aria-hidden="true"
   >
     <div class="comfort-beta-card" role="dialog" aria-modal="true" aria-labelledby="comfortBetaTrialTitle">
@@ -2527,7 +2801,82 @@ body.comfort--hosted .app {
       </div>
     </div>
   </div>
+  <div
+    id="comfortCoachSettings"
+    class="comfort-beta-overlay comfort-beta-overlay--hidden"
+    data-dismissible="true"
+    aria-hidden="true"
+  >
+    <div class="comfort-beta-card" role="dialog" aria-modal="true" aria-labelledby="comfortCoachSettingsTitle">
+      <h2 id="comfortCoachSettingsTitle" data-i18n="coach_settings_title">Ajustes del coach</h2>
+      <p class="beta-lede" data-i18n="coach_settings_intro">
+        Activa el coach con IA (OpenAI) o usa el modo local basado en reglas. Tu elección se guarda solo en este dispositivo.
+      </p>
+
+      <form id="coachSettingsForm" autocomplete="off">
+        <fieldset class="coach-mode-fieldset">
+          <legend class="sr-only" data-i18n="coach_settings_mode_legend">Modo del coach</legend>
+
+          <label class="coach-mode-option">
+            <input type="radio" name="coachMode" value="local" checked />
+            <div class="coach-mode-body">
+              <strong data-i18n="coach_mode_local_title">Local — rápido y privado</strong>
+              <span data-i18n="coach_mode_local_desc">Reglas + tus cifras. Cero datos salen del navegador.</span>
+            </div>
+          </label>
+
+          <label class="coach-mode-option">
+            <input type="radio" name="coachMode" value="openai" />
+            <div class="coach-mode-body">
+              <strong data-i18n="coach_mode_openai_title">OpenAI — respuestas más ricas</strong>
+              <span data-i18n="coach_mode_openai_desc">Envía tu pregunta y un resumen anónimo a OpenAI usando tu propia API key. Respuestas más conversacionales.</span>
+            </div>
+          </label>
+        </fieldset>
+
+        <div class="coach-openai-setup" id="coachOpenAISetup" hidden>
+          <label class="comfort-beta-field">
+            <span data-i18n="coach_openai_key_label">Tu API key de OpenAI</span>
+            <input
+              id="coachOpenAIKey"
+              name="apiKey"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              data-i18n-attr="placeholder|coach_openai_key_placeholder"
+              placeholder="sk-..."
+            />
+          </label>
+          <label class="comfort-beta-field">
+            <span data-i18n="coach_openai_model_label">Modelo</span>
+            <select id="coachOpenAIModel" name="model">
+              <option value="gpt-4o-mini">gpt-4o-mini (recomendado · barato)</option>
+              <option value="gpt-4o">gpt-4o (más fino · más caro)</option>
+              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            </select>
+          </label>
+          <p class="coach-openai-hint" data-i18n-html="coach_openai_hint_html">
+            Obtén tu API key en <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a>. Cada consulta cuesta fracciones de centavo. La key se guarda <strong>solo en este dispositivo</strong>.
+          </p>
+          <p class="coach-openai-warn" data-i18n="coach_openai_warn">
+            No compartas tu navegador con otras personas si guardas la key aquí.
+          </p>
+        </div>
+
+        <p id="coachSettingsErr" class="comfort-beta-err" hidden></p>
+        <div class="comfort-beta-actions">
+          <button type="submit" class="btn-coach" data-i18n="coach_settings_save">Guardar</button>
+          <button type="button" class="btn-ghost" id="coachSettingsCancel" data-i18n="coach_settings_close">Cerrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
   <div id="comfortBetaDemoBar" class="comfort-beta-demo comfort-beta-demo--hidden" aria-live="polite"></div>
+  <div id="comfortSavedIndicator" class="comfort-saved-indicator" aria-live="polite"></div>
+  <div id="comfortUndoToast" class="comfort-undo-toast" role="status" aria-live="polite">
+    <span data-undo-label></span>
+    <button type="button" class="comfort-undo-action" data-undo-action>Undo</button>
+  </div>
   <div class="app-shell" aria-hidden="true"></div>
   <div class="app">
     <header class="masthead">
@@ -2580,6 +2929,12 @@ body.comfort--hosted .app {
         </div>
       </div>
     </header>
+
+    <section class="kpi-hero" id="comfortKpiHero" aria-labelledby="comfortKpiLabel" data-tone="empty">
+      <p class="kpi-hero-label" id="comfortKpiLabel" data-i18n="kpi_free_label">Libres después de todo este mes</p>
+      <p class="kpi-hero-value" id="comfortKpiValue">—</p>
+      <p class="kpi-hero-status" id="comfortKpiStatus"></p>
+    </section>
 
     <section class="panel health" id="healthPanel" aria-labelledby="healthTitle">
       <h2 id="healthTitle" data-i18n="health_title">Resumen de salud</h2>
@@ -2646,6 +3001,19 @@ body.comfort--hosted .app {
           <div class="coach-head">
             <h2 id="coachTitle" data-i18n="coach_title">Coach IA</h2>
             <span class="coach-badge" data-i18n="coach_badge">Asesor local</span>
+            <button
+              type="button"
+              class="coach-settings-btn"
+              id="coachSettingsBtn"
+              data-i18n-attr="aria-label|coach_settings_aria"
+              aria-label="Ajustes del coach"
+              title="Ajustes"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
           </div>
           <p class="coach-intro" data-i18n-html="coach_intro_html">Pregunta por tu mes, deudas o zona de confort. Este coach es <strong>local</strong> (reglas + tus números): no conecta con BlackLedger Omega ni con internet.</p>
           <div class="coach-thread" id="coachThread" aria-live="polite"></div>
@@ -2807,25 +3175,32 @@ function purgeComfortLocalData() {
 }
 
 function applyHostedCoachCopy() {
-  if (!window.__COMFORT_HOSTED || !window.__COMFORT_AI_COACH) {
-    return;
-  }
   const coach = document.getElementById("coachPanel");
-  if (!coach) {
-    return;
-  }
+  if (!coach) return;
+
+  const prefs = typeof loadCoachPrefs === "function" ? loadCoachPrefs() : { mode: "local", apiKey: "" };
+  const userOpenAI = prefs.mode === "openai" && prefs.apiKey;
+  const hostedOpenAI = window.__COMFORT_HOSTED && window.__COMFORT_AI_COACH;
+
   const badge = coach.querySelector(".coach-badge");
   const intro = coach.querySelector(".coach-intro");
   const status = document.getElementById("coachStatus");
-  if (badge) {
-    badge.textContent = t("coach_badge_cloud");
+
+  if (userOpenAI) {
+    if (badge) badge.textContent = t("coach_badge_cloud");
+    if (intro) intro.innerHTML = sanitizeI18nHtml(t("coach_intro_cloud_html"));
+    if (status) status.textContent = t("coach_status_direct");
+    return;
   }
-  if (intro) {
-    intro.innerHTML = sanitizeI18nHtml(t("coach_intro_cloud_html"));
+
+  if (hostedOpenAI) {
+    if (badge) badge.textContent = t("coach_badge_cloud");
+    if (intro) intro.innerHTML = sanitizeI18nHtml(t("coach_intro_cloud_html"));
+    if (status) status.textContent = t("coach_status_cloud");
+    return;
   }
-  if (status) {
-    status.textContent = t("coach_status_cloud");
-  }
+
+  if (badge) badge.textContent = t("coach_badge");
 }
 
 function formatDemoClock(ms) {
@@ -3315,6 +3690,215 @@ async function initComfortHostedMode() {
   }, 120000);
 }
 
+const COACH_PREFS_KEY = "comfort_coach_prefs_v1";
+const COACH_OPENAI_SYSTEM =
+  "You are Comfort Ledger's personal finance coach. You talk to someone stressed about money. Use the numbers they share (income, expenses, debt, cash, goals) to answer precisely — no platitudes. Be practical, short, and kind. Never ask for card numbers or passwords. Reply in the same language as the latest USER_QUESTION block; if ambiguous, follow the uiLanguage hint (es/en/zh).";
+
+function setupCoachSettingsModal() {
+  const btn = document.getElementById("coachSettingsBtn");
+  const overlay = document.getElementById("comfortCoachSettings");
+  if (!btn || !overlay) return;
+  const form = document.getElementById("coachSettingsForm");
+  const cancel = document.getElementById("coachSettingsCancel");
+  const setupBox = document.getElementById("coachOpenAISetup");
+  const keyInput = document.getElementById("coachOpenAIKey");
+  const modelSelect = document.getElementById("coachOpenAIModel");
+  const errEl = document.getElementById("coachSettingsErr");
+
+  const applyModeVisibility = () => {
+    const mode = form?.elements?.coachMode?.value || "local";
+    if (setupBox) setupBox.hidden = mode !== "openai";
+  };
+
+  const openModal = () => {
+    const prefs = loadCoachPrefs();
+    if (form) {
+      form.elements.coachMode.value = prefs.mode;
+    }
+    if (keyInput) keyInput.value = prefs.apiKey;
+    if (modelSelect) modelSelect.value = prefs.model;
+    if (errEl) errEl.hidden = true;
+    applyModeVisibility();
+    overlay.classList.remove("comfort-beta-overlay--hidden");
+    overlay.setAttribute("aria-hidden", "false");
+    setTimeout(() => (form?.elements?.coachMode?.focus?.() ?? null), 30);
+  };
+  const closeModal = () => {
+    overlay.classList.add("comfort-beta-overlay--hidden");
+    overlay.setAttribute("aria-hidden", "true");
+  };
+
+  btn.addEventListener("click", openModal);
+  cancel?.addEventListener("click", closeModal);
+  form?.addEventListener("change", (ev) => {
+    if (ev.target?.name === "coachMode") applyModeVisibility();
+  });
+  form?.addEventListener("submit", (ev) => {
+    ev.preventDefault();
+    const mode = form.elements.coachMode.value === "openai" ? "openai" : "local";
+    const apiKey = keyInput ? String(keyInput.value || "").trim() : "";
+    const model = modelSelect ? modelSelect.value : "gpt-4o-mini";
+
+    if (mode === "openai" && !apiKey) {
+      if (errEl) {
+        errEl.textContent = t("coach_openai_key_missing");
+        errEl.hidden = false;
+      }
+      keyInput?.focus();
+      return;
+    }
+    if (mode === "openai" && apiKey && !/^sk-[A-Za-z0-9_\-]{20,}$/.test(apiKey)) {
+      if (errEl) {
+        errEl.textContent = t("coach_openai_key_format");
+        errEl.hidden = false;
+      }
+      keyInput?.focus();
+      return;
+    }
+
+    saveCoachPrefs({ mode, apiKey, model });
+    applyCoachBadge();
+    closeModal();
+    flashSavedIndicator();
+  });
+}
+
+function applyCoachBadge() {
+  const badge = document.querySelector(".coach-badge");
+  const status = document.getElementById("coachStatus");
+  if (!badge) return;
+  const prefs = loadCoachPrefs();
+  if (prefs.mode === "openai" && prefs.apiKey) {
+    badge.textContent = t("coach_badge_cloud");
+    if (status && !status.textContent) status.textContent = t("coach_status_direct");
+    return;
+  }
+  if (window.__COMFORT_HOSTED && window.__COMFORT_AI_COACH) {
+    badge.textContent = t("coach_badge_cloud");
+    if (status && !status.textContent) status.textContent = t("coach_status_cloud");
+    return;
+  }
+  badge.textContent = t("coach_badge");
+  if (status && !status.textContent) status.textContent = t("coach_status");
+}
+
+function loadCoachPrefs() {
+  try {
+    const raw = localStorage.getItem(COACH_PREFS_KEY);
+    if (!raw) return { mode: "local", apiKey: "", model: "gpt-4o-mini" };
+    const parsed = JSON.parse(raw);
+    return {
+      mode: parsed.mode === "openai" ? "openai" : "local",
+      apiKey: typeof parsed.apiKey === "string" ? parsed.apiKey : "",
+      model: typeof parsed.model === "string" && parsed.model.length < 80 ? parsed.model : "gpt-4o-mini"
+    };
+  } catch {
+    return { mode: "local", apiKey: "", model: "gpt-4o-mini" };
+  }
+}
+
+function saveCoachPrefs(prefs) {
+  try {
+    localStorage.setItem(
+      COACH_PREFS_KEY,
+      JSON.stringify({
+        mode: prefs.mode === "openai" ? "openai" : "local",
+        apiKey: String(prefs.apiKey || "").trim(),
+        model: String(prefs.model || "gpt-4o-mini")
+      })
+    );
+  } catch {
+    /* noop */
+  }
+}
+
+function buildCoachContextPayload(text, snap) {
+  const incomeRef = Math.max(snap.income, 1);
+  const goals = (state.savingsGoals || []).map((g) => ({
+    label: String(g.label || "").slice(0, 48),
+    target: Number(g.targetAmount) || 0,
+    months: Number(g.months) || 0
+  }));
+  const cardRow = (state.debts || []).find((d) => d && d.debtType === "card");
+  const profile = getStoredProfile();
+  return {
+    question: text,
+    language: UI_LOCALE,
+    income: snap.income,
+    monthlyExpenses: snap.monthlyExpenses,
+    monthlyDebtPay: snap.monthlyDebtPay,
+    savings: snap.savings,
+    totalDebt: snap.totalDebt,
+    freeCash: snap.freeAfterGoals,
+    expenseLoad: snap.monthlyExpenses / incomeRef,
+    goals,
+    priorityDebt: cardRow ? String(cardRow.label || "").slice(0, 80) : "",
+    comfortNarrative: String(snap.narrative || "").slice(0, 500),
+    viewerName: profile?.displayName || "",
+    viewerFocus: profile?.focus || ""
+  };
+}
+
+async function comfortCoachAskOpenAIDirect(text, snap, prefs) {
+  const apiKey = String(prefs?.apiKey || "").trim();
+  if (!apiKey) throw new Error(t("coach_openai_key_missing"));
+  const model = prefs?.model || "gpt-4o-mini";
+  const ctx = buildCoachContextPayload(text, snap);
+
+  const contextBlock = [
+    `uiLanguage: ${ctx.language}`,
+    `income_month: ${ctx.income}`,
+    `monthly_expenses: ${ctx.monthlyExpenses}`,
+    `monthly_debt_minimums: ${ctx.monthlyDebtPay}`,
+    `liquid_savings: ${ctx.savings}`,
+    `total_debt: ${ctx.totalDebt}`,
+    `free_after_everything: ${ctx.freeCash}`,
+    `expense_load_ratio: ${ctx.expenseLoad.toFixed(2)}`,
+    ctx.priorityDebt ? `priority_debt_label: ${ctx.priorityDebt}` : "",
+    ctx.goals.length
+      ? `goals: ${ctx.goals.map((g) => `${g.label} (${g.target} in ${g.months} months)`).join(" | ")}`
+      : "",
+    ctx.viewerName ? `viewer_name: ${ctx.viewerName}` : "",
+    ctx.viewerFocus ? `viewer_focus: ${ctx.viewerFocus}` : "",
+    ctx.comfortNarrative ? `local_snapshot: ${ctx.comfortNarrative}` : ""
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const body = {
+    model,
+    temperature: 0.4,
+    messages: [
+      { role: "system", content: COACH_OPENAI_SYSTEM },
+      { role: "user", content: `CONTEXT:\n${contextBlock}\n\nUSER_QUESTION:\n${text}` }
+    ]
+  };
+
+  let response;
+  try {
+    response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (err) {
+    throw new Error(t("coach_openai_network_err"));
+  }
+  if (!response.ok) {
+    if (response.status === 401) throw new Error(t("coach_openai_key_invalid"));
+    if (response.status === 429) throw new Error(t("coach_openai_rate_limit"));
+    if (response.status >= 500) throw new Error(t("coach_openai_server_err"));
+    throw new Error(`OpenAI ${response.status}`);
+  }
+  const json = await response.json().catch(() => ({}));
+  const answer = json?.choices?.[0]?.message?.content;
+  if (!answer) throw new Error(t("coach_openai_empty"));
+  return String(answer).trim();
+}
+
 async function comfortCoachAskOpenAI(text, snap) {
   const incomeRef = Math.max(snap.income, 1);
   const goals = (state.savingsGoals || []).map((g) => ({
@@ -3565,8 +4149,36 @@ const UI_STRINGS = {
       "Pregunta por tu mes, deudas o zona de confort. Este coach usa <strong>OpenAI</strong> en el servidor: se envía un <strong>resumen numérico</strong> de tu vista (no números de cuenta bancaria).",
     coach_status_cloud:
       "Coach OpenAI (servidor). Respuestas con IA; no guardamos datos de tarjetas ni claves.",
+    coach_status_direct:
+      "Coach OpenAI (tu API key). Tu pregunta y un resumen anónimo van a OpenAI desde este navegador.",
     coach_loading: "Pensando…",
     coach_error_generic: "No se pudo obtener respuesta del coach.",
+    coach_settings_aria: "Ajustes del coach",
+    coach_settings_title: "Ajustes del coach",
+    coach_settings_intro:
+      "Elige cómo responde el coach. Tu elección se guarda solo en este dispositivo.",
+    coach_settings_mode_legend: "Modo del coach",
+    coach_mode_local_title: "Local — rápido y privado",
+    coach_mode_local_desc: "Reglas + tus cifras. Cero datos salen del navegador.",
+    coach_mode_openai_title: "OpenAI — respuestas más ricas",
+    coach_mode_openai_desc:
+      "Usa tu propia API key. Tu pregunta + un resumen anónimo van a OpenAI. Respuestas más conversacionales.",
+    coach_openai_key_label: "Tu API key de OpenAI",
+    coach_openai_key_placeholder: "sk-...",
+    coach_openai_model_label: "Modelo",
+    coach_openai_hint_html:
+      "Obtén tu API key en <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a>. Cada consulta cuesta fracciones de centavo. La key se guarda <strong>solo en este dispositivo</strong>.",
+    coach_openai_warn:
+      "No compartas tu navegador con otras personas si guardas la key aquí.",
+    coach_openai_key_missing: "Pega tu API key de OpenAI para activar este modo.",
+    coach_openai_key_format: "La API key debe empezar por sk- y tener al menos 20 caracteres.",
+    coach_openai_key_invalid: "API key rechazada por OpenAI. Revisa o regenérala.",
+    coach_openai_rate_limit: "OpenAI te pidió esperar un momento (rate limit). Reintenta en unos segundos.",
+    coach_openai_server_err: "OpenAI tuvo un problema interno. Reintenta en un minuto.",
+    coach_openai_network_err: "No pude contactar con OpenAI. Revisa tu conexión.",
+    coach_openai_empty: "OpenAI respondió sin texto. Intenta reformular la pregunta.",
+    coach_settings_save: "Guardar",
+    coach_settings_close: "Cerrar",
     twin_clocks_title: "Chicago y Nueva York",
     twin_clocks_sub: "Hora local en cada ciudad; se calcula en tu dispositivo (sin internet).",
     income_title: "Ingresos",
@@ -3593,6 +4205,30 @@ const UI_STRINGS = {
     cadence_d: "Diario",
     cadence_w: "Semanal",
     cadence_m: "Mensual",
+    cadence_b: "Quincenal",
+    cadence_o: "Una vez",
+    income_cadence: "Recurrencia",
+    income_empty_title: "Aún no has agregado ingresos.",
+    income_empty_sub: "Empieza por tu sueldo o tu cobro principal. Eso sostiene todo lo demás.",
+    income_empty_cta: "Añadir ingreso",
+    expense_empty_title: "Todavía no hay gastos aquí.",
+    expense_empty_sub: "Agrega tu renta, servicios o ese café de cada día. Cuanto más real, mejor te cuadra el mes.",
+    expense_empty_cta: "Añadir gasto",
+    debt_empty_title: "Sin deudas registradas. Buena noticia.",
+    debt_empty_sub: "Si tienes tarjetas, préstamos o pagos a plazos, añádelos para tener la foto completa.",
+    debt_empty_cta: "Añadir deuda",
+    undo_deleted_income: "Ingreso eliminado",
+    undo_deleted_expense: "Gasto eliminado",
+    undo_deleted_debt: "Deuda eliminada",
+    undo_action: "Deshacer",
+    saved_label: "Guardado",
+    kpi_empty_title: "Añade tu primer ingreso",
+    kpi_empty_sub: "Así podemos calcular si te alcanza el mes.",
+    kpi_free_label: "Libres después de todo este mes",
+    kpi_warn: "Cuidado: gastos + deuda ≥ ingreso",
+    kpi_neg: "Estás en rojo este mes",
+    kpi_ok: "Zona de confort",
+    kpi_tight: "Mes ajustado",
     debt_type: "Tipo",
     debt_label: "Concepto",
     debt_balance: "Balance",
@@ -3825,8 +4461,36 @@ const UI_STRINGS = {
       "Ask about your month, debt, or comfort zone. This coach uses <strong>OpenAI</strong> on the server: we send a <strong>numeric summary</strong> of your view (not bank account numbers).",
     coach_status_cloud:
       "OpenAI coach (server). AI answers; we do not store card numbers or passwords.",
+    coach_status_direct:
+      "OpenAI coach (your API key). Your question and an anonymous snapshot go to OpenAI from this browser.",
     coach_loading: "Thinking…",
     coach_error_generic: "Could not get a coach response.",
+    coach_settings_aria: "Coach settings",
+    coach_settings_title: "Coach settings",
+    coach_settings_intro:
+      "Choose how the coach replies. Your choice stays only on this device.",
+    coach_settings_mode_legend: "Coach mode",
+    coach_mode_local_title: "Local — fast and private",
+    coach_mode_local_desc: "Rules + your numbers. Nothing leaves the browser.",
+    coach_mode_openai_title: "OpenAI — richer answers",
+    coach_mode_openai_desc:
+      "Use your own API key. Your question + an anonymous snapshot go to OpenAI. More conversational replies.",
+    coach_openai_key_label: "Your OpenAI API key",
+    coach_openai_key_placeholder: "sk-...",
+    coach_openai_model_label: "Model",
+    coach_openai_hint_html:
+      "Grab your API key at <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a>. Each question costs a fraction of a cent. The key is stored <strong>only on this device</strong>.",
+    coach_openai_warn:
+      "Do not share this browser with others if you save the key here.",
+    coach_openai_key_missing: "Paste your OpenAI API key to enable this mode.",
+    coach_openai_key_format: "The API key must start with sk- and be at least 20 characters.",
+    coach_openai_key_invalid: "API key rejected by OpenAI. Check or regenerate it.",
+    coach_openai_rate_limit: "OpenAI asked to slow down (rate limit). Try again in a few seconds.",
+    coach_openai_server_err: "OpenAI had an internal issue. Try again in a minute.",
+    coach_openai_network_err: "Could not reach OpenAI. Check your connection.",
+    coach_openai_empty: "OpenAI returned no text. Try rephrasing the question.",
+    coach_settings_save: "Save",
+    coach_settings_close: "Close",
     twin_clocks_title: "Chicago & New York",
     twin_clocks_sub: "Local time in each city, calculated on your device (no internet needed).",
     income_title: "Income",
@@ -3851,6 +4515,30 @@ const UI_STRINGS = {
     cadence_d: "Daily",
     cadence_w: "Weekly",
     cadence_m: "Monthly",
+    cadence_b: "Biweekly",
+    cadence_o: "One-off",
+    income_cadence: "Recurrence",
+    income_empty_title: "No income yet.",
+    income_empty_sub: "Start with your paycheck or main deposit. Everything else builds on top.",
+    income_empty_cta: "Add income",
+    expense_empty_title: "No expenses here yet.",
+    expense_empty_sub: "Add rent, utilities or that daily coffee. The more real, the better it squares up.",
+    expense_empty_cta: "Add expense",
+    debt_empty_title: "No debt tracked. Good news.",
+    debt_empty_sub: "If you have cards, loans or installments, add them so the picture is complete.",
+    debt_empty_cta: "Add debt",
+    undo_deleted_income: "Income deleted",
+    undo_deleted_expense: "Expense deleted",
+    undo_deleted_debt: "Debt deleted",
+    undo_action: "Undo",
+    saved_label: "Saved",
+    kpi_empty_title: "Add your first income",
+    kpi_empty_sub: "So we can see if the month adds up.",
+    kpi_free_label: "Free after everything this month",
+    kpi_warn: "Heads up: expenses + debt ≥ income",
+    kpi_neg: "You're in the red this month",
+    kpi_ok: "Comfort zone",
+    kpi_tight: "Tight month",
     debt_type: "Type",
     debt_label: "Description",
     debt_balance: "Balance",
@@ -4080,8 +4768,32 @@ const UI_STRINGS = {
     coach_intro_cloud_html:
       "可询问当月、债务或安全感。本顾问在服务器使用 <strong>OpenAI</strong>：仅发送你界面上的<strong>数字摘要</strong>（不含银行账户）。",
     coach_status_cloud: "OpenAI 顾问（服务器）。由 AI 回答；不保存卡号或密码。",
+    coach_status_direct: "OpenAI 顾问（你的 API key）。你的问题与匿名摘要直接从此浏览器发送给 OpenAI。",
     coach_loading: "思考中…",
     coach_error_generic: "无法获取顾问回复。",
+    coach_settings_aria: "顾问设置",
+    coach_settings_title: "顾问设置",
+    coach_settings_intro: "选择顾问的回答方式。选项仅保存在此设备。",
+    coach_settings_mode_legend: "顾问模式",
+    coach_mode_local_title: "本地 — 快速且私密",
+    coach_mode_local_desc: "规则 + 你的数据。不向外发送任何信息。",
+    coach_mode_openai_title: "OpenAI — 更丰富的回答",
+    coach_mode_openai_desc: "使用你自己的 API key。问题与匿名摘要会发往 OpenAI，回答更自然。",
+    coach_openai_key_label: "你的 OpenAI API key",
+    coach_openai_key_placeholder: "sk-...",
+    coach_openai_model_label: "模型",
+    coach_openai_hint_html:
+      "在 <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a> 获取 API key。每次问答费用仅为几分之一美分。key <strong>仅保存在此设备</strong>。",
+    coach_openai_warn: "若此浏览器与他人共用，请勿在此保存 key。",
+    coach_openai_key_missing: "粘贴你的 OpenAI API key 以启用该模式。",
+    coach_openai_key_format: "API key 必须以 sk- 开头，且至少 20 个字符。",
+    coach_openai_key_invalid: "OpenAI 拒绝了此 API key。请检查或重新生成。",
+    coach_openai_rate_limit: "OpenAI 要求稍候（速率限制）。数秒后再试。",
+    coach_openai_server_err: "OpenAI 内部故障，请稍后再试。",
+    coach_openai_network_err: "无法连接到 OpenAI，请检查网络。",
+    coach_openai_empty: "OpenAI 未返回文本。请尝试改写问题。",
+    coach_settings_save: "保存",
+    coach_settings_close: "关闭",
     twin_clocks_title: "芝加哥与纽约",
     twin_clocks_sub: "各城市当地时间，由本机计算（无需联网）。",
     income_title: "收入",
@@ -4105,6 +4817,30 @@ const UI_STRINGS = {
     cadence_d: "每日",
     cadence_w: "每周",
     cadence_m: "每月",
+    cadence_b: "双周",
+    cadence_o: "一次性",
+    income_cadence: "周期",
+    income_empty_title: "尚未添加收入。",
+    income_empty_sub: "先添加你的工资或主要收入，其他都以此为基础。",
+    income_empty_cta: "添加收入",
+    expense_empty_title: "还没有支出。",
+    expense_empty_sub: "添加房租、账单或每天的咖啡，越真实越准确。",
+    expense_empty_cta: "添加支出",
+    debt_empty_title: "暂无债务记录。好消息。",
+    debt_empty_sub: "如果有信用卡、贷款或分期付款，请添加以便完整了解。",
+    debt_empty_cta: "添加债务",
+    undo_deleted_income: "收入已删除",
+    undo_deleted_expense: "支出已删除",
+    undo_deleted_debt: "债务已删除",
+    undo_action: "撤销",
+    saved_label: "已保存",
+    kpi_empty_title: "添加你的第一笔收入",
+    kpi_empty_sub: "让我们看看这个月是否够用。",
+    kpi_free_label: "本月扣除所有后可自由支配",
+    kpi_warn: "注意：支出加债务 ≥ 收入",
+    kpi_neg: "本月已赤字",
+    kpi_ok: "舒适区",
+    kpi_tight: "紧张月份",
     debt_type: "类型",
     debt_label: "说明",
     debt_balance: "余额",
@@ -4496,33 +5232,10 @@ function monthIncomeLabel(ref = new Date()) {
 
 const defaultState = () => ({
   profile: null,
-  incomeLines: [{ id: "inc-main", label: "Cobro principal", amount: 6000, date: formatDateInput() }],
-  liquidSavings: 10000,
-  expenses: [
-    {
-      id: "e1",
-      category: "Comida fuera",
-      label: "Delivery",
-      amount: 25,
-      cadence: "daily"
-    },
-    {
-      id: "e2",
-      category: "Transporte publico",
-      label: "Gas / metro",
-      amount: 60,
-      cadence: "weekly"
-    }
-  ],
-  debts: [
-    {
-      id: "d1",
-      debtType: "card",
-      label: "Tarjeta",
-      balance: 9200,
-      minPayment: 280
-    }
-  ],
+  incomeLines: [],
+  liquidSavings: 0,
+  expenses: [],
+  debts: [],
   savingsGoals: [],
   utilityBills: [],
   subscriptions: []
@@ -4544,7 +5257,15 @@ function parseNum(raw) {
 }
 
 function fmtMoney(n) {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(n);
+  const num = Number(n);
+  const value = Number.isFinite(num) ? num : 0;
+  const isWholeInteger = Number.isInteger(value);
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: isWholeInteger ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(value);
 }
 
 function createId(prefix) {
@@ -4578,6 +5299,11 @@ function normalizeCadence(c) {
   return c === "weekly" || c === "monthly" ? c : "daily";
 }
 
+function normalizeIncomeCadence(c) {
+  if (c === "weekly" || c === "biweekly" || c === "one-off") return c;
+  return "monthly";
+}
+
 function normalizeExpense(e) {
   const cat = EXPENSE_CATEGORIES.includes(e.category) ? e.category : "Otros";
   return {
@@ -4608,7 +5334,8 @@ function normalizeIncomeLine(line) {
     id: typeof line.id === "string" ? line.id : createId("inc"),
     label: String(line.label ?? "Ingreso"),
     amount: Number(line.amount) || 0,
-    date: line.date ? sanitizeISODate(line.date) : formatDateInput()
+    date: line.date ? sanitizeISODate(line.date) : formatDateInput(),
+    cadence: normalizeIncomeCadence(line.cadence)
   };
 }
 
@@ -4864,8 +5591,62 @@ function loadState() {
   }
 }
 
-function saveState(state) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+function saveState(payload) {
+  const snapshot = payload || (typeof state !== "undefined" ? state : null);
+  if (!snapshot) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    flashSavedIndicator();
+  } catch (err) {
+    console.warn("Comfort Ledger: no se pudo guardar", err);
+  }
+}
+
+let __savedFlashTimer = null;
+function flashSavedIndicator() {
+  const host = document.getElementById("comfortSavedIndicator");
+  if (!host) return;
+  host.textContent = t("saved_label");
+  host.classList.add("comfort-saved-indicator--visible");
+  host.setAttribute("aria-live", "polite");
+  if (__savedFlashTimer) clearTimeout(__savedFlashTimer);
+  __savedFlashTimer = setTimeout(() => {
+    host.classList.remove("comfort-saved-indicator--visible");
+  }, 1200);
+}
+
+let __undoTimer = null;
+function scheduleUndo(entry) {
+  const toast = document.getElementById("comfortUndoToast");
+  if (!toast) return;
+  const label = toast.querySelector("[data-undo-label]");
+  const btn = toast.querySelector("[data-undo-action]");
+  const key =
+    entry.kind === "income"
+      ? "undo_deleted_income"
+      : entry.kind === "expense"
+        ? "undo_deleted_expense"
+        : "undo_deleted_debt";
+  if (label) label.textContent = t(key);
+  if (btn) btn.textContent = t("undo_action");
+  toast.classList.add("comfort-undo-toast--visible");
+
+  if (__undoTimer) clearTimeout(__undoTimer);
+  __undoTimer = setTimeout(() => {
+    toast.classList.remove("comfort-undo-toast--visible");
+  }, 5500);
+
+  const handler = () => {
+    if (entry.kind === "income") state.incomeLines.unshift(entry.item);
+    else if (entry.kind === "expense") state.expenses.unshift(entry.item);
+    else if (entry.kind === "debt") state.debts.unshift(entry.item);
+    renderAll();
+    saveState();
+    toast.classList.remove("comfort-undo-toast--visible");
+    btn?.removeEventListener("click", handler);
+    if (__undoTimer) clearTimeout(__undoTimer);
+  };
+  btn?.addEventListener("click", handler, { once: true });
 }
 
 function comfortApplyTrustPills() {
@@ -5014,18 +5795,33 @@ function tacticalOrbitConic(weights, colors) {
   return `conic-gradient(from -90deg, ${parts.join(", ")})`;
 }
 
+function monthlyFromIncome(line) {
+  const amount = Math.max(0, Number(line?.amount) || 0);
+  if (amount <= 0) return 0;
+  const cadence = normalizeIncomeCadence(line?.cadence);
+  if (cadence === "weekly") return amount * (52 / 12);
+  if (cadence === "biweekly") return amount * (26 / 12);
+  if (cadence === "one-off") return 0;
+  return amount;
+}
+
 function sumIncomeForCalendarMonth(state, refDate = new Date()) {
   const y = refDate.getFullYear();
   const m = refDate.getMonth();
   let income = 0;
   for (const line of state.incomeLines || []) {
-    const raw = line.date;
-    if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) continue;
-    const [yy, mm, dd] = String(raw).split("-").map(Number);
-    const dt = new Date(yy, mm - 1, dd);
-    if (dt.getFullYear() === y && dt.getMonth() === m) {
-      income += Math.max(0, Number(line.amount) || 0);
+    const cadence = normalizeIncomeCadence(line.cadence);
+    if (cadence === "one-off") {
+      const raw = line.date;
+      if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(String(raw))) continue;
+      const [yy, mm, dd] = String(raw).split("-").map(Number);
+      const dt = new Date(yy, mm - 1, dd);
+      if (dt.getFullYear() === y && dt.getMonth() === m) {
+        income += Math.max(0, Number(line.amount) || 0);
+      }
+      continue;
     }
+    income += monthlyFromIncome(line);
   }
   return income;
 }
@@ -5134,6 +5930,17 @@ function compute(state) {
     })
     .slice(0, 6);
 
+  const expensesByCategory = (function () {
+    const map = new Map();
+    for (const e of state.expenses || []) {
+      const cat = e.category || "Otros";
+      map.set(cat, (map.get(cat) || 0) + monthlyFromExpense(e));
+    }
+    return Array.from(map.entries())
+      .map(([category, monthly]) => ({ category, monthly }))
+      .sort((a, b) => b.monthly - a.monthly);
+  })();
+
   return {
     income,
     incomeMonthLabel,
@@ -5149,12 +5956,75 @@ function compute(state) {
     tone,
     label,
     narrative,
+    expensesByCategory,
     spendShare,
     expenseTop,
     radarPercents,
     orbitConic,
     goalsForTactical
   };
+}
+
+function buildCoachTips(snap) {
+  const tips = [];
+  const income = Number(snap.income) || 0;
+  const totalRecurring = (Number(snap.monthlyExpenses) || 0) + (Number(snap.monthlyDebtPay) || 0);
+  const debtMonthly = Number(snap.monthlyDebtPay) || 0;
+  const free = Number(snap.freeAfter) || 0;
+
+  if (income > 0 && totalRecurring >= income) {
+    tips.push(
+      UI_LOCALE === "en"
+        ? "Your fixed expenses and debt minimums eat your whole income. Before anything else, trim the top category — that alone buys you breathing room."
+        : UI_LOCALE === "zh"
+          ? "你的固定支出加上最低还款已占满全部收入。先砍最大的那项类别，最直接的缓冲。"
+          : "Tus gastos fijos + mínimos de deuda se comen todo el ingreso. Antes que nada, recorta la categoría más grande — eso solo ya te da aire."
+    );
+  } else if (free > 0 && free < income * 0.1) {
+    tips.push(
+      UI_LOCALE === "en"
+        ? `You only keep ~${((free / income) * 100).toFixed(0)}% of your income free. Healthy range is 20%+. Look for one subscription or "small" recurring expense to cancel this week.`
+        : UI_LOCALE === "zh"
+          ? `你本月仅剩约 ${((free / income) * 100).toFixed(0)}% 可自由支配。健康区间是 20% 以上。本周找一项订阅或“小额”定期支出取消。`
+          : `Solo te queda libre ~${((free / income) * 100).toFixed(0)}% del ingreso. Sano es 20% o más. Busca una suscripción o gasto recurrente "pequeño" para cancelar esta semana.`
+    );
+  }
+
+  const topCat = (snap.expensesByCategory || [])[0];
+  if (topCat && income > 0 && topCat.monthly / income > 0.35) {
+    tips.push(
+      UI_LOCALE === "en"
+        ? `"${topCat.category}" is ${((topCat.monthly / income) * 100).toFixed(0)}% of your income. If this isn't rent, it's probably your biggest lever.`
+        : UI_LOCALE === "zh"
+          ? `「${topCat.category}」占收入的 ${((topCat.monthly / income) * 100).toFixed(0)}%。如果不是房租，这可能是最大的可调整项。`
+          : `"${topCat.category}" es ${((topCat.monthly / income) * 100).toFixed(0)}% de tu ingreso. Si no es renta, probablemente es tu palanca más grande.`
+    );
+  }
+
+  if (debtMonthly > 0 && free > 0) {
+    const extraToDebt = Math.min(free * 0.5, debtMonthly);
+    if (extraToDebt > 5) {
+      tips.push(
+        UI_LOCALE === "en"
+          ? `Send even ${fmtMoney(extraToDebt)} extra toward debt each month and you cut the payoff time roughly in half.`
+          : UI_LOCALE === "zh"
+            ? `每月再多投入 ${fmtMoney(extraToDebt)} 到债务，还清时间大约可缩短一半。`
+            : `Si destinas ${fmtMoney(extraToDebt)} extra cada mes a la deuda, reduces el plazo a la mitad aproximadamente.`
+      );
+    }
+  }
+
+  if (!tips.length) {
+    tips.push(
+      UI_LOCALE === "en"
+        ? "Numbers look balanced. Keep the habit: quick check every Sunday, adjust one line if it moved, move on."
+        : UI_LOCALE === "zh"
+          ? "整体还算平衡。保持习惯：每周日快速检查一次，有变动就调整一行，继续前行。"
+          : "Los números van balanceados. Mantén el hábito: un vistazo los domingos, ajusta una línea si se movió, y sigue."
+    );
+  }
+
+  return tips.slice(0, 3);
 }
 
 function coachReply(question, snap) {
@@ -5166,6 +6036,77 @@ function coachReply(question, snap) {
   const incomeKw = /ingres|gano|salario|sueldo|income|salary|pay|earn|收入|工资|薪水/i.test(q);
   const savingsKw = /ahorr|líquid|efectivo|sav|liquid|cash cushion|储蓄|现金|存款/i.test(q);
   const goalsKw = /meta|vacaci|enganche|apartad|aparta|ahorrar para|goal|target|目标|首付|假期/i.test(q);
+  const adviceKw = /consej|recomien|qué hago|ideas|tips|advice|recommend|建议|怎么办/i.test(q);
+  const whereMoneyKw = /dónde.*dinero|a d[oó]nde.*va|where.*money|money.*go|钱去哪|花到哪/i.test(q);
+  const debtTimeKw = /cu[aá]nto tard|cuando.*termin|pagar.*deuda|payoff|cuánd.*salgo|什么时候.*还完|多久.*还清/i.test(q);
+  const affordMatch = q.match(/(?:puedo pagar|can i (?:afford|pay)|afford|pay for)[^\d$€]*\$?([\d.,]+)/i);
+
+  if (whereMoneyKw) {
+    const top = (snap.expensesByCategory || []).slice(0, 3);
+    if (top.length) {
+      const formatted = top.map((row) => `${row.category} ${fmtMoney(row.monthly)}`).join(", ");
+      lines.push(
+        UI_LOCALE === "en"
+          ? `Your top 3 expense categories this month: ${formatted}. Total monthly spend: ${fmtMoney(snap.monthlyExpenses)}.`
+          : UI_LOCALE === "zh"
+            ? `本月支出前三：${formatted}。总月支出：${fmtMoney(snap.monthlyExpenses)}。`
+            : `Tus 3 categorías de gasto más grandes este mes: ${formatted}. Gasto mensual total: ${fmtMoney(snap.monthlyExpenses)}.`
+      );
+    } else {
+      lines.push(
+        UI_LOCALE === "en"
+          ? "Add some expenses first — then I can tell you exactly where it goes."
+          : UI_LOCALE === "zh"
+            ? "先添加一些支出，我才能告诉你钱具体花到哪里。"
+            : "Agrega primero algunos gastos — luego te digo exactamente a dónde se va."
+      );
+    }
+  }
+
+  if (affordMatch) {
+    const amount = parseNum(affordMatch[1]);
+    if (Number.isFinite(amount) && amount > 0) {
+      const free = Number(snap.freeAfter) || 0;
+      if (amount <= free) {
+        lines.push(
+          UI_LOCALE === "en"
+            ? `Yes — after everything you have ~${fmtMoney(free)} free this month. A ${fmtMoney(amount)} expense leaves ~${fmtMoney(free - amount)}.`
+            : UI_LOCALE === "zh"
+              ? `可以 — 扣除一切后本月约 ${fmtMoney(free)} 可自由支配。${fmtMoney(amount)} 的支出后约剩 ${fmtMoney(free - amount)}。`
+              : `Sí — después de todo te quedan ~${fmtMoney(free)} libres este mes. Un gasto de ${fmtMoney(amount)} te deja ~${fmtMoney(free - amount)}.`
+        );
+      } else {
+        lines.push(
+          UI_LOCALE === "en"
+            ? `It doesn't fit this month: free after everything is ~${fmtMoney(free)}, and you're asking about ${fmtMoney(amount)}. If you can wait or split it, your cash cushion is ${fmtMoney(snap.savings)}.`
+            : UI_LOCALE === "zh"
+              ? `本月放不下：扣除一切后约 ${fmtMoney(free)}，而你问的是 ${fmtMoney(amount)}。现金备用：${fmtMoney(snap.savings)}。`
+              : `No cuadra este mes: libre después de todo ~${fmtMoney(free)}, y preguntas por ${fmtMoney(amount)}. Si puedes esperar o dividirlo, tu colchón es ${fmtMoney(snap.savings)}.`
+        );
+      }
+    }
+  }
+
+  if (debtTimeKw && snap.totalDebt > 0) {
+    const minMonthly = Math.max(1, Number(snap.monthlyDebtPay) || 0);
+    const approxMonths = Math.ceil(snap.totalDebt / minMonthly);
+    const years = (approxMonths / 12).toFixed(1);
+    lines.push(
+      UI_LOCALE === "en"
+        ? `Paying only the minimums (${fmtMoney(minMonthly)}/mo) the total debt (${fmtMoney(snap.totalDebt)}) takes about ${approxMonths} months (~${years} years) before interest. Adding any extra speeds it up a lot.`
+        : UI_LOCALE === "zh"
+          ? `仅还最低（${fmtMoney(minMonthly)}/月），债务合计 ${fmtMoney(snap.totalDebt)} 大约需要 ${approxMonths} 个月（约 ${years} 年，未计利息）。多还一点速度会快很多。`
+          : `Pagando solo los mínimos (${fmtMoney(minMonthly)}/mes) la deuda total (${fmtMoney(snap.totalDebt)}) tarda unos ${approxMonths} meses (~${years} años) sin contar intereses. Cualquier extra acorta mucho el plazo.`
+    );
+  }
+
+  if (adviceKw) {
+    const tips = buildCoachTips(snap);
+    if (tips.length) {
+      const bullet = UI_LOCALE === "zh" ? "· " : "• ";
+      lines.push(tips.map((tip) => bullet + tip).join("\n"));
+    }
+  }
 
   if (comfort) lines.push(snap.narrative);
   if (debt) {
@@ -5283,7 +6224,44 @@ function collectEls() {
   };
 }
 
+function renderKpiHero(snap) {
+  const host = document.getElementById("comfortKpiHero");
+  const label = document.getElementById("comfortKpiLabel");
+  const value = document.getElementById("comfortKpiValue");
+  const status = document.getElementById("comfortKpiStatus");
+  if (!host || !value || !status) return;
+  const income = Number(snap?.income) || 0;
+  const free = Number(snap?.freeAfter) || 0;
+
+  if (income <= 0) {
+    host.dataset.tone = "empty";
+    if (label) label.textContent = t("kpi_empty_title");
+    value.textContent = "—";
+    status.textContent = t("kpi_empty_sub");
+    return;
+  }
+
+  if (label) label.textContent = t("kpi_free_label");
+  value.textContent = fmtMoney(free);
+
+  let tone = "ok";
+  let statusText = t("kpi_ok");
+  if (free < 0) {
+    tone = "warn";
+    statusText = t("kpi_neg");
+  } else if (free < income * 0.1) {
+    tone = "tight";
+    statusText = t("kpi_tight");
+  } else if (free === 0) {
+    tone = "tight";
+    statusText = t("kpi_warn");
+  }
+  host.dataset.tone = tone;
+  status.textContent = statusText;
+}
+
 function renderHealth(snap) {
+  renderKpiHero(snap);
   els.healthRing.className = `health-ring ${snap.tone}`;
   els.healthLabel.textContent = snap.label;
   els.healthNarrative.textContent = snap.narrative;
@@ -5553,11 +6531,27 @@ function sortedIncomeLines(state) {
 
 function renderIncomeLines() {
   if (!els.incomeList) return;
-  els.incomeList.innerHTML = sortedIncomeLines(state)
+  const lines = sortedIncomeLines(state);
+  if (!lines.length) {
+    els.incomeList.innerHTML = `
+      <div class="empty-state" data-empty="income">
+        <p>${escapeHtml(t("income_empty_title"))}</p>
+        <span>${escapeHtml(t("income_empty_sub"))}</span>
+        <button type="button" class="btn-ghost" data-empty-add="income">${escapeHtml(t("income_empty_cta"))}</button>
+      </div>`;
+    return;
+  }
+  els.incomeList.innerHTML = lines
     .map(
       (line) => `
     <div class="income-row" data-id="${line.id}">
       <label>${escapeHtml(t("income_date"))}<input type="date" data-field="date" value="${escapeHtml(line.date)}" /></label>
+      <label>${escapeHtml(t("income_cadence"))}<select data-field="cadence">
+        <option value="monthly" ${(line.cadence || "monthly") === "monthly" ? "selected" : ""}>${escapeHtml(t("cadence_m"))}</option>
+        <option value="biweekly" ${line.cadence === "biweekly" ? "selected" : ""}>${escapeHtml(t("cadence_b"))}</option>
+        <option value="weekly" ${line.cadence === "weekly" ? "selected" : ""}>${escapeHtml(t("cadence_w"))}</option>
+        <option value="one-off" ${line.cadence === "one-off" ? "selected" : ""}>${escapeHtml(t("cadence_o"))}</option>
+      </select></label>
       <label>${escapeHtml(t("income_label"))}<input type="text" data-field="label" value="${escapeHtml(line.label)}" /></label>
       <label>${escapeHtml(t("income_amount"))}<input type="text" inputmode="decimal" data-field="amount" value="${escapeHtml(String(line.amount))}" /></label>
       <button type="button" class="row-remove" data-remove-income="${line.id}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
@@ -5568,6 +6562,16 @@ function renderIncomeLines() {
 }
 
 function renderExpenses() {
+  if (!els.expenseList) return;
+  if (!state.expenses.length) {
+    els.expenseList.innerHTML = `
+      <div class="empty-state" data-empty="expenses">
+        <p>${escapeHtml(t("expense_empty_title"))}</p>
+        <span>${escapeHtml(t("expense_empty_sub"))}</span>
+        <button type="button" class="btn-ghost" data-empty-add="expense">${escapeHtml(t("expense_empty_cta"))}</button>
+      </div>`;
+    return;
+  }
   els.expenseList.innerHTML = state.expenses
     .map(
       (e) => `
@@ -6013,6 +7017,16 @@ function renderSubscriptions() {
 }
 
 function renderDebts() {
+  if (!els.debtList) return;
+  if (!state.debts.length) {
+    els.debtList.innerHTML = `
+      <div class="empty-state empty-state--ok" data-empty="debts">
+        <p>${escapeHtml(t("debt_empty_title"))}</p>
+        <span>${escapeHtml(t("debt_empty_sub"))}</span>
+        <button type="button" class="btn-ghost" data-empty-add="debt">${escapeHtml(t("debt_empty_cta"))}</button>
+      </div>`;
+    return;
+  }
   els.debtList.innerHTML = state.debts
     .map(
       (d) => `
@@ -6480,10 +7494,23 @@ function bind() {
   els.liquidSavings?.addEventListener("input", onSavings);
   els.liquidSavings?.addEventListener("blur", onSavings);
 
-  els.addIncomeBtn?.addEventListener("click", () => {
-    state.incomeLines.unshift({ id: createId("inc"), label: t("new_income_label"), amount: 0, date: formatDateInput() });
+  const addIncomeRow = () => {
+    state.incomeLines.unshift({
+      id: createId("inc"),
+      label: t("new_income_label"),
+      amount: 0,
+      date: formatDateInput(),
+      cadence: "monthly"
+    });
     renderAll();
-  });
+    saveState();
+    setTimeout(() => {
+      const firstLabel = document.querySelector('.income-row input[data-field="label"]');
+      firstLabel?.focus();
+      firstLabel?.select?.();
+    }, 40);
+  };
+  els.addIncomeBtn?.addEventListener("click", addIncomeRow);
 
   els.incomeList?.addEventListener("input", (ev) => {
     const row = ev.target.closest(".income-row");
@@ -6508,22 +7535,42 @@ function bind() {
   els.incomeList?.addEventListener("click", (ev) => {
     const id = ev.target.getAttribute?.("data-remove-income");
     if (!id) return;
-    if (state.incomeLines.length <= 1) return;
+    const removed = state.incomeLines.find((x) => x.id === id);
     state.incomeLines = state.incomeLines.filter((x) => x.id !== id);
     renderAll();
+    saveState();
+    if (removed) scheduleUndo({ kind: "income", item: removed });
+  });
+  els.incomeList?.addEventListener("change", (ev) => {
+    if (ev.target.dataset.field !== "cadence") return;
+    const row = ev.target.closest(".income-row");
+    if (!row) return;
+    const line = state.incomeLines.find((x) => x.id === row.dataset.id);
+    if (!line) return;
+    line.cadence = ev.target.value;
+    renderChartsAndHealth();
+    saveState();
   });
 
-  els.addExpenseBtn?.addEventListener("click", () => {
+  const addExpenseRow = () => {
     state.expenses.unshift({
       id: createId("e"),
       category: "Otros",
       label: t("new_expense_label"),
-      amount: 10,
-      cadence: "daily"
+      amount: 0,
+      cadence: "monthly"
     });
     renderAll();
-  });
-  els.addDebtBtn?.addEventListener("click", () => {
+    saveState();
+    setTimeout(() => {
+      const firstLabel = document.querySelector('.expense-row input[data-field="label"]');
+      firstLabel?.focus();
+      firstLabel?.select?.();
+    }, 40);
+  };
+  els.addExpenseBtn?.addEventListener("click", addExpenseRow);
+
+  const addDebtRow = () => {
     state.debts.unshift({
       id: createId("d"),
       debtType: "other",
@@ -6532,6 +7579,22 @@ function bind() {
       minPayment: 0
     });
     renderAll();
+    saveState();
+    setTimeout(() => {
+      const firstLabel = document.querySelector('.debt-row input[data-field="label"]');
+      firstLabel?.focus();
+      firstLabel?.select?.();
+    }, 40);
+  };
+  els.addDebtBtn?.addEventListener("click", addDebtRow);
+
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest?.("[data-empty-add]");
+    if (!btn) return;
+    const kind = btn.getAttribute("data-empty-add");
+    if (kind === "income") addIncomeRow();
+    else if (kind === "expense") addExpenseRow();
+    else if (kind === "debt") addDebtRow();
   });
 
   if (!state.savingsGoals) state.savingsGoals = [];
@@ -6609,8 +7672,11 @@ function bind() {
   els.expenseList?.addEventListener("click", (ev) => {
     const id = ev.target.getAttribute?.("data-remove-expense");
     if (!id) return;
+    const removed = state.expenses.find((x) => x.id === id);
     state.expenses = state.expenses.filter((x) => x.id !== id);
     renderAll();
+    saveState();
+    if (removed) scheduleUndo({ kind: "expense", item: removed });
   });
 
   els.debtList?.addEventListener("input", (ev) => {
@@ -6637,8 +7703,11 @@ function bind() {
   els.debtList?.addEventListener("click", (ev) => {
     const id = ev.target.getAttribute?.("data-remove-debt");
     if (!id) return;
+    const removed = state.debts.find((x) => x.id === id);
     state.debts = state.debts.filter((x) => x.id !== id);
     renderAll();
+    saveState();
+    if (removed) scheduleUndo({ kind: "debt", item: removed });
   });
 
   if (!state.utilityBills) state.utilityBills = [];
@@ -6705,8 +7774,28 @@ function bind() {
     els.coachThread.scrollTop = els.coachThread.scrollHeight;
     els.coachInput.value = "";
 
-    const useOpenAI = window.__COMFORT_HOSTED && window.__COMFORT_AI_COACH;
-    if (useOpenAI) {
+    const prefs = loadCoachPrefs();
+    const userWantsOpenAI = prefs.mode === "openai" && prefs.apiKey;
+    const hostedOpenAI = window.__COMFORT_HOSTED && window.__COMFORT_AI_COACH;
+
+    if (userWantsOpenAI) {
+      els.coachStatus.textContent = t("coach_loading");
+      void comfortCoachAskOpenAIDirect(text, snap, prefs)
+        .then((answer) => {
+          botDiv.textContent = answer;
+          els.coachStatus.textContent = t("coach_status_direct");
+        })
+        .catch((err) => {
+          botDiv.textContent = coachReply(text, snap);
+          els.coachStatus.textContent = `${String(err?.message || t("coach_error_generic"))} · ${t("coach_status")}`;
+        })
+        .finally(() => {
+          els.coachThread.scrollTop = els.coachThread.scrollHeight;
+        });
+      return;
+    }
+
+    if (hostedOpenAI) {
       els.coachStatus.textContent = t("coach_loading");
       void comfortCoachAskOpenAI(text, snap)
         .then((answer) => {
@@ -6726,6 +7815,8 @@ function bind() {
     botDiv.textContent = coachReply(text, snap);
     els.coachStatus.textContent = t("coach_status");
   });
+
+  setupCoachSettingsModal();
 
   document.querySelectorAll("[data-set-lang]").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -6838,6 +7929,25 @@ async function comfortEntry() {
   UI_LOCALE = loadLocale();
   await initComfortHostedMode();
   bootComfortLedger();
+  installGlobalEscapeHandler();
+}
+
+function installGlobalEscapeHandler() {
+  if (window.__COMFORT_ESC_INSTALLED) return;
+  window.__COMFORT_ESC_INSTALLED = true;
+  document.addEventListener("keydown", function (event) {
+    if (event.key !== "Escape") return;
+    const overlays = Array.from(document.querySelectorAll(".comfort-beta-overlay"));
+    for (let i = overlays.length - 1; i >= 0; i--) {
+      const node = overlays[i];
+      if (node.classList.contains("comfort-beta-overlay--hidden")) continue;
+      if (node.getAttribute("data-dismissible") !== "true") continue;
+      node.classList.add("comfort-beta-overlay--hidden");
+      node.setAttribute("aria-hidden", "true");
+      event.preventDefault();
+      return;
+    }
+  });
 }
 
 if (document.readyState === "loading") {

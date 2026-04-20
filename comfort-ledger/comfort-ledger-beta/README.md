@@ -58,3 +58,62 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
 ## Usuarios beta
 
 Edita `data/beta-users.json` (hashes con `npm run hash-password "TuPin"`). El archivo `beta-sessions.json` no debe versionarse (está en `.gitignore`).
+
+## Facturación con LemonSqueezy
+
+El servidor incluye integración con LemonSqueezy como *Merchant of Record*. Mientras tengas la beta cerrada, **no hace falta configurar nada**: la landing solo recoge emails para la lista de espera. Cuando quieras abrir ventas:
+
+### 1. En LemonSqueezy
+
+1. Crea una tienda y un producto **“Comfort Ledger”**.
+2. Dentro del producto, crea **dos variantes**:
+   - Mensual, $4.99, suscripción mensual, trial 14 días sin tarjeta.
+   - Anual, $39, suscripción anual, trial 14 días sin tarjeta.
+3. Crea un **discount code** (p. ej. `EARLY30`) con 30% de por vida, aplicable a ambas variantes, para los miembros de la lista de espera.
+4. Copia:
+   - **API key** desde *Settings → API*.
+   - **Store ID** desde la URL o *Settings*.
+   - **Variant IDs** desde cada variante.
+5. *Settings → Webhooks → Create webhook*:
+   - URL: `https://TU_DOMINIO/api/webhooks/lemonsqueezy`
+   - Secret: genera uno (guárdalo para el `.env`).
+   - Eventos marcados: todos los `subscription_*` y `subscription_payment_*`.
+
+### 2. En el servidor
+
+Añade a `.env` (local) o al panel de variables (Render):
+
+```
+LEMONSQUEEZY_API_KEY=ls_xxxxxxxxxxxx
+LEMONSQUEEZY_STORE_ID=12345
+LEMONSQUEEZY_VARIANT_MONTHLY=67890
+LEMONSQUEEZY_VARIANT_ANNUAL=67891
+LEMONSQUEEZY_WEBHOOK_SECRET=el-secreto-que-elegiste
+COMFORT_CHECKOUT_REDIRECT_URL=https://TU_DOMINIO/app
+COMFORT_PUBLIC_PURCHASE=true
+```
+
+Reinicia. En el log verás `LemonSqueezy: configured · Public purchase: ON`. Los botones de la landing pasan de “Unirme a la lista” a “Empezar mensual/anual →” y abren el checkout hosted de LemonSqueezy.
+
+### 3. Endpoints expuestos
+
+| Endpoint | Método | Uso |
+|---|---|---|
+| `/api/waitlist` | POST | Guarda email en `data/waitlist.json`. |
+| `/api/checkout` | POST/GET | Crea una URL de checkout (JSON con `{url}` o redirect 302 si es GET). |
+| `/api/webhooks/lemonsqueezy` | POST | Firma verificada con HMAC-SHA256; actualiza `data/subscriptions.json`. |
+| `/api/subscription/status?email=…` | GET | Devuelve si la suscripción está activa. |
+| `/api/customer-portal?email=…` | GET | Redirige 302 al Customer Portal hosted. |
+
+### 4. Probar el webhook en local
+
+LemonSqueezy no llega a `localhost`. Opciones:
+
+- **`ngrok`**: `ngrok http 8787` y pega la URL HTTPS en el webhook de LS.
+- **Cloudflare Tunnel**: `cloudflared tunnel --url http://localhost:8787`.
+
+Después, en LemonSqueezy, usa *Send test* para verificar.
+
+### 5. Persistencia en Render
+
+Los archivos `data/subscriptions.json` y `data/waitlist.json` **deben persistir** entre deploys. Monta el disco persistente como ya haces con `beta-sessions.json` y apunta `COMFORT_DATA_DIR` al mismo path. Ambos archivos están en `.gitignore` para no committear datos de clientes.
