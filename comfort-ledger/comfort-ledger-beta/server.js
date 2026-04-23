@@ -1093,6 +1093,17 @@ function safeStaticPath(pathname) {
     pathname === "/privacidad.html"
   ) {
     rel = "privacy.html";
+  } else if (
+    pathname === "/refund-policy" ||
+    pathname === "/refund-policy/" ||
+    pathname === "/refund" ||
+    pathname === "/refund/" ||
+    pathname === "/refund-policy.html" ||
+    pathname === "/reembolsos" ||
+    pathname === "/reembolsos/" ||
+    pathname === "/reembolsos.html"
+  ) {
+    rel = "refund-policy.html";
   } else {
     rel = decodeURIComponent(pathname).replace(/^\/+/, "");
   }
