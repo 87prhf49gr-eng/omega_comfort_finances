@@ -100,6 +100,26 @@ if (!process.env.COMFORT_SESSION_SECRET) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   const pathname = decodeURIComponent(url.pathname);
+  const method = String(req.method || "GET").toUpperCase();
+
+  // Automatic language detection for the marketing landing.
+  // Spanish remains default; English browsers are redirected to /en.
+  if (pathname === "/" && (method === "GET" || method === "HEAD")) {
+    const acceptLanguage = String(req.headers["accept-language"] || "");
+    const englishPreferred = /\ben(?:-[a-z]{2})?\b/i.test(acceptLanguage);
+    if (englishPreferred) {
+      res.writeHead(
+        302,
+        createHeaders("text/plain; charset=utf-8", {
+          Location: "/en",
+          "Cache-Control": "no-store",
+          Vary: "Accept-Language"
+        })
+      );
+      res.end("Redirecting to /en");
+      return;
+    }
+  }
 
   try {
     if (pathname === "/api/health" && req.method === "GET") {
@@ -1075,6 +1095,8 @@ function safeStaticPath(pathname) {
   let rel;
   if (pathname === "/") {
     rel = "index.html";
+  } else if (pathname === "/en" || pathname === "/en/") {
+    rel = "index-en.html";
   } else if (pathname === "/app" || pathname === "/app/") {
     rel = "COMFORT-LEDGER-abrir-aqui.html";
   } else if (
