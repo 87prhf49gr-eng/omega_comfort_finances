@@ -1,8 +1,18 @@
 /* Comfort Ledger — service worker (caché PWA + clic en notificaciones) */
-const CACHE_NAME = "comfort-ledger-v25";
+const CACHE_NAME = "comfort-ledger-v31";
 const APP_SHELL = "./COMFORT-LEDGER-abrir-aqui.html";
 const PRECACHE = [
   APP_SHELL,
+  "./comfort-ledger-core.js",
+  "./comfort-ledger-onboarding.js",
+  "./comfort-ledger-reminders.js",
+  "./comfort-ledger-notifications.js",
+  "./comfort-ledger-modules.js",
+  "./comfort-ledger-ui.js",
+  "./comfort-ledger-post-dash.js",
+  "./comfort-ledger-coach.js",
+  "./comfort-ledger-bindings.js",
+  "./comfort-ledger-pwa.js",
   "./comfort-ledger.webmanifest",
   "./branding/comfort-ledger-nav-icon.png",
   "./pwa-icons/icon-192.png",
@@ -27,6 +37,47 @@ self.addEventListener("activate", (event) => {
         Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
       )
       .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    try {
+      data = { title: event.data && event.data.text() };
+    } catch {
+      data = {};
+    }
+  }
+  const title = String(data.title || "Comfort Ledger");
+  const body = String(data.body || "");
+  const url = String(data.url || "/app");
+  const tag = String(data.tag || "comfort-reminder");
+  const options = {
+    body,
+    tag,
+    data: { url },
+    icon: "./pwa-icons/icon-192.png",
+    badge: "./pwa-icons/icon-192.png",
+    renotify: true
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      try {
+        const clientsList = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+        for (const client of clientsList) {
+          client.postMessage({ type: "push-subscription-change" });
+        }
+      } catch {
+        /* ignore */
+      }
+    })()
   );
 });
 

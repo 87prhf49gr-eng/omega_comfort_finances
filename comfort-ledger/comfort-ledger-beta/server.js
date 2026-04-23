@@ -21,6 +21,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const OpenAI = require("openai");
+const webpush = require("web-push");
 const lemon = require("./lemonsqueezy");
 
 const PORT = Number(process.env.PORT || 8787);
@@ -32,6 +33,7 @@ const BETA_USERS_FILE = path.join(DATA_DIR, "beta-users.json");
 const BETA_SESSIONS_FILE = path.join(DATA_DIR, "beta-sessions.json");
 const WAITLIST_FILE = path.join(DATA_DIR, "waitlist.json");
 const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "subscriptions.json");
+const PUSH_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "push-subscriptions.json");
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const SESSION_SECRET = String(process.env.COMFORT_SESSION_SECRET || crypto.randomBytes(32).toString("hex"));
 const SESSION_COOKIE_NAME = "comfort_beta_session";
@@ -42,6 +44,11 @@ const LOGIN_WINDOW_MS = 1000 * 60 * 15;
 const LOGIN_ATTEMPT_LIMIT = 12;
 const AI_HISTORY_LIMIT = 4;
 const AI_MONTHLY_LIMIT = 80;
+const PUSH_DISPATCH_INTERVAL_MS = 45 * 1000;
+const PUSH_SENT_RETENTION_MS = 1000 * 60 * 60 * 24 * 45;
+const PUSH_MAX_REMINDERS_PER_DEVICE = 128;
+const PUSH_MAX_TITLE_CHARS = 120;
+const PUSH_MAX_BODY_CHARS = 220;
 
 const AI_COACH_SYSTEM_PROMPT = [
   "You are a financial coach for Comfort Ledger users (income, expenses, debt, savings, goals).",
@@ -74,8 +81,11 @@ const loginAttempts = new Map();
 let openaiClient = null;
 /** @type {Map<string, Array<{question:string,answer:string}>>} */
 const aiHistoryMemory = new Map();
+const pushConfig = initPushConfig();
+let pushDispatcherTimer = null;
 
 ensureStorage();
+startPushDispatcher();
 
 if (process.env.OPENAI_API_KEY) {
   openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -123,7 +133,9 @@ const server = http.createServer(async (req, res) => {
         landingDemoMinutes: Math.round(landingDemoMs / 60000),
         landingDemoMs,
         aiCoachConfigured: Boolean(openaiClient),
-        publicPurchaseEnabled: lemonCfg.publicPurchaseEnabled && lemon.isConfigured()
+        publicPurchaseEnabled: lemonCfg.publicPurchaseEnabled && lemon.isConfigured(),
+        pushConfigured: Boolean(pushConfig.configured),
+        pushVapidPublicKey: pushConfig.configured ? pushConfig.publicKey : ""
       });
     }
 
@@ -373,6 +385,36 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
 
+    if (pathname === "/api/push/register" && req.method === "POST") {
+      if (!pushConfig.configured) {
+        return sendJson(res, 503, { ok: false, error: "Push no configurado en servidor." });
+      }
+      const owner = resolvePushOwnerContext(req);
+      if (!owner) {
+        return sendJson(res, 401, { ok: false, error: "Sesión requerida." });
+      }
+      const body = await readJsonBody(req);
+      const subscription = normalizePushSubscription(body?.subscription);
+      if (!subscription) {
+        return sendJson(res, 400, { ok: false, error: "Suscripción inválida." });
+      }
+      const reminders = normalizePushReminders(body?.reminders);
+      const userAgent = String(req.headers["user-agent"] || "").slice(0, 300);
+      upsertPushRegistration(owner, subscription, reminders, userAgent);
+      return sendJson(res, 200, { ok: true, scheduled: reminders.length });
+    }
+
+    if (pathname === "/api/push/unregister" && req.method === "POST") {
+      const owner = resolvePushOwnerContext(req);
+      if (!owner) {
+        return sendJson(res, 401, { ok: false, error: "Sesión requerida." });
+      }
+      const body = await readJsonBody(req).catch(() => ({}));
+      const endpoint = String(body?.endpoint || "").trim();
+      const removed = removePushRegistration(owner.ownerKey, endpoint);
+      return sendJson(res, 200, { ok: true, removed });
+    }
+
     if (req.method !== "GET" && req.method !== "HEAD") {
       return sendJson(res, 405, { ok: false, error: "Method not allowed" });
     }
@@ -408,6 +450,9 @@ function ensureStorage() {
   }
   if (!fs.existsSync(SUBSCRIPTIONS_FILE)) {
     fs.writeFileSync(SUBSCRIPTIONS_FILE, "[]\n", "utf8");
+  }
+  if (!fs.existsSync(PUSH_SUBSCRIPTIONS_FILE)) {
+    fs.writeFileSync(PUSH_SUBSCRIPTIONS_FILE, "[]\n", "utf8");
   }
   if (BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE && fs.existsSync(BUNDLED_BETA_USERS_FILE)) {
     const bundledUsers = readJsonFile(BUNDLED_BETA_USERS_FILE, null);
@@ -615,12 +660,17 @@ function normalizeOnboardingProfile(input) {
     .trim()
     .replace(/\s+/g, " ")
     .slice(0, 180);
+  const lifestyleRaw = String(input.lifestyle || "").trim().toLowerCase();
+  const lifestyle = ["payroll", "freelance", "family", "student", "simple"].includes(lifestyleRaw)
+    ? lifestyleRaw
+    : "simple";
   const createdAt = String(input.createdAt || new Date().toISOString());
   return {
     id: rawId || `visitor-${crypto.randomUUID()}`,
     displayName,
     email: rawEmail.slice(0, 120),
     focus,
+    lifestyle,
     createdAt
   };
 }
@@ -648,6 +698,7 @@ function publicOnboardingProfile(profile) {
     displayName: normalized.displayName,
     email: normalized.email,
     focus: normalized.focus,
+    lifestyle: normalized.lifestyle,
     createdAt: normalized.createdAt
   };
 }
@@ -999,7 +1050,8 @@ function isBlockedComfortPath(rel) {
     "/.git",
     "/node_modules",
     "/blackledger-elite-app",
-    "/blackledger-omega-beta-deploy"
+    "/blackledger-omega-beta-deploy",
+    "/push-subscriptions.json"
   ];
   if (rel.includes("..")) {
     return true;
@@ -1061,4 +1113,204 @@ function serveComfortStatic(pathname, res, isHead) {
     return;
   }
   res.end(data);
+}
+
+// ---------- Web Push (VAPID) ----------
+
+function initPushConfig() {
+  const publicKey = String(process.env.COMFORT_VAPID_PUBLIC_KEY || "").trim();
+  const privateKey = String(process.env.COMFORT_VAPID_PRIVATE_KEY || "").trim();
+  const subject = String(process.env.COMFORT_VAPID_SUBJECT || "mailto:support@comfortledger.app").trim();
+  if (publicKey && privateKey) {
+    try {
+      webpush.setVapidDetails(subject, publicKey, privateKey);
+      return { configured: true, publicKey, privateKey, subject };
+    } catch (err) {
+      console.error("Push init error (VAPID):", err);
+    }
+  } else {
+    console.warn("Push notifications disabled: missing COMFORT_VAPID_PUBLIC_KEY or COMFORT_VAPID_PRIVATE_KEY.");
+  }
+  return { configured: false, publicKey: "", privateKey: "", subject };
+}
+
+function resolvePushOwnerContext(req) {
+  const betaEnabled = readBetaUsers().length > 0;
+  const accessMode = resolveAccessMode(betaEnabled);
+  if (accessMode === "beta") {
+    const auth = authenticateBetaRequest(req);
+    if (!auth) return null;
+    return {
+      ownerKey: `beta:${auth.user.id}`,
+      sessionKind: "beta",
+      betaUserId: auth.user.id,
+      onboardingProfileId: ""
+    };
+  }
+  const auth = authenticateOnboardingRequest(req);
+  if (!auth) return null;
+  return {
+    ownerKey: `onboarding:${auth.profile.id}`,
+    sessionKind: "onboarding",
+    betaUserId: "",
+    onboardingProfileId: auth.profile.id
+  };
+}
+
+function readPushSubscriptions() {
+  const list = readJsonFile(PUSH_SUBSCRIPTIONS_FILE, []);
+  return Array.isArray(list) ? list.filter((x) => x && typeof x === "object") : [];
+}
+
+function writePushSubscriptions(list) {
+  writeJsonFile(PUSH_SUBSCRIPTIONS_FILE, list);
+}
+
+function normalizePushSubscription(input) {
+  if (!input || typeof input !== "object") return null;
+  const endpoint = String(input.endpoint || "").trim();
+  if (!endpoint || endpoint.length > 800) return null;
+  const keys = input.keys && typeof input.keys === "object" ? input.keys : {};
+  const p256dh = String(keys.p256dh || "").trim();
+  const auth = String(keys.auth || "").trim();
+  if (!p256dh || !auth) return null;
+  return {
+    endpoint,
+    expirationTime: input.expirationTime ?? null,
+    keys: { p256dh, auth }
+  };
+}
+
+function normalizePushReminders(input) {
+  if (!Array.isArray(input)) return [];
+  const out = [];
+  const now = Date.now();
+  const maxFutureMs = 1000 * 60 * 60 * 24 * 95;
+  for (const row of input) {
+    if (!row || typeof row !== "object") continue;
+    const key = String(row.key || "").trim();
+    const title = String(row.title || "").trim();
+    const body = String(row.body || "").trim();
+    const url = (String(row.url || "/app").trim() || "/app").slice(0, 600);
+    const sendAtMs = Number(row.sendAtMs);
+    if (!key || !Number.isFinite(sendAtMs) || !title) continue;
+    if (sendAtMs < now - 1000 * 60 * 60 * 24 || sendAtMs > now + maxFutureMs) continue;
+    out.push({
+      key: key.slice(0, 160),
+      title: title.slice(0, PUSH_MAX_TITLE_CHARS),
+      body: body.slice(0, PUSH_MAX_BODY_CHARS),
+      url,
+      sendAtMs: Math.floor(sendAtMs),
+      tag: String(row.tag || key).slice(0, 180)
+    });
+    if (out.length >= PUSH_MAX_REMINDERS_PER_DEVICE) break;
+  }
+  return out;
+}
+
+function upsertPushRegistration(owner, subscription, reminders, userAgent) {
+  const list = readPushSubscriptions();
+  const nowIso = new Date().toISOString();
+  const idx = list.findIndex(
+    (x) => x.ownerKey === owner.ownerKey && x.subscription?.endpoint === subscription.endpoint
+  );
+  const keepSent = new Set(reminders.map((r) => r.key));
+  const prevSent = idx >= 0 && list[idx].sent ? list[idx].sent : {};
+  const nextSent = {};
+  for (const [key, value] of Object.entries(prevSent)) {
+    const ts = Number(value);
+    if (!keepSent.has(key) || !Number.isFinite(ts)) continue;
+    if (Date.now() - ts > PUSH_SENT_RETENTION_MS) continue;
+    nextSent[key] = ts;
+  }
+  const next = {
+    id: idx >= 0 ? list[idx].id : `push-${crypto.randomUUID()}`,
+    ownerKey: owner.ownerKey,
+    sessionKind: owner.sessionKind,
+    betaUserId: owner.betaUserId,
+    onboardingProfileId: owner.onboardingProfileId,
+    subscription,
+    reminders,
+    sent: nextSent,
+    userAgent,
+    updatedAt: nowIso,
+    createdAt: idx >= 0 ? list[idx].createdAt : nowIso
+  };
+  if (idx >= 0) list[idx] = next;
+  else list.push(next);
+  writePushSubscriptions(list);
+}
+
+function removePushRegistration(ownerKey, endpoint = "") {
+  const list = readPushSubscriptions();
+  const next = list.filter((row) => {
+    if (row.ownerKey !== ownerKey) return true;
+    if (!endpoint) return false;
+    return row.subscription?.endpoint !== endpoint;
+  });
+  if (next.length === list.length) return 0;
+  writePushSubscriptions(next);
+  return list.length - next.length;
+}
+
+function startPushDispatcher() {
+  if (!pushConfig.configured) return;
+  if (pushDispatcherTimer) clearInterval(pushDispatcherTimer);
+  pushDispatcherTimer = setInterval(() => {
+    dispatchDuePushNotifications().catch((err) => {
+      console.error("Push dispatch error:", err);
+    });
+  }, PUSH_DISPATCH_INTERVAL_MS);
+  setTimeout(() => {
+    dispatchDuePushNotifications().catch((err) => {
+      console.error("Push dispatch warmup error:", err);
+    });
+  }, 2000);
+}
+
+async function dispatchDuePushNotifications() {
+  if (!pushConfig.configured) return;
+  const list = readPushSubscriptions();
+  if (!list.length) return;
+  const now = Date.now();
+  let changed = false;
+
+  for (let i = 0; i < list.length; i += 1) {
+    const row = list[i];
+    const reminders = Array.isArray(row.reminders) ? row.reminders : [];
+    if (!row.sent || typeof row.sent !== "object") row.sent = {};
+
+    for (const reminder of reminders) {
+      if (!reminder || typeof reminder !== "object") continue;
+      const sendAtMs = Number(reminder.sendAtMs);
+      if (!Number.isFinite(sendAtMs) || sendAtMs > now) continue;
+      if (row.sent[reminder.key]) continue;
+
+      const payload = {
+        title: String(reminder.title || "Comfort Ledger"),
+        body: String(reminder.body || ""),
+        url: String(reminder.url || "/app"),
+        tag: String(reminder.tag || reminder.key || "comfort-reminder")
+      };
+
+      try {
+        await webpush.sendNotification(row.subscription, JSON.stringify(payload), {
+          TTL: 60 * 60 * 6,
+          urgency: "high"
+        });
+        row.sent[reminder.key] = now;
+        changed = true;
+      } catch (err) {
+        const statusCode = Number(err?.statusCode || err?.status || 0);
+        if (statusCode === 404 || statusCode === 410) {
+          list.splice(i, 1);
+          i -= 1;
+          changed = true;
+          break;
+        }
+        console.warn("Push send failed:", statusCode || err?.message || err);
+      }
+    }
+  }
+  if (changed) writePushSubscriptions(list);
 }

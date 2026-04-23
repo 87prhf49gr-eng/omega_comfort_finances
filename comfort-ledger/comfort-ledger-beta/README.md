@@ -116,4 +116,42 @@ Después, en LemonSqueezy, usa *Send test* para verificar.
 
 ### 5. Persistencia en Render
 
-Los archivos `data/subscriptions.json` y `data/waitlist.json` **deben persistir** entre deploys. Monta el disco persistente como ya haces con `beta-sessions.json` y apunta `COMFORT_DATA_DIR` al mismo path. Ambos archivos están en `.gitignore` para no committear datos de clientes.
+Los archivos `data/subscriptions.json`, `data/waitlist.json` y `data/push-subscriptions.json` **deben persistir** entre deploys. Monta el disco persistente como ya haces con `beta-sessions.json` y apunta `COMFORT_DATA_DIR` al mismo path. Los tres están en `.gitignore` para no committear datos de clientes.
+
+## Web Push (notificaciones en segundo plano)
+
+El servidor puede enviar avisos en segundo plano a dispositivos suscritos (recordatorios de pagos recurrentes) usando VAPID. Sin estas variables, la app sigue funcionando pero los avisos solo se disparan cuando la PWA está abierta.
+
+### 1. Generar claves VAPID
+
+```bash
+cd comfort-ledger/comfort-ledger-beta
+npx web-push generate-vapid-keys
+```
+
+Copia `Public Key` y `Private Key`.
+
+### 2. Configurar variables
+
+En `.env` local o en Render → Environment:
+
+```
+COMFORT_VAPID_PUBLIC_KEY=...tu clave pública...
+COMFORT_VAPID_PRIVATE_KEY=...tu clave privada...
+COMFORT_VAPID_SUBJECT=mailto:support@comfortledger.app
+```
+
+`COMFORT_VAPID_SUBJECT` no envía emails; solo identifica al origen ante los servicios push (Apple, Google, Mozilla).
+
+### 3. Redeploy y probar
+
+Al reiniciar verás en el log:
+
+- `Push notifications disabled: missing …` si faltan claves.
+- Nada (silencio) si todo OK.
+
+En el cliente, `/api/public-config` devuelve `pushConfigured: true` y `pushVapidPublicKey`. Al activar avisos del navegador, la PWA se registra en `/api/push/register` y el servidor envía los recordatorios aunque la app esté cerrada (requiere que el navegador permita push; en iPhone solo funciona cuando la app ha sido instalada como PWA en la pantalla de inicio).
+
+### 4. Seguridad
+
+Si algún día tu clave privada VAPID se filtra (pegada en chat, repo público), **regenera el par** y actualiza las variables en Render. Los clientes que ya estaban suscritos se re-suscribirán automáticamente la próxima vez que abran la app.
