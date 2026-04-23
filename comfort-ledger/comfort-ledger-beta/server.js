@@ -1077,9 +1077,21 @@ function safeStaticPath(pathname) {
     rel = "index.html";
   } else if (pathname === "/app" || pathname === "/app/") {
     rel = "COMFORT-LEDGER-abrir-aqui.html";
-  } else if (pathname === "/terms" || pathname === "/terms/") {
+  } else if (
+    pathname === "/terms" ||
+    pathname === "/terms/" ||
+    pathname === "/terminos" ||
+    pathname === "/terminos/" ||
+    pathname === "/terminos.html"
+  ) {
     rel = "terms.html";
-  } else if (pathname === "/privacy" || pathname === "/privacy/") {
+  } else if (
+    pathname === "/privacy" ||
+    pathname === "/privacy/" ||
+    pathname === "/privacidad" ||
+    pathname === "/privacidad/" ||
+    pathname === "/privacidad.html"
+  ) {
     rel = "privacy.html";
   } else {
     rel = decodeURIComponent(pathname).replace(/^\/+/, "");
