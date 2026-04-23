@@ -1077,6 +1077,10 @@ function safeStaticPath(pathname) {
     rel = "index.html";
   } else if (pathname === "/app" || pathname === "/app/") {
     rel = "COMFORT-LEDGER-abrir-aqui.html";
+  } else if (pathname === "/terms" || pathname === "/terms/") {
+    rel = "terms.html";
+  } else if (pathname === "/privacy" || pathname === "/privacy/") {
+    rel = "privacy.html";
   } else {
     rel = decodeURIComponent(pathname).replace(/^\/+/, "");
   }
