@@ -1,0 +1,47 @@
+# Comfort Ledger — Render Blueprint
+# https://render.com/docs/blueprint-spec
+# After first deploy, set secret env vars in the dashboard (Blueprint sync: false).
+
+services:
+  - type: web
+    name: comfort-ledger
+    runtime: node
+    # plan: starter  # optional; omit to choose in the Render dashboard
+    rootDir: comfort-ledger/comfort-ledger-beta
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: COMFORT_PUBLIC_ORIGIN
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: COMFORT_SESSION_SECRET
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      # Optional: mount a persistent disk and set COMFORT_DATA_DIR (see comfort-ledger/README.md)
+      # - key: COMFORT_DATA_DIR
+      #   value: /var/data
+      # LemonSqueezy (when going live with paid checkout)
+      - key: LEMONSQUEEZY_API_KEY
+        sync: false
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false
+      - key: LEMONSQUEEZY_STORE_ID
+        sync: false
+      - key: LEMONSQUEEZY_VARIANT_MONTHLY
+        sync: false
+      - key: LEMONSQUEEZY_VARIANT_ANNUAL
+        sync: false
+      - key: COMFORT_PUBLIC_PURCHASE
+        value: "false"
+      # Web Push (optional)
+      - key: COMFORT_VAPID_PUBLIC_KEY
+        sync: false
+      - key: COMFORT_VAPID_PRIVATE_KEY
+        sync: false
+      - key: COMFORT_VAPID_SUBJECT
+        value: mailto:support@comfortledger.app

@@ -14,6 +14,7 @@
  *   LEMONSQUEEZY_WEBHOOK_SECRET,
  *   COMFORT_CHECKOUT_REDIRECT_URL (opcional; destino tras pago exitoso),
  *   COMFORT_PUBLIC_PURCHASE (true para mostrar botones de compra en el landing)
+ *   COMFORT_PUBLIC_ORIGIN (opcional; p. ej. https://tudominio.com — si falta, se infiere del Host en cada petición)
  */
 
 const http = require("http");
@@ -37,6 +38,7 @@ const PUSH_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "push-subscriptions.json");
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const SESSION_SECRET = String(process.env.COMFORT_SESSION_SECRET || crypto.randomBytes(32).toString("hex"));
 const SESSION_COOKIE_NAME = "comfort_beta_session";
+const LANDING_LOCALE_COOKIE = "comfort_landing_locale";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const LANDING_DEMO_MS = Math.max(0, Number(process.env.COMFORT_LANDING_DEMO_MINUTES || 10)) * 60 * 1000;
 const SUBSCRIBE_URL = String(process.env.COMFORT_SUBSCRIBE_URL || "https://example.com/subscribe").trim();
@@ -102,22 +104,99 @@ const server = http.createServer(async (req, res) => {
   const pathname = decodeURIComponent(url.pathname);
   const method = String(req.method || "GET").toUpperCase();
 
-  // Automatic language detection for the marketing landing.
-  // Spanish remains default; English browsers are redirected to /en.
-  if (pathname === "/" && (method === "GET" || method === "HEAD")) {
-    const acceptLanguage = String(req.headers["accept-language"] || "");
-    const englishPreferred = /\ben(?:-[a-z]{2})?\b/i.test(acceptLanguage);
-    if (englishPreferred) {
+  // Landing locale: ?lang= (explicit), cookie, then Accept-Language.
+  // Without this, English browsers hitting "Español" (/ → /?lang=es) would loop back to /en.
+  if (
+    (pathname === "/" || pathname === "/en" || pathname === "/en/") &&
+    (method === "GET" || method === "HEAD")
+  ) {
+    const langParam = String(url.searchParams.get("lang") || "").toLowerCase();
+    const onEn = pathname === "/en" || pathname === "/en/";
+
+    if (onEn && langParam === "es") {
+      res.writeHead(
+        302,
+        createHeaders("text/plain; charset=utf-8", {
+          Location: "/",
+          "Cache-Control": "no-store",
+          Vary: "Accept-Language",
+          "Set-Cookie": buildLandingLocaleCookie("es")
+        })
+      );
+      res.end("Redirecting");
+      return;
+    }
+    if (onEn && langParam === "en") {
       res.writeHead(
         302,
         createHeaders("text/plain; charset=utf-8", {
           Location: "/en",
           "Cache-Control": "no-store",
-          Vary: "Accept-Language"
+          Vary: "Accept-Language",
+          "Set-Cookie": buildLandingLocaleCookie("en")
         })
       );
-      res.end("Redirecting to /en");
+      res.end("Redirecting");
       return;
+    }
+
+    if (pathname === "/" && langParam === "es") {
+      res.writeHead(
+        302,
+        createHeaders("text/plain; charset=utf-8", {
+          Location: "/",
+          "Cache-Control": "no-store",
+          Vary: "Accept-Language",
+          "Set-Cookie": buildLandingLocaleCookie("es")
+        })
+      );
+      res.end("Redirecting");
+      return;
+    }
+    if (pathname === "/" && langParam === "en") {
+      res.writeHead(
+        302,
+        createHeaders("text/plain; charset=utf-8", {
+          Location: "/en",
+          "Cache-Control": "no-store",
+          Vary: "Accept-Language",
+          "Set-Cookie": buildLandingLocaleCookie("en")
+        })
+      );
+      res.end("Redirecting");
+      return;
+    }
+
+    if (pathname === "/" && !langParam) {
+      const pref = getLandingLocaleCookie(req);
+      if (pref === "en") {
+        res.writeHead(
+          302,
+          createHeaders("text/plain; charset=utf-8", {
+            Location: "/en",
+            "Cache-Control": "no-store",
+            Vary: "Accept-Language"
+          })
+        );
+        res.end("Redirecting to /en");
+        return;
+      }
+      if (pref !== "es") {
+        const acceptLanguage = String(req.headers["accept-language"] || "");
+        const englishPreferred = /\ben(?:-[a-z]{2})?\b/i.test(acceptLanguage);
+        if (englishPreferred) {
+          res.writeHead(
+            302,
+            createHeaders("text/plain; charset=utf-8", {
+              Location: "/en",
+              "Cache-Control": "no-store",
+              Vary: "Accept-Language"
+            })
+          );
+          res.end("Redirecting to /en");
+          return;
+        }
+      }
     }
   }
 
@@ -439,7 +518,7 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 405, { ok: false, error: "Method not allowed" });
     }
 
-    serveComfortStatic(pathname, res, req.method === "HEAD");
+    serveComfortStatic(pathname, res, req.method === "HEAD", req);
   } catch (error) {
     console.error(error);
     const message = error && typeof error.message === "string" ? error.message : "Server error";
@@ -721,6 +800,72 @@ function publicOnboardingProfile(profile) {
     lifestyle: normalized.lifestyle,
     createdAt: normalized.createdAt
   };
+}
+
+function getLandingLocaleCookie(req) {
+  const raw = String(req.headers.cookie || "");
+  const match = raw.match(new RegExp(`(?:^|;\\s*)${LANDING_LOCALE_COOKIE}=(es|en)(?:;|$)`));
+  return match ? match[1] : null;
+}
+
+function buildLandingLocaleCookie(locale) {
+  const value = locale === "en" ? "en" : "es";
+  const parts = [`${LANDING_LOCALE_COOKIE}=${value}`, "Path=/", "Max-Age=31536000", "SameSite=Lax"];
+  if (IS_PRODUCTION) {
+    parts.push("Secure");
+  }
+  return parts.join("; ");
+}
+
+function publicOriginFromRequest(req) {
+  const explicit = String(process.env.COMFORT_PUBLIC_ORIGIN || "")
+    .trim()
+    .replace(/\/$/, "");
+  if (explicit) {
+    return explicit;
+  }
+  const forwardedHost = String(req.headers["x-forwarded-host"] || "")
+    .split(",")[0]
+    .trim();
+  const host = forwardedHost || String(req.headers.host || "").split(",")[0].trim();
+  if (!host) {
+    return "";
+  }
+  let proto = String(req.headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  if (!proto) {
+    proto = IS_PRODUCTION ? "https" : "http";
+  }
+  return `${proto}://${host}`;
+}
+
+function rewriteLandingHtmlAbsoluteUrls(buf, filePath, req) {
+  const base = path.basename(filePath);
+  if (base !== "index.html" && base !== "index-en.html") {
+    return buf;
+  }
+  const origin = publicOriginFromRequest(req);
+  if (!origin) {
+    return buf;
+  }
+  const ogAbs = `${origin}/branding/comfort-ledger-mark.png`;
+  let html = buf.toString("utf8");
+  html = html.replace(
+    '<meta property="og:image" content="./branding/comfort-ledger-mark.png">',
+    `<meta property="og:image" content="${ogAbs}">`
+  );
+  html = html.replace(
+    '<meta name="twitter:image" content="./branding/comfort-ledger-mark.png">',
+    `<meta name="twitter:image" content="${ogAbs}">`
+  );
+  if (base === "index.html") {
+    html = html.replace('<link rel="canonical" href="./">', `<link rel="canonical" href="${origin}/">`);
+  } else {
+    html = html.replace('<link rel="canonical" href="/en">', `<link rel="canonical" href="${origin}/en">`);
+  }
+  return Buffer.from(html, "utf8");
 }
 
 function createSessionCookie(token) {
@@ -1140,7 +1285,7 @@ function safeStaticPath(pathname) {
   return candidate;
 }
 
-function serveComfortStatic(pathname, res, isHead) {
+function serveComfortStatic(pathname, res, isHead, req) {
   const filePath = safeStaticPath(pathname);
   if (!filePath) {
     res.writeHead(403, createHeaders("text/plain; charset=utf-8"));
@@ -1155,7 +1300,10 @@ function serveComfortStatic(pathname, res, isHead) {
   const extension = path.extname(filePath).toLowerCase();
   const contentType = MIME_TYPES[extension] || "application/octet-stream";
   const cacheControl = extension === ".html" ? "no-store" : "public, max-age=120";
-  const data = fs.readFileSync(filePath);
+  let data = fs.readFileSync(filePath);
+  if (extension === ".html" && req) {
+    data = rewriteLandingHtmlAbsoluteUrls(data, filePath, req);
+  }
   res.writeHead(200, createHeaders(contentType, { "Cache-Control": cacheControl }));
   if (isHead) {
     res.end();
