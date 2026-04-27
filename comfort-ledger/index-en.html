@@ -434,6 +434,14 @@
       border: 1px solid var(--line);
       border-radius: var(--radius);
       padding: 22px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      .bento-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(61, 108, 255, 0.28);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      }
     }
     .bento-card h3 {
       margin: 0 0 8px;
@@ -891,6 +899,151 @@
       justify-content: center;
     }
 
+    .nav-app-cta {
+      flex-shrink: 0;
+      padding: 0 16px;
+      min-height: 40px;
+      font-size: 0.875rem;
+    }
+    @media (max-width: 900px) {
+      .nav-links a[href="#waitlistForm"] { display: none; }
+    }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 820px;
+      margin: 0 auto 28px;
+      text-align: center;
+    }
+    @media (max-width: 720px) {
+      .metric-strip { grid-template-columns: 1fr; max-width: 22rem; }
+    }
+    .metric-item {
+      padding: 18px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    }
+    .metric-value {
+      display: block;
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 3.2vw, 1.75rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+    .metric-label {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .compare-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -8px;
+      padding: 4px 8px 12px;
+    }
+    .compare-table {
+      width: 100%;
+      min-width: 640px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.875rem;
+    }
+    .compare-table th,
+    .compare-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      color: var(--text-soft);
+    }
+    .compare-table thead th {
+      font-family: var(--font-display);
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.8125rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--line);
+    }
+    .compare-table thead th:first-child {
+      border-radius: var(--radius) 0 0 0;
+    }
+    .compare-table thead th:last-child {
+      border-radius: 0 var(--radius) 0 0;
+    }
+    .compare-table tbody th {
+      font-weight: 600;
+      color: var(--text);
+      width: 22%;
+      min-width: 7.5rem;
+    }
+    .compare-table tbody tr:last-child th,
+    .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table td:first-of-type {
+      color: rgba(238, 240, 244, 0.88);
+    }
+    .compare-highlight {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-animate .hero-logo-wrap,
+      .hero-animate .hero-eyebrow,
+      .hero-animate .hero-brand,
+      .hero-animate .hero-tagline,
+      .hero-animate .trust-strip,
+      .hero-animate .metric-strip,
+      .hero-animate .hero-lede,
+      .hero-animate .hero-cta-row,
+      .hero-animate .waitlist-form {
+        animation: fade-rise 0.7s ease both;
+      }
+      .hero-animate .hero-eyebrow { animation-delay: 0.05s; }
+      .hero-animate .hero-brand { animation-delay: 0.1s; }
+      .hero-animate .hero-tagline { animation-delay: 0.14s; }
+      .hero-animate .trust-strip { animation-delay: 0.18s; }
+      .hero-animate .metric-strip { animation-delay: 0.22s; }
+      .hero-animate .hero-lede { animation-delay: 0.26s; }
+      .hero-animate .hero-cta-row { animation-delay: 0.3s; }
+      .hero-animate .waitlist-form { animation-delay: 0.34s; }
+    }
+    @keyframes fade-rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
     /* Footer legal */
     .foot-links {
       display: flex;
@@ -905,24 +1058,26 @@
 <body>
   <header class="top">
     <div class="wrap top-inner">
-      <a class="logo" href="#top" id="top">
+      <a class="logo" href="#top">
         <img class="logo-img" src="./branding/comfort-ledger-nav-icon.png" width="221" height="188" alt="" aria-hidden="true">
         <span>Comfort Ledger</span>
       </a>
       <nav class="nav-links" aria-label="Sections">
+        <a href="#comparar">Vs others</a>
         <a href="#problema">Problem</a>
         <a href="#beneficios">Features</a>
         <a href="#precio">Pricing</a>
         <a href="#faq">FAQ</a>
+        <a href="#waitlistForm">Waitlist</a>
         <a href="/?lang=es" aria-label="Switch to Spanish">ES</a>
       </nav>
-      <a class="btn btn-ghost" href="/app">Open app</a>
+      <a class="btn btn-primary nav-app-cta" href="/app">Open app</a>
     </div>
   </header>
 
   <main>
-    <section class="hero">
-      <div class="wrap">
+    <section class="hero" id="top">
+      <div class="wrap hero-animate">
         <div class="hero-logo-wrap">
           <img
             class="hero-glass-logo"
@@ -946,9 +1101,29 @@
           <span class="pill">Ready in seconds</span>
         </div>
 
+        <div class="metric-strip" aria-label="Value in numbers">
+          <div class="metric-item">
+            <span class="metric-value">0</span>
+            <span class="metric-label">required bank connections</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-value">&lt;60s</span>
+            <span class="metric-label">to your first monthly snapshot</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-value">100%</span>
+            <span class="metric-label">of data stays on your device</span>
+          </div>
+        </div>
+
         <p class="hero-lede">
           Income, monthly-normalized expenses, debt, goals, household bills, and subscriptions — with reminders and an executive summary. <strong>Your numbers do not leave your device:</strong> they work in your browser.
         </p>
+
+        <div class="hero-cta-row">
+          <a class="btn btn-primary" href="#waitlistForm">Join the waitlist</a>
+          <a class="btn btn-ghost" href="#como-funciona">See how it works</a>
+        </div>
 
         <form id="waitlistForm" class="waitlist-form" novalidate>
           <label class="sr-only" for="waitlistEmail">Email address</label>
@@ -1082,6 +1257,56 @@
               <h3>The promise</h3>
               <p>One canvas: monthly income, monthly-normalized expenses, debt, goals, household bills, and subscriptions — with reminders and links to pay or cancel. <strong>Clarity first, without giving away your data.</strong></p>
             </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="band-elevated" id="comparar">
+      <section>
+        <div class="wrap">
+          <p class="section-label">In the market</p>
+          <h2 class="section-title">Clarity without giving up control of your data</h2>
+          <p class="section-intro">
+            Many tools ask for your bank or bury you in endless spreadsheets. Comfort Ledger blends an <strong>executive dashboard</strong> with the calm of a <strong>local-first</strong> product — the pattern teams use when privacy and speed matter.
+          </p>
+          <div class="compare-scroll" role="region" aria-label="Comparison with alternatives" tabindex="0">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th scope="col"></th>
+                  <th scope="col"><span class="compare-highlight">Comfort Ledger</span></th>
+                  <th scope="col">Spreadsheet</th>
+                  <th scope="col">“Connect your bank” apps</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Privacy by design</th>
+                  <td>Data in your browser; no bank tokens.</td>
+                  <td>Depends where the file lives.</td>
+                  <td>Sync and permissions on the vendor’s servers.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Time to a useful answer</th>
+                  <td>Minutes: one monthly health canvas.</td>
+                  <td>Hours wiring formulas and formats.</td>
+                  <td>Variable: linking, categorization, alerts.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Reminders & subscriptions</th>
+                  <td>Alerts + links to pay or cancel.</td>
+                  <td>Manual; easy to miss dates.</td>
+                  <td>Sometimes; often with upsells.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Coach with your month’s context</th>
+                  <td>Local mode + optional cloud (your choice).</td>
+                  <td>Not included.</td>
+                  <td>Varies; sometimes generic.</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
