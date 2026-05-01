@@ -24,7 +24,7 @@ function updateRecurringNotifyUi() {
 }
 
 async function showRecurringSystemNotification(title, body, openUrl, tag) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return false;
   let iconUrl = "pwa-icons/icon-192.png";
   try {
     iconUrl = new URL("pwa-icons/icon-192.png", location.href).href;
@@ -35,6 +35,7 @@ async function showRecurringSystemNotification(title, body, openUrl, tag) {
   try {
     const reg = await navigator.serviceWorker.ready;
     await reg.showNotification(title, opts);
+    return true;
   } catch {
     try {
       const n = new Notification(title, opts);
@@ -43,18 +44,22 @@ async function showRecurringSystemNotification(title, body, openUrl, tag) {
         location.href = openUrl;
         n.close();
       };
+      return true;
     } catch {
       /* ignore */
     }
   }
+  return false;
 }
 
-function processRecurringReminders() {
+async function processRecurringReminders() {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (window.__comfortProcessingRecurringReminders) return;
+  window.__comfortProcessingRecurringReminders = true;
   const log = loadNotifyLog();
   const now = new Date();
   let touched = false;
-  const fireFor = (row, prefix, label, openUrl) => {
+  const fireFor = async (row, prefix, label, openUrl) => {
     const due = nextRecurringDueDate(row.dayOfMonth, now);
     const dueIso = toISODateLocal(due);
     const days = calendarDaysBetween(now, due);
@@ -65,37 +70,45 @@ function processRecurringReminders() {
     // Aviso "faltan X días": ventana flexible 1..3 para no perderlo si el usuario no abre la app el día exacto.
     if (days >= 1 && days <= 3 && !log[beforeKey]) {
       const body = tFill("recurring_notif_before_body", { label, date: dateStr, amt: amtStr });
-      showRecurringSystemNotification(
+      const delivered = await showRecurringSystemNotification(
         t("recurring_notif_before_title"),
         body,
         openUrl,
         `comfort-${prefix}${row.id}-b-${dueIso}`
       );
-      log[beforeKey] = 1;
-      touched = true;
+      if (delivered) {
+        log[beforeKey] = 1;
+        touched = true;
+      }
     }
     // Aviso del día de pago: dispara en cuanto se abre la app ese día, sin importar la hora.
     if (days === 0 && !log[dueKey]) {
       const body = tFill("recurring_notif_due_body", { label, date: dateStr, amt: amtStr });
-      showRecurringSystemNotification(
+      const delivered = await showRecurringSystemNotification(
         t("recurring_notif_due_title"),
         body,
         openUrl,
         `comfort-${prefix}${row.id}-d-${dueIso}`
       );
-      log[dueKey] = 1;
-      touched = true;
+      if (delivered) {
+        log[dueKey] = 1;
+        touched = true;
+      }
     }
   };
-  for (const bill of (state.utilityBills || []).filter((b) => !b.cancelled)) {
-    const lab = `${utilityCategoryLabel(bill.categoryKey)}${bill.label ? ` — ${bill.label}` : ""}`;
-    fireFor(bill, "u:", lab, resolveUtilityNotifyUrl(bill));
+  try {
+    for (const bill of (state.utilityBills || []).filter((b) => !b.cancelled)) {
+      const lab = `${utilityCategoryLabel(bill.categoryKey)}${bill.label ? ` — ${bill.label}` : ""}`;
+      await fireFor(bill, "u:", lab, resolveUtilityNotifyUrl(bill));
+    }
+    for (const s of (state.subscriptions || []).filter((x) => !x.cancelled)) {
+      const lab = subscriptionDisplayName(s);
+      await fireFor(s, "s:", lab, resolveSubscriptionNotifyUrl(s));
+    }
+    if (touched) saveNotifyLog(log);
+  } finally {
+    window.__comfortProcessingRecurringReminders = false;
   }
-  for (const s of (state.subscriptions || []).filter((x) => !x.cancelled)) {
-    const lab = subscriptionDisplayName(s);
-    fireFor(s, "s:", lab, resolveSubscriptionNotifyUrl(s));
-  }
-  if (touched) saveNotifyLog(log);
 }
 
 function startRecurringReminders() {
@@ -211,4 +224,26 @@ function scheduleHostedPushSync() {
   window.__comfortPushSyncTimer = setTimeout(() => {
     syncHostedPushReminders();
   }, 1200);
+}
+
+function refreshRecurringNotificationState(options = {}) {
+  const syncHosted = options.syncHosted !== false;
+  try {
+    if (typeof renderTodayBanner === "function") renderTodayBanner();
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (typeof updateRecurringNotifyUi === "function") updateRecurringNotifyUi();
+  } catch {
+    /* ignore */
+  }
+  try {
+    void processRecurringReminders();
+  } catch {
+    /* ignore */
+  }
+  if (syncHosted) {
+    scheduleHostedPushSync();
+  }
 }

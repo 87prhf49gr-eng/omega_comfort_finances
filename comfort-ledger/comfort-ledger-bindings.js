@@ -1,5 +1,21 @@
 /* Comfort Ledger core bindings module (next plan step) */
 
+let comfortChartDebounceTimer = null;
+
+function scheduleComfortChartsDebounced() {
+  clearTimeout(comfortChartDebounceTimer);
+  comfortChartDebounceTimer = setTimeout(() => {
+    comfortChartDebounceTimer = null;
+    renderChartsAndHealth();
+  }, 300);
+}
+
+function flushComfortChartsDebounced() {
+  clearTimeout(comfortChartDebounceTimer);
+  comfortChartDebounceTimer = null;
+  return renderChartsAndHealth();
+}
+
 function bind() {
   if (!els.liquidSavings || !els.addExpenseBtn || !els.donutFlow || !els.utilityBillsList || !els.subscriptionsList) {
     return;
@@ -7,10 +23,14 @@ function bind() {
   const onSavings = () => {
     const v = parseNum(els.liquidSavings.value);
     state.liquidSavings = Number.isFinite(v) ? v : 0;
-    renderChartsAndHealth();
+    scheduleComfortChartsDebounced();
   };
   els.liquidSavings?.addEventListener("input", onSavings);
-  els.liquidSavings?.addEventListener("blur", onSavings);
+  els.liquidSavings?.addEventListener("blur", () => {
+    const v = parseNum(els.liquidSavings.value);
+    state.liquidSavings = Number.isFinite(v) ? v : 0;
+    flushComfortChartsDebounced();
+  });
 
   const addIncomeRow = () => {
     state.incomeLines.unshift({
@@ -37,9 +57,12 @@ function bind() {
     if (!line) return;
     const field = ev.target.dataset.field;
     if (!field) return;
-    if (field === "amount") line.amount = coerceParsedNumber(ev.target.value);
-    else if (field === "label") line.label = ev.target.value;
-    renderChartsAndHealth();
+    if (field === "amount") line.amount = Math.max(0, coerceParsedNumber(ev.target.value));
+    else if (field === "label") {
+      line.label = ev.target.value;
+      delete line.labelKey;
+    }
+    scheduleComfortChartsDebounced();
   });
   els.incomeList?.addEventListener("change", (ev) => {
     if (ev.target.dataset.field !== "date") return;
@@ -139,7 +162,7 @@ function bind() {
     const field = ev.target.dataset.field;
     if (!field) return;
     if (field === "label") g.label = ev.target.value;
-    else if (field === "targetAmount") g.targetAmount = coerceParsedNumber(ev.target.value);
+    else if (field === "targetAmount") g.targetAmount = Math.max(0, coerceParsedNumber(ev.target.value));
     else if (field === "months") {
       const raw = ev.target.value.trim();
       if (raw !== "") {
@@ -147,7 +170,7 @@ function bind() {
         g.months = Math.max(1, Math.min(600, m));
       }
     }
-    renderChartsAndHealth();
+    scheduleComfortChartsDebounced();
     const apartEl = row.querySelector(".goal-apart strong");
     if (apartEl) apartEl.textContent = fmtMoney(goalMonthlyApartado(g));
     const first = state.savingsGoals[0];
@@ -173,9 +196,12 @@ function bind() {
     if (!exp) return;
     const field = ev.target.dataset.field;
     if (!field) return;
-    if (field === "amount") exp.amount = coerceParsedNumber(ev.target.value);
-    else if (field === "label") exp.label = ev.target.value;
-    renderChartsAndHealth();
+    if (field === "amount") exp.amount = Math.max(0, coerceParsedNumber(ev.target.value));
+    else if (field === "label") {
+      exp.label = ev.target.value;
+      delete exp.labelKey;
+    }
+    scheduleComfortChartsDebounced();
   });
   els.expenseList?.addEventListener("change", (ev) => {
     const row = ev.target.closest(".expense-row");
@@ -184,7 +210,7 @@ function bind() {
     if (!exp) return;
     const field = ev.target.dataset.field;
     if (field === "cadence") exp.cadence = normalizeCadence(ev.target.value);
-    if (field === "category") exp.category = EXPENSE_CATEGORIES.includes(ev.target.value) ? ev.target.value : "Otros";
+    if (field === "category") exp.category = EXPENSE_CATEGORY_SET.has(ev.target.value) ? ev.target.value : "Otros";
     renderChartsAndHealth();
   });
   els.expenseList?.addEventListener("click", (ev) => {
@@ -204,9 +230,9 @@ function bind() {
     if (!d) return;
     const field = ev.target.dataset.field;
     if (!field) return;
-    if (field === "balance" || field === "minPayment") d[field] = coerceParsedNumber(ev.target.value);
+    if (field === "balance" || field === "minPayment") d[field] = Math.max(0, coerceParsedNumber(ev.target.value));
     else if (field === "label") d.label = ev.target.value;
-    renderChartsAndHealth();
+    scheduleComfortChartsDebounced();
   });
   els.debtList?.addEventListener("change", (ev) => {
     const row = ev.target.closest(".debt-row");
@@ -313,7 +339,7 @@ function bind() {
     ev.preventDefault();
     const text = els.coachInput.value.trim();
     if (!text) return;
-    const snap = renderChartsAndHealth();
+    const snap = flushComfortChartsDebounced();
     const userDiv = document.createElement("div");
     userDiv.className = "coach-msg user";
     userDiv.textContent = text;
@@ -330,7 +356,12 @@ function bind() {
 
     if (userWantsOpenAI) {
       els.coachStatus.textContent = t("coach_loading");
-      void comfortCoachAskOpenAIDirect(text, snap, prefs)
+      void comfortCoachAskOpenAIDirect(text, snap, prefs, {
+        onDelta: (partial) => {
+          botDiv.textContent = partial;
+          els.coachThread.scrollTop = els.coachThread.scrollHeight;
+        }
+      })
         .then((answer) => {
           botDiv.textContent = answer;
           els.coachStatus.textContent = t("coach_status_direct");
@@ -347,7 +378,12 @@ function bind() {
 
     if (hostedOpenAI) {
       els.coachStatus.textContent = t("coach_loading");
-      void comfortCoachAskOpenAI(text, snap)
+      void comfortCoachAskOpenAI(text, snap, {
+        onDelta: (partial) => {
+          botDiv.textContent = partial;
+          els.coachThread.scrollTop = els.coachThread.scrollHeight;
+        }
+      })
         .then((answer) => {
           botDiv.textContent = answer;
           els.coachStatus.textContent = t("coach_status_cloud");
@@ -381,11 +417,13 @@ function bind() {
 
   els.comfortExportBtn?.addEventListener("click", () => {
     comfortSetBackupStatus("", null);
-    try {
-      comfortExportBackup();
-    } catch {
-      comfortSetBackupStatus(t("backup_import_err_read"), "err");
-    }
+    void (async () => {
+      try {
+        await comfortExportBackup();
+      } catch {
+        comfortSetBackupStatus(t("backup_import_err_read"), "err");
+      }
+    })();
   });
 
   els.comfortImportBtn?.addEventListener("click", () => {

@@ -16,72 +16,81 @@ function hasMeaningfulFinanceData() {
   return false;
 }
 
-const LIFESTYLE_TEMPLATES = {
-  payroll: {
-    incomeLines: [{ label: "Nomina principal", amount: 0, cadence: "monthly" }],
-    utilityBills: [
-      { categoryKey: "rent", label: "Renta", amount: 0, dayOfMonth: 1 },
-      { categoryKey: "electric", label: "Luz", amount: 0, dayOfMonth: 8 },
-      { categoryKey: "internet", label: "Internet", amount: 0, dayOfMonth: 12 }
-    ],
-    budgets: [
-      { category: "Supermercado", monthly: 0 },
-      { category: "Comida fuera", monthly: 0 },
-      { category: "Transporte publico", monthly: 0 }
-    ]
-  },
-  freelance: {
-    incomeLines: [
-      { label: "Cliente A", amount: 0, cadence: "monthly" },
-      { label: "Cliente B", amount: 0, cadence: "monthly" }
-    ],
-    expenses: [{ category: "Impuestos y honorarios", label: "Impuestos", amount: 0, cadence: "monthly" }],
-    budgets: [
-      { category: "Trabajo y oficina", monthly: 0 },
-      { category: "Impuestos y honorarios", monthly: 0 },
-      { category: "Internet y telefono", monthly: 0 }
-    ]
-  },
-  family: {
-    incomeLines: [{ label: "Ingreso hogar", amount: 0, cadence: "monthly" }],
-    expenses: [
-      { category: "Ninos y familia", label: "Gastos familiares", amount: 0, cadence: "monthly" },
-      { category: "Supermercado", label: "Despensa", amount: 0, cadence: "weekly" }
-    ],
-    utilityBills: [
-      { categoryKey: "rent", label: "Hipoteca / renta", amount: 0, dayOfMonth: 1 },
-      { categoryKey: "insurance", label: "Seguro", amount: 0, dayOfMonth: 5 }
-    ],
-    budgets: [
-      { category: "Ninos y familia", monthly: 0 },
-      { category: "Supermercado", monthly: 0 },
-      { category: "Luz gas agua", monthly: 0 }
-    ]
-  },
-  student: {
-    incomeLines: [{ label: "Ingreso base", amount: 0, cadence: "monthly" }],
-    expenses: [
-      { category: "Educacion y cursos", label: "Escuela / cursos", amount: 0, cadence: "monthly" },
-      { category: "Transporte publico", label: "Transporte", amount: 0, cadence: "monthly" }
-    ],
-    budgets: [
-      { category: "Supermercado", monthly: 0 },
-      { category: "Transporte publico", monthly: 0 },
-      { category: "Cafe y snacks", monthly: 0 }
-    ]
-  },
-  simple: {
-    incomeLines: [{ label: "Ingreso principal", amount: 0, cadence: "monthly" }],
-    budgets: [
-      { category: "Supermercado", monthly: 0 },
-      { category: "Comida fuera", monthly: 0 }
-    ]
-  }
-};
+/**
+ * Lifestyle starter rows. User-visible labels use labelKey (resolved via t() in normalize* and on locale change).
+ * Budget/expense category values stay as canonical Spanish keys (EXPENSE_CATEGORIES); UI shows categoryDisplayLabel.
+ */
+function buildLifestyleTemplates() {
+  return {
+    payroll: {
+      incomeLines: [{ labelKey: "lifestyle_income_payroll_main", amount: 0, cadence: "monthly" }],
+      utilityBills: [
+        { categoryKey: "rent", labelKey: "lifestyle_utility_rent", amount: 0, dayOfMonth: 1 },
+        { categoryKey: "electric", labelKey: "lifestyle_utility_electric", amount: 0, dayOfMonth: 8 },
+        { categoryKey: "internet", labelKey: "lifestyle_utility_internet", amount: 0, dayOfMonth: 12 }
+      ],
+      budgets: [
+        { category: "Supermercado", monthly: 0 },
+        { category: "Comida fuera", monthly: 0 },
+        { category: "Transporte publico", monthly: 0 }
+      ]
+    },
+    freelance: {
+      incomeLines: [
+        { labelKey: "lifestyle_income_client_a", amount: 0, cadence: "monthly" },
+        { labelKey: "lifestyle_income_client_b", amount: 0, cadence: "monthly" }
+      ],
+      expenses: [
+        { category: "Impuestos y honorarios", labelKey: "lifestyle_expense_taxes", amount: 0, cadence: "monthly" }
+      ],
+      budgets: [
+        { category: "Trabajo y oficina", monthly: 0 },
+        { category: "Impuestos y honorarios", monthly: 0 },
+        { category: "Internet y telefono", monthly: 0 }
+      ]
+    },
+    family: {
+      incomeLines: [{ labelKey: "lifestyle_income_household", amount: 0, cadence: "monthly" }],
+      expenses: [
+        { category: "Ninos y familia", labelKey: "lifestyle_expense_family", amount: 0, cadence: "monthly" },
+        { category: "Supermercado", labelKey: "lifestyle_expense_grocery_weekly", amount: 0, cadence: "weekly" }
+      ],
+      utilityBills: [
+        { categoryKey: "rent", labelKey: "lifestyle_utility_mortgage", amount: 0, dayOfMonth: 1 },
+        { categoryKey: "insurance", labelKey: "lifestyle_utility_insurance", amount: 0, dayOfMonth: 5 }
+      ],
+      budgets: [
+        { category: "Ninos y familia", monthly: 0 },
+        { category: "Supermercado", monthly: 0 },
+        { category: "Luz gas agua", monthly: 0 }
+      ]
+    },
+    student: {
+      incomeLines: [{ labelKey: "lifestyle_income_student_base", amount: 0, cadence: "monthly" }],
+      expenses: [
+        { category: "Educacion y cursos", labelKey: "lifestyle_expense_school", amount: 0, cadence: "monthly" },
+        { category: "Transporte publico", labelKey: "lifestyle_expense_transport", amount: 0, cadence: "monthly" }
+      ],
+      budgets: [
+        { category: "Supermercado", monthly: 0 },
+        { category: "Transporte publico", monthly: 0 },
+        { category: "Cafe y snacks", monthly: 0 }
+      ]
+    },
+    simple: {
+      incomeLines: [{ labelKey: "lifestyle_income_simple_main", amount: 0, cadence: "monthly" }],
+      budgets: [
+        { category: "Supermercado", monthly: 0 },
+        { category: "Comida fuera", monthly: 0 }
+      ]
+    }
+  };
+}
 
 function applyLifestyleTemplateIfEmpty(lifestyleKey) {
   if (hasMeaningfulFinanceData()) return false;
-  const tpl = LIFESTYLE_TEMPLATES[lifestyleKey] || LIFESTYLE_TEMPLATES.simple;
+  const templates = buildLifestyleTemplates();
+  const tpl = templates[lifestyleKey] || templates.simple;
   const mkIncome = (x) => normalizeIncomeLine({ id: createId("inc"), date: formatDateInput(), ...x });
   const mkExpense = (x) => normalizeExpense({ id: createId("e"), ...x });
   const mkUtility = (x) =>
@@ -105,7 +114,7 @@ function applyLifestyleTemplateIfEmpty(lifestyleKey) {
 function expenseMonthlyByCategory() {
   const map = new Map();
   for (const e of state.expenses || []) {
-    const cat = EXPENSE_CATEGORIES.includes(e.category) ? e.category : "Otros";
+    const cat = EXPENSE_CATEGORY_SET.has(e.category) ? e.category : "Otros";
     map.set(cat, (map.get(cat) || 0) + monthlyFromExpense(e));
   }
   return map;
@@ -178,7 +187,7 @@ function renderBudgets() {
 
 function syncBudgetRowFromDom(rowEl, b) {
   const cat = rowEl.querySelector('[data-field="category"]');
-  if (cat && EXPENSE_CATEGORIES.includes(cat.value)) b.category = cat.value;
+  if (cat && EXPENSE_CATEGORY_SET.has(cat.value)) b.category = cat.value;
   const monthly = rowEl.querySelector('[data-field="monthly"]');
   if (monthly) b.monthly = Math.max(0, coerceParsedNumber(monthly.value));
 }
@@ -240,6 +249,11 @@ function weekKeyFromDate(now = new Date()) {
 
 function loadWeeklyDismiss() {
   try {
+    const c =
+      typeof window !== "undefined" && window.__COMFORT_WEEKLY_DISMISS_CACHE && typeof window.__COMFORT_WEEKLY_DISMISS_CACHE === "object"
+        ? window.__COMFORT_WEEKLY_DISMISS_CACHE
+        : null;
+    if (c) return { ...c };
     return JSON.parse(localStorage.getItem("comfort_weekly_dismiss_v1") || "{}") || {};
   } catch {
     return {};
@@ -248,7 +262,15 @@ function loadWeeklyDismiss() {
 
 function saveWeeklyDismiss(obj) {
   try {
-    localStorage.setItem("comfort_weekly_dismiss_v1", JSON.stringify(obj));
+    const next = obj && typeof obj === "object" ? obj : {};
+    if (typeof window !== "undefined") {
+      window.__COMFORT_WEEKLY_DISMISS_CACHE = { ...next };
+      if (typeof window.comfortPersistWeeklyDismissDebounced === "function") {
+        window.comfortPersistWeeklyDismissDebounced();
+        return;
+      }
+    }
+    localStorage.setItem("comfort_weekly_dismiss_v1", JSON.stringify(next));
   } catch {
     /* ignore */
   }

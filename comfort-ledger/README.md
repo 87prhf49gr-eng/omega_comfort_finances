@@ -20,6 +20,13 @@ cd "/Users/josal/Documents/New project 5/comfort-ledger"
 ./run_comfort_beta_server.command
 ```
 
+Prueba crítica de avisos:
+
+```bash
+cd "/Users/josal/Documents/New project 5/comfort-ledger"
+node tests/recurring-notifications.test.mjs
+```
+
 ## Deploy en Render
 
 Hay dos formas equivalentes; no mezcles rutas entre ellas.

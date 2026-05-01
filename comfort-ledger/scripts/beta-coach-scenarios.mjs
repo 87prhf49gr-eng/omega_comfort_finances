@@ -204,6 +204,7 @@ async function main() {
   console.log("GET /api/public-config", cfg.res.status, {
     accessMode: cfg.data.accessMode,
     aiCoachConfigured: cfg.data.aiCoachConfigured,
+    coachMaxTokens: cfg.data.coachMaxTokens,
     requireBetaLogin: cfg.data.requireBetaLogin
   });
 

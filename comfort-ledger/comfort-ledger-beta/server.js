@@ -1,9 +1,14 @@
 /**
- * Comfort Ledger hosted server: static parent folder + onboarding/beta access + OpenAI coach + LemonSqueezy billing.
+ * Comfort Ledger hosted server (Fastify 4 hijack → handler HTTP único): static parent folder + onboarding/beta access + OpenAI coach + LemonSqueezy billing.
  * Run from repo: cd comfort-ledger/comfort-ledger-beta && npm install && npm start
  *
  * Env (core):
- *   OPENAI_API_KEY, COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
+ *   OPENAI_API_KEY, OPENAI_TIMEOUT_MS (optional; default 30000, coach HTTP timeout),
+ *   OPENAI_COACH_MAX_TOKENS (optional; default 450, max output tokens por respuesta del coach — auditoría #19),
+ *   COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
+ *   COMFORT_HEALTH_DEEP (optional: set true so /api/health?deep=1 runs an OpenAI reachability probe in production),
+ *   COMFORT_RATE_WAITLIST_MAX — max POST /api/waitlist por IP cada hora (defecto 1; auditing #7 anti-spam),
+ *   COMFORT_RATE_AI_COACH_HOURLY_MAX — max consultas /api/ai-coach por usuario autenticado por hora (defecto 5),
  *   COMFORT_ACCESS_MODE (default onboarding; set beta to enforce username/password),
  *   COMFORT_REQUIRE_BETA_LOGIN (solo en access mode beta),
  *   COMFORT_LANDING_DEMO_MINUTES (default 10; visitantes sin sesión beta)
@@ -15,17 +20,23 @@
  *   COMFORT_CHECKOUT_REDIRECT_URL (opcional; destino tras pago exitoso),
  *   COMFORT_PUBLIC_PURCHASE (true para mostrar botones de compra en el landing)
  *   COMFORT_PUBLIC_ORIGIN (opcional; p. ej. https://tudominio.com — si falta, se infiere del Host en cada petición)
+ *
+ * Opcional (#15 disco):
+ *   COMFORT_DISABLE_FILE_LOCK — si es true / 1, no se usa proper-lockfile (solo cola en proceso — útil en FS raros; no recomendado con varios procesos Node.)
  */
 
-const http = require("http");
+const Fastify = require("fastify");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 const OpenAI = require("openai");
 const webpush = require("web-push");
 const lemon = require("./lemonsqueezy");
+const lockfile = require("proper-lockfile");
 
 const PORT = Number(process.env.PORT || 8787);
+/** Canonical site URL in static landing HTML (index.html); replaced per-request via publicOriginFromRequest(). */
+const DEFAULT_PUBLIC_SITE_ORIGIN = "https://comfortledger.app";
 const __ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.resolve(process.env.COMFORT_DATA_DIR || path.join(__dirname, "data"));
 const BUNDLED_DATA_DIR = path.join(__dirname, "data");
@@ -36,7 +47,23 @@ const WAITLIST_FILE = path.join(DATA_DIR, "waitlist.json");
 const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "subscriptions.json");
 const PUSH_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "push-subscriptions.json");
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const SESSION_SECRET = String(process.env.COMFORT_SESSION_SECRET || crypto.randomBytes(32).toString("hex"));
+if (IS_PRODUCTION && !process.env.COMFORT_SESSION_SECRET) {
+  console.error("FATAL: COMFORT_SESSION_SECRET is required when NODE_ENV=production.");
+  process.exit(1);
+}
+if (
+  IS_PRODUCTION &&
+  String(process.env.LEMONSQUEEZY_API_KEY || "").trim() &&
+  !String(process.env.LEMONSQUEEZY_WEBHOOK_SECRET || "").trim()
+) {
+  console.error(
+    "FATAL: LEMONSQUEEZY_WEBHOOK_SECRET is required in production when LEMONSQUEEZY_API_KEY is set."
+  );
+  process.exit(1);
+}
+const SESSION_SECRET = String(
+  process.env.COMFORT_SESSION_SECRET || crypto.randomBytes(32).toString("hex")
+);
 const SESSION_COOKIE_NAME = "comfort_beta_session";
 const LANDING_LOCALE_COOKIE = "comfort_landing_locale";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
@@ -51,6 +78,43 @@ const PUSH_SENT_RETENTION_MS = 1000 * 60 * 60 * 24 * 45;
 const PUSH_MAX_REMINDERS_PER_DEVICE = 128;
 const PUSH_MAX_TITLE_CHARS = 120;
 const PUSH_MAX_BODY_CHARS = 220;
+function clampPositiveInt(raw, fallback, min, max) {
+  const n = Number.parseInt(String(raw ?? "").trim(), 10);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(max, Math.max(min, n));
+}
+/** Sliding window hourly limits (#7 audit): strict defaults, override via env for staging. */
+const RATE_WAITLIST_WINDOW_MS = 60 * 60 * 1000;
+const RATE_WAITLIST_MAX = clampPositiveInt(process.env.COMFORT_RATE_WAITLIST_MAX, 1, 1, 200);
+const RATE_AI_COACH_HOURLY_WINDOW_MS = 60 * 60 * 1000;
+const RATE_AI_COACH_HOURLY_MAX = clampPositiveInt(process.env.COMFORT_RATE_AI_COACH_HOURLY_MAX, 5, 1, 500);
+/** OpenAI SDK request timeout (streaming + non-streaming). */
+const OPENAI_TIMEOUT_MS = clampPositiveInt(process.env.OPENAI_TIMEOUT_MS, 30000, 5000, 120000);
+/** Cap on completion tokens for /api/ai-coach (stream + JSON). */
+const OPENAI_COACH_MAX_TOKENS = clampPositiveInt(process.env.OPENAI_COACH_MAX_TOKENS, 450, 80, 2000);
+
+const ONBOARDING_CURRENCY_ALLOWED = new Set([
+  "USD",
+  "EUR",
+  "GBP",
+  "MXN",
+  "ARS",
+  "COP",
+  "CLP",
+  "BRL",
+  "CAD",
+  "AUD",
+  "NZD",
+  "CHF",
+  "JPY",
+  "CNY",
+  "SEK",
+  "NOK",
+  "DKK",
+  "PLN",
+  "INR",
+  "PEN"
+]);
 
 const AI_COACH_SYSTEM_PROMPT = [
   "You are a financial coach for Comfort Ledger users (income, expenses, debt, savings, goals).",
@@ -80,6 +144,8 @@ const MIME_TYPES = {
 };
 
 const loginAttempts = new Map();
+const waitlistHourly = new Map();
+const aiCoachHourly = new Map();
 let openaiClient = null;
 /** @type {Map<string, Array<{question:string,answer:string}>>} */
 const aiHistoryMemory = new Map();
@@ -90,7 +156,11 @@ ensureStorage();
 startPushDispatcher();
 
 if (process.env.OPENAI_API_KEY) {
-  openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  openaiClient = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: OPENAI_TIMEOUT_MS,
+    maxRetries: 0
+  });
 } else {
   console.warn("OPENAI_API_KEY is not set. Coach API will return errors until configured.");
 }
@@ -99,7 +169,7 @@ if (!process.env.COMFORT_SESSION_SECRET) {
   console.warn("COMFORT_SESSION_SECRET is not set. Sessions reset on server restart.");
 }
 
-const server = http.createServer(async (req, res) => {
+async function handleComfortLedgerRequest(req, res) {
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   const pathname = decodeURIComponent(url.pathname);
   const method = String(req.method || "GET").toUpperCase();
@@ -202,12 +272,76 @@ const server = http.createServer(async (req, res) => {
 
   try {
     if (pathname === "/api/health" && req.method === "GET") {
-      return sendJson(res, 200, {
-        ok: true,
+      const sessionOk = IS_PRODUCTION ? Boolean(process.env.COMFORT_SESSION_SECRET) : true;
+      const lemonOk =
+        !String(process.env.LEMONSQUEEZY_API_KEY || "").trim() ||
+        Boolean(String(process.env.LEMONSQUEEZY_WEBHOOK_SECRET || "").trim());
+      let dataDirOk = false;
+      let dataDirReadable = false;
+      try {
+        fs.accessSync(DATA_DIR, fs.constants.W_OK | fs.constants.R_OK);
+        dataDirOk = true;
+      } catch {
+        dataDirOk = false;
+      }
+      try {
+        fs.readdirSync(DATA_DIR);
+        dataDirReadable = true;
+      } catch {
+        dataDirReadable = false;
+      }
+
+      const deepRequested = url.searchParams.get("deep") === "1";
+      const allowDeep =
+        !IS_PRODUCTION ||
+        ["1", "true", "yes"].includes(String(process.env.COMFORT_HEALTH_DEEP || "").toLowerCase().trim());
+
+      let openaiProbe = undefined;
+      if (deepRequested) {
+        if (!allowDeep) {
+          openaiProbe = { skipped: true, reason: "set COMFORT_HEALTH_DEEP=true in production" };
+        } else if (!openaiClient) {
+          openaiProbe = { ok: false, error: "openai_not_configured" };
+        } else {
+          try {
+            await Promise.race([
+              openaiClient.models.list(),
+              new Promise((_res, rej) => setTimeout(() => rej(Object.assign(new Error("timeout"), { name: "TimeoutError" })), 4000))
+            ]);
+            openaiProbe = { ok: true };
+          } catch (e) {
+            const name = e && e.name;
+            openaiProbe = {
+              ok: false,
+              error: name === "TimeoutError" || name === "AbortError" ? "timeout_or_abort" : "request_failed"
+            };
+          }
+        }
+      }
+
+      let healthy = sessionOk && lemonOk && dataDirOk && dataDirReadable;
+      if (deepRequested && allowDeep && openaiProbe && openaiProbe.ok === false && !openaiProbe.skipped) {
+        healthy = false;
+      }
+
+      const payload = {
+        ok: healthy,
         service: "comfort-ledger-beta",
         betaUsers: readBetaUsers().length,
-        openai: Boolean(openaiClient)
-      });
+        openai: Boolean(openaiClient),
+        sessionSecretConfigured: Boolean(process.env.COMFORT_SESSION_SECRET),
+        lemonsqueezyWebhookConfigured: lemonOk,
+        dataDirWritable: dataDirOk,
+        dataDirReadable,
+        uptimeSec: Math.round(process.uptime()),
+        node: process.version,
+        timeIso: new Date().toISOString()
+      };
+      if (openaiProbe !== undefined) {
+        payload.openaiProbe = openaiProbe;
+      }
+
+      return sendJson(res, healthy ? 200 : 503, payload);
     }
 
     if (pathname === "/api/public-config" && req.method === "GET") {
@@ -232,6 +366,7 @@ const server = http.createServer(async (req, res) => {
         landingDemoMinutes: Math.round(landingDemoMs / 60000),
         landingDemoMs,
         aiCoachConfigured: Boolean(openaiClient),
+        coachMaxTokens: OPENAI_COACH_MAX_TOKENS,
         publicPurchaseEnabled: lemonCfg.publicPurchaseEnabled && lemon.isConfigured(),
         pushConfigured: Boolean(pushConfig.configured),
         pushVapidPublicKey: pushConfig.configured ? pushConfig.publicKey : ""
@@ -239,7 +374,7 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === "/api/beta/session" && req.method === "GET") {
-      const auth = authenticateBetaRequest(req);
+      const auth = await authenticateBetaRequestAsync(req);
       if (!auth) {
         return sendJson(res, 200, {
           ok: true,
@@ -282,7 +417,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       clearFailedLogins(req);
-      const session = createBetaSession(user.id);
+      const session = await createBetaSessionAsync(user.id);
       return sendJson(
         res,
         200,
@@ -296,13 +431,13 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/beta/logout" && req.method === "POST") {
       const cookies = parseCookies(req.headers.cookie || "");
-      destroyBetaSession(cookies[SESSION_COOKIE_NAME]);
+      await destroyBetaSessionAsync(cookies[SESSION_COOKIE_NAME]);
       await readJsonBody(req).catch(() => ({}));
       return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
     }
 
     if (pathname === "/api/onboarding/session" && req.method === "GET") {
-      const auth = authenticateOnboardingRequest(req);
+      const auth = await authenticateOnboardingRequestAsync(req);
       if (!auth) {
         return sendJson(res, 200, {
           ok: true,
@@ -324,7 +459,7 @@ const server = http.createServer(async (req, res) => {
       if (validationError) {
         return sendJson(res, 400, { ok: false, error: validationError });
       }
-      const session = createOnboardingSession(profile);
+      const session = await createOnboardingSessionAsync(profile);
       return sendJson(
         res,
         200,
@@ -338,7 +473,7 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/onboarding/logout" && req.method === "POST") {
       const cookies = parseCookies(req.headers.cookie || "");
-      destroyBetaSession(cookies[SESSION_COOKIE_NAME]);
+      await destroyBetaSessionAsync(cookies[SESSION_COOKIE_NAME]);
       await readJsonBody(req).catch(() => ({}));
       return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
     }
@@ -346,7 +481,8 @@ const server = http.createServer(async (req, res) => {
     if (pathname === "/api/ai-coach" && req.method === "POST") {
       const body = await readJsonBody(req);
       const accessMode = resolveAccessMode(readBetaUsers().length > 0);
-      const auth = accessMode === "beta" ? authenticateBetaRequest(req) : authenticateOnboardingRequest(req);
+      const auth =
+        accessMode === "beta" ? await authenticateBetaRequestAsync(req) : await authenticateOnboardingRequestAsync(req);
       if (!auth) {
         return sendJson(
           res,
@@ -380,9 +516,71 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
+      const hourlyKey = String(userId);
+      const coachRetry = rateLimitConsume(
+        aiCoachHourly,
+        hourlyKey,
+        RATE_AI_COACH_HOURLY_MAX,
+        RATE_AI_COACH_HOURLY_WINDOW_MS
+      );
+      if (coachRetry !== null) {
+        return sendJson(
+          res,
+          429,
+          {
+            ok: false,
+            error: "Demasiadas consultas al coach en la última hora. Prueba más tarde.",
+            retryAfterSec: coachRetry
+          },
+          { "Retry-After": String(coachRetry) }
+        );
+      }
+
       const history = getRecentAiHistory(userId, AI_HISTORY_LIMIT);
       const prompt = buildComfortCoachPrompt(body, history, question);
-      const answer = await generateComfortCoachAnswer(prompt, body);
+      const wantStream = body && body.stream === true;
+
+      if (wantStream) {
+        const sseHeaders = createHeaders("text/event-stream; charset=utf-8", {
+          "Cache-Control": "no-cache, no-transform",
+          Connection: "keep-alive",
+          "X-Accel-Buffering": "no"
+        });
+        res.writeHead(200, sseHeaders);
+        if (typeof res.flushHeaders === "function") res.flushHeaders();
+        try {
+          await streamComfortCoachSse(req, res, prompt, body, {
+            userId,
+            monthKey,
+            question,
+            queriesThisMonth
+          });
+        } catch (err) {
+          if (!res.writableEnded) {
+            try {
+              writeCoachSseEvent(res, {
+                error: true,
+                message:
+                  err && typeof err.message === "string"
+                    ? err.message
+                    : "Coach error."
+              });
+              res.end();
+            } catch {
+              /* ignore */
+            }
+          }
+        }
+        return;
+      }
+
+      let answer;
+      try {
+        answer = await generateComfortCoachAnswer(prompt, body);
+      } catch (err) {
+        const msg = err && typeof err.message === "string" ? err.message : "Coach error";
+        return sendJson(res, 502, { ok: false, error: msg });
+      }
       const sanitizedAnswer = sanitizeSensitiveText(answer);
       saveAiInteraction(userId, monthKey, question, sanitizedAnswer);
 
@@ -394,12 +592,30 @@ const server = http.createServer(async (req, res) => {
     }
 
     if (pathname === "/api/waitlist" && req.method === "POST") {
+      const wlRetry = rateLimitConsume(
+        waitlistHourly,
+        clientIp(req),
+        RATE_WAITLIST_MAX,
+        RATE_WAITLIST_WINDOW_MS
+      );
+      if (wlRetry !== null) {
+        return sendJson(
+          res,
+          429,
+          {
+            ok: false,
+            error: "Solo una inscripción por hora desde esta red. Vuelve a intentar más tarde.",
+            retryAfterSec: wlRetry
+          },
+          { "Retry-After": String(wlRetry) }
+        );
+      }
       const body = await readJsonBody(req);
       const email = normalizeEmail(body?.email);
       if (!email) {
         return sendJson(res, 400, { ok: false, error: "Correo inválido." });
       }
-      addToWaitlist(email, body?.source || "landing");
+      await addToWaitlist(email, body?.source || "landing");
       return sendJson(res, 200, { ok: true });
     }
 
@@ -448,7 +664,7 @@ const server = http.createServer(async (req, res) => {
       if (!event) {
         return sendJson(res, 202, { ok: true, ignored: true });
       }
-      applySubscriptionEvent(event);
+      await applySubscriptionEvent(event);
       return sendJson(res, 200, { ok: true, event: event.eventName });
     }
 
@@ -488,7 +704,7 @@ const server = http.createServer(async (req, res) => {
       if (!pushConfig.configured) {
         return sendJson(res, 503, { ok: false, error: "Push no configurado en servidor." });
       }
-      const owner = resolvePushOwnerContext(req);
+      const owner = await resolvePushOwnerContextAsync(req);
       if (!owner) {
         return sendJson(res, 401, { ok: false, error: "Sesión requerida." });
       }
@@ -499,18 +715,18 @@ const server = http.createServer(async (req, res) => {
       }
       const reminders = normalizePushReminders(body?.reminders);
       const userAgent = String(req.headers["user-agent"] || "").slice(0, 300);
-      upsertPushRegistration(owner, subscription, reminders, userAgent);
+      await upsertPushRegistration(owner, subscription, reminders, userAgent);
       return sendJson(res, 200, { ok: true, scheduled: reminders.length });
     }
 
     if (pathname === "/api/push/unregister" && req.method === "POST") {
-      const owner = resolvePushOwnerContext(req);
+      const owner = await resolvePushOwnerContextAsync(req);
       if (!owner) {
         return sendJson(res, 401, { ok: false, error: "Sesión requerida." });
       }
       const body = await readJsonBody(req).catch(() => ({}));
       const endpoint = String(body?.endpoint || "").trim();
-      const removed = removePushRegistration(owner.ownerKey, endpoint);
+      const removed = await removePushRegistration(owner.ownerKey, endpoint);
       return sendJson(res, 200, { ok: true, removed });
     }
 
@@ -524,13 +740,40 @@ const server = http.createServer(async (req, res) => {
     const message = error && typeof error.message === "string" ? error.message : "Server error";
     sendJson(res, 500, { ok: false, error: message });
   }
+}
+
+/** Fastify (auditoría #28): infra moderna manteniendo el handler HTTP único hasta migración granular. */
+const fastify = Fastify({
+  logger: false,
+  requestTimeout: 0,
+  disableRequestLogging: true
 });
 
-server.listen(PORT, () => {
+fastify.removeAllContentTypeParsers();
+
+fastify.all("/*", async (request, reply) => {
+  reply.hijack();
+  try {
+    await handleComfortLedgerRequest(request.raw, reply.raw);
+  } catch (error) {
+    console.error(error);
+    const res = reply.raw;
+    if (!res.writableEnded && !res.headersSent) {
+      const message = error && typeof error.message === "string" ? error.message : "Server error";
+      sendJson(res, 500, { ok: false, error: message });
+    }
+  }
+});
+
+fastify.listen({ port: PORT, host: "0.0.0.0" }, (err, address) => {
+  if (err) {
+    console.error(err);
+    process.exit(1);
+  }
   const betaEnabled = readBetaUsers().length > 0;
   const lemonReady = lemon.isConfigured();
   const publicPurchase = lemon.getConfig().publicPurchaseEnabled;
-  console.log(`Comfort Ledger hosted → http://127.0.0.1:${PORT}/`);
+  console.log(`Comfort Ledger hosted → ${address}`);
   console.log(
     `Access mode: ${resolveAccessMode(betaEnabled)} · Landing demo: ${LANDING_DEMO_MS / 60000} min · Subscribe: ${SUBSCRIBE_URL}`
   );
@@ -584,6 +827,45 @@ function writeJsonFile(filePath, payload) {
   fs.renameSync(tempFilePath, filePath);
 }
 
+/** Serialize read-modify-write per JSON store + lock en disco (#15 intra-proceso y multi-proceso). */
+const __fileWriteChains = new Map();
+
+function fileDiskLockDisabled() {
+  const v = String(process.env.COMFORT_DISABLE_FILE_LOCK || "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+const FILE_LOCK_OPTIONS = Object.freeze({
+  stale: 30000,
+  retries: Object.freeze({ retries: 40, minTimeout: 15, maxTimeout: 900 }),
+  realpath: false
+});
+
+function runExclusiveFileTask(filePath, task) {
+  const resolved = path.resolve(filePath);
+  const prev = __fileWriteChains.get(resolved) || Promise.resolve();
+  const run = prev.then(async () => {
+    if (fileDiskLockDisabled()) {
+      return task();
+    }
+    const release = await lockfile.lock(resolved, FILE_LOCK_OPTIONS);
+    try {
+      return await task();
+    } finally {
+      try {
+        await release();
+      } catch (releaseErr) {
+        console.warn(
+          `[Comfort] file lock release failed (${resolved}):`,
+          releaseErr && releaseErr.message ? releaseErr.message : releaseErr
+        );
+      }
+    }
+  });
+  __fileWriteChains.set(resolved, run.catch(() => {}));
+  return run;
+}
+
 function readBetaUsers() {
   const parsed = readJsonFile(BETA_USERS_FILE, []);
   return Array.isArray(parsed)
@@ -591,13 +873,24 @@ function readBetaUsers() {
     : [];
 }
 
-function readBetaSessions() {
-  const parsed = readJsonFile(BETA_SESSIONS_FILE, []);
-  return Array.isArray(parsed) ? parsed.filter((session) => session && typeof session === "object") : [];
-}
-
-function writeBetaSessions(sessions) {
-  writeJsonFile(BETA_SESSIONS_FILE, sessions);
+/** Read-modify-write beta-sessions.json under a single-file queue (#15). */
+async function withBetaSessions(mutator) {
+  return runExclusiveFileTask(BETA_SESSIONS_FILE, async () => {
+    const parsed = readJsonFile(BETA_SESSIONS_FILE, []);
+    const sessions = Array.isArray(parsed)
+      ? parsed.filter((session) => session && typeof session === "object")
+      : [];
+    const now = Date.now();
+    const active = sessions.filter((session) => {
+      const expiresAt = new Date(session.expiresAt || 0).getTime();
+      return Number.isFinite(expiresAt) && expiresAt > now;
+    });
+    sessions.length = 0;
+    sessions.push(...active);
+    const result = await mutator(sessions);
+    writeJsonFile(BETA_SESSIONS_FILE, sessions);
+    return result;
+  });
 }
 
 function normalizeUsername(value) {
@@ -619,19 +912,6 @@ function verifyPassword(pin, user) {
   return crypto.timingSafeEqual(expected, provided);
 }
 
-function pruneExpiredSessions() {
-  const now = Date.now();
-  const sessions = readBetaSessions();
-  const activeSessions = sessions.filter((session) => {
-    const expiresAt = new Date(session.expiresAt || 0).getTime();
-    return Number.isFinite(expiresAt) && expiresAt > now;
-  });
-  if (activeSessions.length !== sessions.length) {
-    writeBetaSessions(activeSessions);
-  }
-  return activeSessions;
-}
-
 function resolveAccessMode(betaEnabled = readBetaUsers().length > 0) {
   const raw = String(process.env.COMFORT_ACCESS_MODE || (betaEnabled ? "beta" : "onboarding"))
     .trim()
@@ -642,92 +922,94 @@ function resolveAccessMode(betaEnabled = readBetaUsers().length > 0) {
   return "onboarding";
 }
 
-function createHostedSession(payload = {}) {
+async function createHostedSessionAsync(payload = {}) {
   const kind = payload.kind === "beta" ? "beta" : "onboarding";
-  const sessions = pruneExpiredSessions();
   const now = new Date();
   const token = crypto.randomBytes(32).toString("hex");
-  const session = {
-    id: `session-${crypto.randomUUID()}`,
-    kind,
-    tokenHash: hashSessionToken(token),
-    createdAt: now.toISOString(),
-    updatedAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString()
-  };
-  if (kind === "beta") {
-    session.userId = String(payload.userId || "");
-  } else {
-    session.profile = normalizeOnboardingProfile(payload.profile);
-  }
-  sessions.unshift(session);
-  writeBetaSessions(sessions);
-  return { ...session, token };
+  return withBetaSessions((sessions) => {
+    const session = {
+      id: `session-${crypto.randomUUID()}`,
+      kind,
+      tokenHash: hashSessionToken(token),
+      createdAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+      expiresAt: new Date(now.getTime() + SESSION_TTL_MS).toISOString()
+    };
+    if (kind === "beta") {
+      session.userId = String(payload.userId || "");
+    } else {
+      session.profile = normalizeOnboardingProfile(payload.profile);
+    }
+    sessions.unshift(session);
+    return { ...session, token };
+  });
 }
 
-function createBetaSession(userId) {
-  return createHostedSession({ kind: "beta", userId });
+function createBetaSessionAsync(userId) {
+  return createHostedSessionAsync({ kind: "beta", userId });
 }
 
-function createOnboardingSession(profile) {
-  return createHostedSession({ kind: "onboarding", profile });
+function createOnboardingSessionAsync(profile) {
+  return createHostedSessionAsync({ kind: "onboarding", profile });
 }
 
-function destroyBetaSession(token) {
+async function destroyBetaSessionAsync(token) {
   if (!token) {
     return;
   }
-  const tokenHash = hashSessionToken(token);
-  const sessions = readBetaSessions().filter((session) => !sessionMatchesToken(session, token, tokenHash));
-  writeBetaSessions(sessions);
+  await withBetaSessions((sessions) => {
+    const tokenHash = hashSessionToken(token);
+    const filtered = sessions.filter((session) => !sessionMatchesToken(session, token, tokenHash));
+    sessions.splice(0, sessions.length, ...filtered);
+  });
 }
 
-function readSessionFromRequest(req) {
+async function readSessionFromRequestAsync(req) {
   const cookies = parseCookies(req.headers.cookie || "");
   const token = cookies[SESSION_COOKIE_NAME];
   if (!token) {
     return null;
   }
-  const sessions = pruneExpiredSessions();
-  const tokenHash = hashSessionToken(token);
-  const sessionIndex = sessions.findIndex((session) => sessionMatchesToken(session, token, tokenHash));
-  if (sessionIndex < 0) {
-    return null;
-  }
-  sessions[sessionIndex] = {
-    ...sessions[sessionIndex],
-    updatedAt: new Date().toISOString(),
-    expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
-  };
-  writeBetaSessions(sessions);
-  return { token, session: sessions[sessionIndex] };
+  return withBetaSessions((sessions) => {
+    const tokenHash = hashSessionToken(token);
+    const sessionIndex = sessions.findIndex((session) => sessionMatchesToken(session, token, tokenHash));
+    if (sessionIndex < 0) {
+      return null;
+    }
+    sessions[sessionIndex] = {
+      ...sessions[sessionIndex],
+      updatedAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + SESSION_TTL_MS).toISOString()
+    };
+    return { token, session: sessions[sessionIndex] };
+  });
 }
 
-function authenticateBetaRequest(req) {
+async function authenticateBetaRequestAsync(req) {
   const users = readBetaUsers();
   if (!users.length) {
     return null;
   }
-  const activeSession = readSessionFromRequest(req);
+  const activeSession = await readSessionFromRequestAsync(req);
   if (!activeSession || activeSession.session.kind !== "beta") {
     return null;
   }
   const user = users.find((entry) => entry.id === activeSession.session.userId);
   if (!user) {
-    destroyBetaSession(activeSession.token);
+    await destroyBetaSessionAsync(activeSession.token);
     return null;
   }
   return { session: activeSession.session, user };
 }
 
-function authenticateOnboardingRequest(req) {
-  const activeSession = readSessionFromRequest(req);
+async function authenticateOnboardingRequestAsync(req) {
+  const activeSession = await readSessionFromRequestAsync(req);
   if (!activeSession || activeSession.session.kind !== "onboarding") {
     return null;
   }
   const profile = normalizeOnboardingProfile(activeSession.session.profile);
   if (!profile) {
-    destroyBetaSession(activeSession.token);
+    await destroyBetaSessionAsync(activeSession.token);
     return null;
   }
   return { session: activeSession.session, profile };
@@ -764,7 +1046,13 @@ function normalizeOnboardingProfile(input) {
     ? lifestyleRaw
     : "simple";
   const createdAt = String(input.createdAt || new Date().toISOString());
-  return {
+  const curRaw = String(input.currency || "")
+    .trim()
+    .toUpperCase();
+  const currency =
+    /^[A-Z]{3}$/.test(curRaw) && ONBOARDING_CURRENCY_ALLOWED.has(curRaw) ? curRaw : "";
+
+  const base = {
     id: rawId || `visitor-${crypto.randomUUID()}`,
     displayName,
     email: rawEmail.slice(0, 120),
@@ -772,6 +1060,8 @@ function normalizeOnboardingProfile(input) {
     lifestyle,
     createdAt
   };
+  if (currency) base.currency = currency;
+  return base;
 }
 
 function validateOnboardingProfile(profile) {
@@ -792,7 +1082,7 @@ function publicOnboardingProfile(profile) {
   if (!normalized) {
     return null;
   }
-  return {
+  const out = {
     id: normalized.id,
     displayName: normalized.displayName,
     email: normalized.email,
@@ -800,6 +1090,8 @@ function publicOnboardingProfile(profile) {
     lifestyle: normalized.lifestyle,
     createdAt: normalized.createdAt
   };
+  if (normalized.currency) out.currency = normalized.currency;
+  return out;
 }
 
 function getLandingLocaleCookie(req) {
@@ -850,21 +1142,8 @@ function rewriteLandingHtmlAbsoluteUrls(buf, filePath, req) {
   if (!origin) {
     return buf;
   }
-  const ogAbs = `${origin}/branding/comfort-ledger-mark.png`;
   let html = buf.toString("utf8");
-  html = html.replace(
-    '<meta property="og:image" content="./branding/comfort-ledger-mark.png">',
-    `<meta property="og:image" content="${ogAbs}">`
-  );
-  html = html.replace(
-    '<meta name="twitter:image" content="./branding/comfort-ledger-mark.png">',
-    `<meta name="twitter:image" content="${ogAbs}">`
-  );
-  if (base === "index.html") {
-    html = html.replace('<link rel="canonical" href="./">', `<link rel="canonical" href="${origin}/">`);
-  } else {
-    html = html.replace('<link rel="canonical" href="/en">', `<link rel="canonical" href="${origin}/en">`);
-  }
+  html = html.split(DEFAULT_PUBLIC_SITE_ORIGIN).join(origin);
   return Buffer.from(html, "utf8");
 }
 
@@ -977,6 +1256,30 @@ function getRequestFingerprint(req) {
   return `${remoteAddress}|${String(req.headers["user-agent"] || "unknown").slice(0, 120)}`;
 }
 
+function clientIp(req) {
+  return String(req.headers["x-forwarded-for"] || "")
+    .split(",")[0]
+    .trim()
+    .replace(/^::ffff:/, "") || String(req.socket.remoteAddress || "").replace(/^::ffff:/, "") || "unknown";
+}
+
+/**
+ * @returns {number|null} seconds until retry, or null if allowed
+ */
+function rateLimitConsume(map, key, max, windowMs) {
+  const now = Date.now();
+  let entry = map.get(key);
+  if (!entry || now - entry.start >= windowMs) {
+    map.set(key, { start: now, count: 1 });
+    return null;
+  }
+  if (entry.count >= max) {
+    return Math.max(1, Math.ceil((windowMs - (now - entry.start)) / 1000));
+  }
+  entry.count += 1;
+  return null;
+}
+
 function sanitizeSensitiveText(input) {
   const merchantPattern = /\b(walmart|target|costco|starbucks|amazon|paypal|uber|lyft|7-eleven|mcdonalds|oxxo)\b/gi;
   return String(input || "")
@@ -1067,6 +1370,88 @@ function buildComfortCoachPrompt(body, history, question) {
   ].join("\n");
 }
 
+function writeCoachSseEvent(res, obj) {
+  if (res.writableEnded) return;
+  res.write(`data: ${JSON.stringify(obj)}\n\n`);
+}
+
+/**
+ * Streams chat completion as SSE (`data:` JSON lines).
+ * Sends incremental `{ delta }`, then `{ done: true, answer, remainingQueries }` with sanitized answer.
+ */
+async function streamComfortCoachSse(req, res, prompt, body, ctx) {
+  if (!openaiClient) {
+    writeCoachSseEvent(res, { error: true, message: "OpenAI not configured." });
+    res.end();
+    return;
+  }
+  let aborted = false;
+  const onAbort = () => {
+    aborted = true;
+  };
+  req.once("aborted", onAbort);
+  req.once("close", onAbort);
+
+  const uiLanguage = normalizeUiLanguage(body?.language);
+  const systemContent = `${AI_COACH_SYSTEM_PROMPT}\nuiLanguage hint: ${uiLanguage}.`;
+  const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
+  let full = "";
+
+  try {
+    const stream = await openaiClient.chat.completions.create({
+      model,
+      temperature: 0.65,
+      max_tokens: OPENAI_COACH_MAX_TOKENS,
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: prompt }
+      ],
+      stream: true
+    });
+
+    for await (const chunk of stream) {
+      if (aborted || res.writableEnded) break;
+      const delta = chunk.choices?.[0]?.delta?.content;
+      if (delta) {
+        full += delta;
+        writeCoachSseEvent(res, { delta });
+      }
+    }
+  } catch (err) {
+    if (!res.writableEnded) {
+      const raw = err && typeof err.message === "string" ? err.message : "";
+      const fallback =
+        /timeout|timed out|ETIMEDOUT|abort/i.test(raw)
+          ? "OpenAI tardó demasiado. Intenta de nuevo con una pregunta más corta."
+          : raw || "Coach error.";
+      writeCoachSseEvent(res, { error: true, message: fallback });
+      res.end();
+    }
+    return;
+  }
+
+  if (aborted || res.writableEnded) {
+    try {
+      if (!res.writableEnded) res.end();
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
+  const trimmed = full.trim();
+  const sanitizedAnswer = sanitizeSensitiveText(
+    trimmed || "No se pudo generar una respuesta ahora."
+  );
+  saveAiInteraction(ctx.userId, ctx.monthKey, ctx.question, sanitizedAnswer);
+  writeCoachSseEvent(res, {
+    done: true,
+    answer: sanitizedAnswer,
+    remainingQueries: Math.max(0, AI_MONTHLY_LIMIT - (ctx.queriesThisMonth + 1))
+  });
+  res.end();
+}
+
 async function generateComfortCoachAnswer(prompt, body = {}) {
   if (!openaiClient) {
     throw new Error("OpenAI not configured");
@@ -1074,17 +1459,25 @@ async function generateComfortCoachAnswer(prompt, body = {}) {
   const uiLanguage = normalizeUiLanguage(body?.language);
   const systemContent = `${AI_COACH_SYSTEM_PROMPT}\nuiLanguage hint: ${uiLanguage}.`;
 
-  const response = await openaiClient.chat.completions.create({
-    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    temperature: 0.65,
-    max_tokens: 450,
-    messages: [
-      { role: "system", content: systemContent },
-      { role: "user", content: prompt }
-    ]
-  });
-  const answer = response?.choices?.[0]?.message?.content;
-  return String(answer || "No se pudo generar una respuesta ahora.").trim();
+  try {
+    const response = await openaiClient.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      temperature: 0.65,
+      max_tokens: OPENAI_COACH_MAX_TOKENS,
+      messages: [
+        { role: "system", content: systemContent },
+        { role: "user", content: prompt }
+      ]
+    });
+    const answer = response?.choices?.[0]?.message?.content;
+    return String(answer || "No se pudo generar una respuesta ahora.").trim();
+  } catch (err) {
+    const msg = err && typeof err.message === "string" ? err.message : "";
+    if (/timeout|timed out|ETIMEDOUT|abort/i.test(msg)) {
+      return "OpenAI tardó demasiado. Intenta de nuevo con una pregunta más corta.";
+    }
+    throw err;
+  }
 }
 
 async function readJsonBody(req) {
@@ -1114,16 +1507,18 @@ function normalizeEmail(value) {
 }
 
 function addToWaitlist(email, source) {
-  const list = readJsonFile(WAITLIST_FILE, []);
-  const existing = Array.isArray(list) ? list : [];
-  if (!existing.some((entry) => entry.email === email)) {
-    existing.push({
-      email,
-      source: String(source || "landing"),
-      at: new Date().toISOString()
-    });
-    writeJsonFile(WAITLIST_FILE, existing);
-  }
+  return runExclusiveFileTask(WAITLIST_FILE, () => {
+    const list = readJsonFile(WAITLIST_FILE, []);
+    const existing = Array.isArray(list) ? list : [];
+    if (!existing.some((entry) => entry.email === email)) {
+      existing.push({
+        email,
+        source: String(source || "landing"),
+        at: new Date().toISOString()
+      });
+      writeJsonFile(WAITLIST_FILE, existing);
+    }
+  });
 }
 
 function readSubscriptions() {
@@ -1141,29 +1536,31 @@ function findSubscription(email) {
 }
 
 function applySubscriptionEvent(event) {
-  if (!event || !event.email) return;
-  const list = readSubscriptions();
-  const idx = list.findIndex((entry) => entry.email === event.email);
-  const now = new Date().toISOString();
-  const next = {
-    email: event.email,
-    subscriptionId: event.subscriptionId || (idx >= 0 ? list[idx].subscriptionId : ""),
-    customerId: event.customerId || (idx >= 0 ? list[idx].customerId : ""),
-    variantId: event.variantId || (idx >= 0 ? list[idx].variantId : ""),
-    plan: event.plan || (idx >= 0 ? list[idx].plan : "monthly"),
-    status: event.status || (idx >= 0 ? list[idx].status : "unknown"),
-    renewsAt: event.renewsAt || null,
-    lastEvent: event.eventName,
-    updatedAt: now,
-    createdAt: idx >= 0 ? list[idx].createdAt : now
-  };
-  if (idx >= 0) {
-    list[idx] = next;
-  } else {
-    list.push(next);
-  }
-  writeSubscriptions(list);
-  console.log(`LS webhook: ${event.eventName} · ${event.email} · status=${next.status}`);
+  return runExclusiveFileTask(SUBSCRIPTIONS_FILE, () => {
+    if (!event || !event.email) return;
+    const list = readSubscriptions();
+    const idx = list.findIndex((entry) => entry.email === event.email);
+    const now = new Date().toISOString();
+    const next = {
+      email: event.email,
+      subscriptionId: event.subscriptionId || (idx >= 0 ? list[idx].subscriptionId : ""),
+      customerId: event.customerId || (idx >= 0 ? list[idx].customerId : ""),
+      variantId: event.variantId || (idx >= 0 ? list[idx].variantId : ""),
+      plan: event.plan || (idx >= 0 ? list[idx].plan : "monthly"),
+      status: event.status || (idx >= 0 ? list[idx].status : "unknown"),
+      renewsAt: event.renewsAt || null,
+      lastEvent: event.eventName,
+      updatedAt: now,
+      createdAt: idx >= 0 ? list[idx].createdAt : now
+    };
+    if (idx >= 0) {
+      list[idx] = next;
+    } else {
+      list.push(next);
+    }
+    writeSubscriptions(list);
+    console.log(`LS webhook: ${event.eventName} · ${event.email} · status=${next.status}`);
+  });
 }
 
 function sendJson(res, status, payload, extraHeaders = {}) {
@@ -1179,7 +1576,7 @@ function sendJson(res, status, payload, extraHeaders = {}) {
 function comfortCsp() {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self'",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data:",
@@ -1298,7 +1695,11 @@ function serveComfortStatic(pathname, res, isHead, req) {
     return;
   }
   const extension = path.extname(filePath).toLowerCase();
-  const contentType = MIME_TYPES[extension] || "application/octet-stream";
+  const basename = path.basename(filePath);
+  let contentType = MIME_TYPES[extension] || "application/octet-stream";
+  if (/^schema-org-.+\.json$/i.test(basename)) {
+    contentType = "application/ld+json; charset=utf-8";
+  }
   const cacheControl = extension === ".html" ? "no-store" : "public, max-age=120";
   let data = fs.readFileSync(filePath);
   if (extension === ".html" && req) {
@@ -1331,11 +1732,11 @@ function initPushConfig() {
   return { configured: false, publicKey: "", privateKey: "", subject };
 }
 
-function resolvePushOwnerContext(req) {
+async function resolvePushOwnerContextAsync(req) {
   const betaEnabled = readBetaUsers().length > 0;
   const accessMode = resolveAccessMode(betaEnabled);
   if (accessMode === "beta") {
-    const auth = authenticateBetaRequest(req);
+    const auth = await authenticateBetaRequestAsync(req);
     if (!auth) return null;
     return {
       ownerKey: `beta:${auth.user.id}`,
@@ -1344,7 +1745,7 @@ function resolvePushOwnerContext(req) {
       onboardingProfileId: ""
     };
   }
-  const auth = authenticateOnboardingRequest(req);
+  const auth = await authenticateOnboardingRequestAsync(req);
   if (!auth) return null;
   return {
     ownerKey: `onboarding:${auth.profile.id}`,
@@ -1406,48 +1807,52 @@ function normalizePushReminders(input) {
 }
 
 function upsertPushRegistration(owner, subscription, reminders, userAgent) {
-  const list = readPushSubscriptions();
-  const nowIso = new Date().toISOString();
-  const idx = list.findIndex(
-    (x) => x.ownerKey === owner.ownerKey && x.subscription?.endpoint === subscription.endpoint
-  );
-  const keepSent = new Set(reminders.map((r) => r.key));
-  const prevSent = idx >= 0 && list[idx].sent ? list[idx].sent : {};
-  const nextSent = {};
-  for (const [key, value] of Object.entries(prevSent)) {
-    const ts = Number(value);
-    if (!keepSent.has(key) || !Number.isFinite(ts)) continue;
-    if (Date.now() - ts > PUSH_SENT_RETENTION_MS) continue;
-    nextSent[key] = ts;
-  }
-  const next = {
-    id: idx >= 0 ? list[idx].id : `push-${crypto.randomUUID()}`,
-    ownerKey: owner.ownerKey,
-    sessionKind: owner.sessionKind,
-    betaUserId: owner.betaUserId,
-    onboardingProfileId: owner.onboardingProfileId,
-    subscription,
-    reminders,
-    sent: nextSent,
-    userAgent,
-    updatedAt: nowIso,
-    createdAt: idx >= 0 ? list[idx].createdAt : nowIso
-  };
-  if (idx >= 0) list[idx] = next;
-  else list.push(next);
-  writePushSubscriptions(list);
+  return runExclusiveFileTask(PUSH_SUBSCRIPTIONS_FILE, () => {
+    const list = readPushSubscriptions();
+    const nowIso = new Date().toISOString();
+    const idx = list.findIndex(
+      (x) => x.ownerKey === owner.ownerKey && x.subscription?.endpoint === subscription.endpoint
+    );
+    const keepSent = new Set(reminders.map((r) => r.key));
+    const prevSent = idx >= 0 && list[idx].sent ? list[idx].sent : {};
+    const nextSent = {};
+    for (const [key, value] of Object.entries(prevSent)) {
+      const ts = Number(value);
+      if (!keepSent.has(key) || !Number.isFinite(ts)) continue;
+      if (Date.now() - ts > PUSH_SENT_RETENTION_MS) continue;
+      nextSent[key] = ts;
+    }
+    const next = {
+      id: idx >= 0 ? list[idx].id : `push-${crypto.randomUUID()}`,
+      ownerKey: owner.ownerKey,
+      sessionKind: owner.sessionKind,
+      betaUserId: owner.betaUserId,
+      onboardingProfileId: owner.onboardingProfileId,
+      subscription,
+      reminders,
+      sent: nextSent,
+      userAgent,
+      updatedAt: nowIso,
+      createdAt: idx >= 0 ? list[idx].createdAt : nowIso
+    };
+    if (idx >= 0) list[idx] = next;
+    else list.push(next);
+    writePushSubscriptions(list);
+  });
 }
 
 function removePushRegistration(ownerKey, endpoint = "") {
-  const list = readPushSubscriptions();
-  const next = list.filter((row) => {
-    if (row.ownerKey !== ownerKey) return true;
-    if (!endpoint) return false;
-    return row.subscription?.endpoint !== endpoint;
+  return runExclusiveFileTask(PUSH_SUBSCRIPTIONS_FILE, () => {
+    const list = readPushSubscriptions();
+    const next = list.filter((row) => {
+      if (row.ownerKey !== ownerKey) return true;
+      if (!endpoint) return false;
+      return row.subscription?.endpoint !== endpoint;
+    });
+    if (next.length === list.length) return 0;
+    writePushSubscriptions(next);
+    return list.length - next.length;
   });
-  if (next.length === list.length) return 0;
-  writePushSubscriptions(next);
-  return list.length - next.length;
 }
 
 function startPushDispatcher() {
@@ -1467,47 +1872,49 @@ function startPushDispatcher() {
 
 async function dispatchDuePushNotifications() {
   if (!pushConfig.configured) return;
-  const list = readPushSubscriptions();
-  if (!list.length) return;
-  const now = Date.now();
-  let changed = false;
+  await runExclusiveFileTask(PUSH_SUBSCRIPTIONS_FILE, async () => {
+    const list = readPushSubscriptions();
+    if (!list.length) return;
+    const now = Date.now();
+    let changed = false;
 
-  for (let i = 0; i < list.length; i += 1) {
-    const row = list[i];
-    const reminders = Array.isArray(row.reminders) ? row.reminders : [];
-    if (!row.sent || typeof row.sent !== "object") row.sent = {};
+    for (let i = 0; i < list.length; i += 1) {
+      const row = list[i];
+      const reminders = Array.isArray(row.reminders) ? row.reminders : [];
+      if (!row.sent || typeof row.sent !== "object") row.sent = {};
 
-    for (const reminder of reminders) {
-      if (!reminder || typeof reminder !== "object") continue;
-      const sendAtMs = Number(reminder.sendAtMs);
-      if (!Number.isFinite(sendAtMs) || sendAtMs > now) continue;
-      if (row.sent[reminder.key]) continue;
+      for (const reminder of reminders) {
+        if (!reminder || typeof reminder !== "object") continue;
+        const sendAtMs = Number(reminder.sendAtMs);
+        if (!Number.isFinite(sendAtMs) || sendAtMs > now) continue;
+        if (row.sent[reminder.key]) continue;
 
-      const payload = {
-        title: String(reminder.title || "Comfort Ledger"),
-        body: String(reminder.body || ""),
-        url: String(reminder.url || "/app"),
-        tag: String(reminder.tag || reminder.key || "comfort-reminder")
-      };
+        const payload = {
+          title: String(reminder.title || "Comfort Ledger"),
+          body: String(reminder.body || ""),
+          url: String(reminder.url || "/app"),
+          tag: String(reminder.tag || reminder.key || "comfort-reminder")
+        };
 
-      try {
-        await webpush.sendNotification(row.subscription, JSON.stringify(payload), {
-          TTL: 60 * 60 * 6,
-          urgency: "high"
-        });
-        row.sent[reminder.key] = now;
-        changed = true;
-      } catch (err) {
-        const statusCode = Number(err?.statusCode || err?.status || 0);
-        if (statusCode === 404 || statusCode === 410) {
-          list.splice(i, 1);
-          i -= 1;
+        try {
+          await webpush.sendNotification(row.subscription, JSON.stringify(payload), {
+            TTL: 60 * 60 * 6,
+            urgency: "high"
+          });
+          row.sent[reminder.key] = now;
           changed = true;
-          break;
+        } catch (err) {
+          const statusCode = Number(err?.statusCode || err?.status || 0);
+          if (statusCode === 404 || statusCode === 410) {
+            list.splice(i, 1);
+            i -= 1;
+            changed = true;
+            break;
+          }
+          console.warn("Push send failed:", statusCode || err?.message || err);
         }
-        console.warn("Push send failed:", statusCode || err?.message || err);
       }
     }
-  }
-  if (changed) writePushSubscriptions(list);
+    if (changed) writePushSubscriptions(list);
+  });
 }

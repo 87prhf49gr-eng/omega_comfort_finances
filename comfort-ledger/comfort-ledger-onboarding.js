@@ -1,5 +1,13 @@
 /* Comfort Ledger extracted domain module (Hito D phase 3) */
 
+function comfortVt(fn) {
+  if (typeof window !== "undefined" && typeof window.comfortRunViewTransition === "function") {
+    window.comfortRunViewTransition(fn);
+  } else {
+    fn();
+  }
+}
+
 async function showOnboardingUntilDone(existingProfile = null) {
   const shell = document.getElementById("comfortOnboardingGate");
   if (!shell) {
@@ -11,6 +19,7 @@ async function showOnboardingUntilDone(existingProfile = null) {
   const emailInput = document.getElementById("comfortOnboardingEmail");
   const focusInput = document.getElementById("comfortOnboardingFocus");
   const lifestyleInput = document.getElementById("comfortOnboardingLifestyle");
+  const currencyInput = document.getElementById("comfortOnboardingCurrency");
   const err = document.getElementById("comfortOnboardingErr");
   const cancel = document.getElementById("comfortOnboardingCancel");
 
@@ -18,6 +27,10 @@ async function showOnboardingUntilDone(existingProfile = null) {
   if (emailInput) emailInput.value = profile?.email || "";
   if (focusInput) focusInput.value = profile?.focus || "";
   if (lifestyleInput) lifestyleInput.value = profile?.lifestyle || "simple";
+  if (currencyInput) {
+    const c = typeof profile?.currency === "string" ? profile.currency.trim().toUpperCase() : "";
+    currencyInput.value = c && currencyInput.querySelector(`option[value="${c}"]`) ? c : "";
+  }
   if (err) {
     err.hidden = true;
     err.textContent = "";
@@ -26,9 +39,15 @@ async function showOnboardingUntilDone(existingProfile = null) {
     cancel.hidden = !profile;
   }
 
-  shell.classList.remove("comfort-beta-overlay--hidden");
-  shell.setAttribute("aria-hidden", "false");
-  document.body.classList.add("comfort--gate-active");
+  comfortVt(() => {
+    if (typeof comfortOverlayReveal === "function") {
+      comfortOverlayReveal(shell);
+    } else {
+      shell.classList.remove("comfort-beta-overlay--hidden");
+      shell.setAttribute("aria-hidden", "false");
+    }
+    document.body.classList.add("comfort--gate-active");
+  });
   applyStaticI18n();
 
   return new Promise((resolve) => {
@@ -39,9 +58,15 @@ async function showOnboardingUntilDone(existingProfile = null) {
     }
 
     const closeShell = () => {
-      shell.classList.add("comfort-beta-overlay--hidden");
-      shell.setAttribute("aria-hidden", "true");
-      document.body.classList.remove("comfort--gate-active");
+      comfortVt(() => {
+        if (typeof comfortOverlayDismiss === "function") {
+          comfortOverlayDismiss(shell);
+        } else {
+          shell.classList.add("comfort-beta-overlay--hidden");
+          shell.setAttribute("aria-hidden", "true");
+        }
+        document.body.classList.remove("comfort--gate-active");
+      });
       form.removeEventListener("submit", onSubmit);
       cancel?.removeEventListener("click", onCancel);
     };
@@ -63,7 +88,8 @@ async function showOnboardingUntilDone(existingProfile = null) {
         displayName: nameInput?.value || "",
         email: emailInput?.value || "",
         focus: focusInput?.value || "",
-        lifestyle: lifestyleInput?.value || "simple"
+        lifestyle: lifestyleInput?.value || "simple",
+        currency: currencyInput?.value || ""
       });
       if (!nextProfile) {
         if (err) {
@@ -132,9 +158,15 @@ async function showBetaLoginUntilDone() {
   if (!shell) {
     return;
   }
-  shell.classList.remove("comfort-beta-overlay--hidden");
-  shell.setAttribute("aria-hidden", "false");
-  document.body.classList.add("comfort--gate-active");
+  comfortVt(() => {
+    if (typeof comfortOverlayReveal === "function") {
+      comfortOverlayReveal(shell);
+    } else {
+      shell.classList.remove("comfort-beta-overlay--hidden");
+      shell.setAttribute("aria-hidden", "false");
+    }
+    document.body.classList.add("comfort--gate-active");
+  });
   applyStaticI18n();
   return new Promise((resolve) => {
     const form = document.getElementById("comfortBetaLoginForm");
@@ -174,9 +206,15 @@ async function showBetaLoginUntilDone() {
         window.__COMFORT_LANDING_DEMO = false;
         window.__COMFORT_DEMO_EXPIRES_AT = null;
         stopDemoBar();
-        shell.classList.add("comfort-beta-overlay--hidden");
-        shell.setAttribute("aria-hidden", "true");
-        document.body.classList.remove("comfort--gate-active");
+        comfortVt(() => {
+          if (typeof comfortOverlayDismiss === "function") {
+            comfortOverlayDismiss(shell);
+          } else {
+            shell.classList.add("comfort-beta-overlay--hidden");
+            shell.setAttribute("aria-hidden", "true");
+          }
+          document.body.classList.remove("comfort--gate-active");
+        });
         form.removeEventListener("submit", onSubmit);
         resolve();
       } catch {
@@ -220,6 +258,10 @@ async function initComfortHostedMode() {
   window.__COMFORT_ACCESS_MODE = String(cfg.accessMode || "onboarding");
   window.__COMFORT_SUBSCRIBE_URL = String(cfg.subscribeUrl || "").trim() || "https://example.com";
   window.__COMFORT_AI_COACH = Boolean(cfg.aiCoachConfigured);
+  const cmt = Number(cfg.coachMaxTokens);
+  if (Number.isFinite(cmt) && cmt >= 80 && cmt <= 2000) {
+    window.__COMFORT_COACH_MAX_TOKENS = Math.floor(cmt);
+  }
   window.__COMFORT_REQUIRE_BETA_LOGIN = Boolean(cfg.requireBetaLogin);
   window.__COMFORT_LANDING_DEMO_MS = Number(cfg.landingDemoMs) || 0;
   window.__COMFORT_PUSH_CONFIGURED = Boolean(cfg.pushConfigured);

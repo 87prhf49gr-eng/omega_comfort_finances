@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-landing-locale="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -8,12 +8,16 @@
   <meta property="og:title" content="Comfort Ledger — Deja de adivinar si te alcanza el mes">
   <meta property="og:description" content="Una vista clara de ingresos, gastos y deuda. Local, privada y lista en segundos. Sin conectar tu banco.">
   <meta property="og:type" content="website">
-  <meta property="og:image" content="./branding/comfort-ledger-mark.png">
+  <meta property="og:image" content="https://comfortledger.app/branding/comfort-ledger-mark.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Comfort Ledger — Deja de adivinar si te alcanza el mes">
   <meta name="twitter:description" content="Tus números no viajan a un servidor. Trabajan en tu navegador.">
-  <meta name="twitter:image" content="./branding/comfort-ledger-mark.png">
-  <link rel="canonical" href="./">
+  <meta name="twitter:image" content="https://comfortledger.app/branding/comfort-ledger-mark.png">
+  <link rel="canonical" href="https://comfortledger.app/">
+  <link rel="alternate" hreflang="es" href="https://comfortledger.app/">
+  <link rel="alternate" hreflang="en" href="https://comfortledger.app/en">
+  <link rel="alternate" hreflang="x-default" href="https://comfortledger.app/">
+  <script type="application/ld+json" src="./schema-org-es.json"></script>
   <link rel="manifest" href="./comfort-ledger.webmanifest">
   <link rel="icon" href="./branding/comfort-ledger-nav-icon.png" type="image/png" sizes="256x256">
   <link rel="apple-touch-icon" href="./pwa-icons/icon-192.png">
@@ -82,10 +86,41 @@
       margin-inline: auto;
     }
 
+    .skip-link {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .skip-link:focus {
+      position: fixed;
+      left: 12px;
+      top: max(12px, env(safe-area-inset-top));
+      z-index: 100;
+      width: auto;
+      height: auto;
+      margin: 0;
+      padding: 10px 14px;
+      clip: auto;
+      overflow: visible;
+      white-space: normal;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
     .top {
       position: sticky;
       top: 0;
       z-index: 50;
+      padding-top: env(safe-area-inset-top);
       background: rgba(10, 11, 16, 0.78);
       backdrop-filter: blur(20px) saturate(140%);
       -webkit-backdrop-filter: blur(20px) saturate(140%);
@@ -543,6 +578,62 @@
     .cta-final {
       text-align: center;
       padding: clamp(64px, 9vw, 104px) 0;
+    }
+
+    .landing-demo-band {
+      padding: clamp(56px, 8vw, 96px) 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.022) 50%, transparent 100%);
+    }
+
+    .landing-demo-frame {
+      margin-top: 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+      background: var(--void-2);
+      min-height: 480px;
+    }
+
+    .landing-demo-frame iframe {
+      width: 100%;
+      height: min(720px, 85vh);
+      border: 0;
+      display: block;
+      vertical-align: top;
+    }
+
+    .testimonial-grid {
+      list-style: none;
+      margin: 28px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .testimonial-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin: 0;
+    }
+
+    .testimonial-card blockquote {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      line-height: 1.55;
+      color: var(--text);
+    }
+
+    .testimonial-card cite {
+      font-style: normal;
+      font-size: 0.875rem;
+      color: var(--text-soft);
+      font-weight: 500;
     }
     .cta-final h2 {
       font-family: var(--font-display);
@@ -1056,10 +1147,14 @@
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#main">Ir al contenido principal</a>
   <header class="top">
     <div class="wrap top-inner">
       <a class="logo" href="#top">
-        <img class="logo-img" src="./branding/comfort-ledger-nav-icon.png" width="221" height="188" alt="" aria-hidden="true">
+        <picture>
+          <source type="image/webp" srcset="./branding/comfort-ledger-nav-icon.webp" />
+          <img class="logo-img" src="./branding/comfort-ledger-nav-icon.png" width="221" height="188" alt="" aria-hidden="true" />
+        </picture>
         <span>Comfort Ledger</span>
       </a>
       <nav class="nav-links" aria-label="Secciones">
@@ -1075,19 +1170,22 @@
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <section class="hero" id="top">
       <div class="wrap hero-animate">
         <div class="hero-logo-wrap">
-          <img
-            class="hero-glass-logo"
-            src="./branding/comfort-ledger-mark.png"
-            width="166"
-            height="171"
-            alt=""
-            decoding="async"
-            aria-hidden="true"
-          />
+          <picture>
+            <source type="image/webp" srcset="./branding/comfort-ledger-mark.webp" />
+            <img
+              class="hero-glass-logo"
+              src="./branding/comfort-ledger-mark.png"
+              width="166"
+              height="171"
+              alt=""
+              decoding="async"
+              aria-hidden="true"
+            />
+          </picture>
         </div>
         <p class="hero-eyebrow">Comfort Ledger</p>
         <h1 class="hero-brand">Deja de adivinar<br>si te alcanza el mes.</h1>
@@ -1366,12 +1464,54 @@
       </section>
     </div>
 
+    <section id="demo-app" class="landing-demo-band" aria-labelledby="demo-app-title">
+      <div class="wrap">
+        <p class="section-label">Vista previa</p>
+        <h2 class="section-title" id="demo-app-title">Prueba Comfort Ledger aquí mismo</h2>
+        <p class="section-intro">
+          Modo demo con datos de ejemplo. En vista incrustada los cambios no se guardan de forma persistente.
+        </p>
+        <div class="landing-demo-frame" role="region" aria-label="Demo incrustado de Comfort Ledger">
+          <iframe
+            title="Comfort Ledger — demo interactivo"
+            src="./COMFORT-LEDGER-abrir-aqui.html?comfort_demo=1&amp;embed=1"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section id="testimonios" aria-labelledby="testimonios-title">
+      <div class="wrap">
+        <p class="section-label">Beta cerrada</p>
+        <h2 class="section-title" id="testimonios-title">Voces tempranas</h2>
+        <p class="section-intro">
+          Frases reales de personas que probaron la beta privada. Los nombres pueden ser iniciales para cuidar privacidad.
+        </p>
+        <ul class="testimonial-grid">
+          <li class="testimonial-card">
+            <blockquote>
+              Por fin tuve ingresos, gastos y deuda en una sola pantalla. El check semanal me obliga a revisar sin sentir culpa.
+            </blockquote>
+            <cite>— Carla M., freelance</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              No quiero enlazar mi banco; esto respeta ese límite y aun así me da claridad cada mes.
+            </blockquote>
+            <cite>— Jorge R., nómina</cite>
+          </li>
+        </ul>
+      </div>
+    </section>
+
     <section id="confianza">
       <div class="wrap">
         <p class="section-label">Transparencia</p>
         <h2 class="section-title">Por qué puedes confiar en usarlo hoy</h2>
         <p class="section-intro">
-          Comfort Ledger es <strong>local-first</strong>: no sustituye a tu banco ni da consejo de inversión. Te da una foto honesta con lo que tú introduces. Todavía no hay reseñas públicas, así que esto es lo que hay por ahora:
+          Comfort Ledger es <strong>local-first</strong>: no sustituye a tu banco ni da consejo de inversión. Te da una foto honesta con lo que tú introduces. Arriba hay voces tempranas de la beta; si algo no cuadra con tu caso, prefiero que me escribas directamente.
         </p>
         <div class="creator-card">
           <span class="creator-label">Nota del creador</span>
@@ -1383,7 +1523,7 @@
           </p>
         </div>
         <p class="section-intro" style="margin-top: 28px; margin-bottom: 0;">
-          <strong>Checklist técnica:</strong> sin enlazar cuenta bancaria · datos en <code>localStorage</code> del navegador · PWA instalable · exportas e importas tu JSON cuando quieras · código auditable (es HTML en tu máquina).
+          <strong>Checklist técnica:</strong> sin enlazar cuenta bancaria · datos en <code>IndexedDB</code>/<code>localStorage</code> del navegador · PWA instalable · exportas e importas tu JSON cuando quieras · código auditable (es HTML en tu máquina).
         </p>
       </div>
     </section>
@@ -1501,95 +1641,6 @@
     </div>
   </footer>
 
-  <script>
-    (function () {
-      const STORAGE_KEY = "comfort_waitlist_v1";
-
-      function isValidEmail(email) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || "").trim());
-      }
-
-      function handleWaitlist(formId, msgId) {
-        const form = document.getElementById(formId);
-        const msg = document.getElementById(msgId);
-        if (!form || !msg) return;
-        form.addEventListener("submit", async function (event) {
-          event.preventDefault();
-          const input = form.querySelector('input[type="email"]');
-          const email = (input?.value || "").trim();
-          if (!isValidEmail(email)) {
-            msg.textContent = "Revisa el correo — parece que tiene algún error.";
-            msg.className = "waitlist-note";
-            input?.focus();
-            return;
-          }
-          const btn = form.querySelector('button[type="submit"]');
-          if (btn) btn.disabled = true;
-          try {
-            await fetch("/api/waitlist", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ email, source: formId })
-            });
-          } catch (_) {
-            /* backend opcional durante desarrollo local */
-          }
-          try {
-            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-            if (!saved.includes(email)) {
-              saved.push(email);
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
-            }
-          } catch (_) {}
-          form.reset();
-          msg.textContent = "Listo. Te aviso en cuanto abramos al público.";
-          msg.className = "waitlist-ok";
-          if (btn) btn.disabled = false;
-        });
-      }
-
-      async function wirePurchaseButtons() {
-        let cfg = null;
-        try {
-          const r = await fetch("/api/public-config", { cache: "no-store" });
-          if (r.ok) cfg = await r.json();
-        } catch (_) {
-          /* sin backend: dejamos el comportamiento de lista de espera */
-        }
-        if (!cfg || !cfg.publicPurchaseEnabled) return;
-
-        document.querySelectorAll(".price-cta").forEach(function (cta) {
-          const plan = cta.getAttribute("data-plan") || "monthly";
-          cta.textContent = plan === "annual" ? "Empezar anual →" : "Empezar mensual →";
-          cta.setAttribute("href", "/api/checkout?plan=" + encodeURIComponent(plan));
-          cta.addEventListener("click", async function (event) {
-            event.preventDefault();
-            cta.setAttribute("aria-busy", "true");
-            try {
-              const response = await fetch("/api/checkout", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ plan })
-              });
-              const payload = await response.json().catch(() => ({}));
-              if (response.ok && payload.url) {
-                window.location.href = payload.url;
-                return;
-              }
-              alert(payload.error || "No pudimos abrir el checkout. Intenta luego.");
-            } catch (_) {
-              window.location.href = "/api/checkout?plan=" + encodeURIComponent(plan);
-            } finally {
-              cta.removeAttribute("aria-busy");
-            }
-          });
-        });
-      }
-
-      handleWaitlist("waitlistForm", "waitlistMsg");
-      handleWaitlist("waitlistFormBottom", "waitlistMsgBottom");
-      wirePurchaseButtons();
-    })();
-  </script>
+  <script src="./landing-interactions.js" defer></script>
 </body>
 </html>

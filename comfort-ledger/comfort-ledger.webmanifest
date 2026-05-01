@@ -1,4 +1,5 @@
 {
+  "id": "./COMFORT-LEDGER-abrir-aqui.html",
   "name": "Comfort Ledger",
   "short_name": "Comfort",
   "description": "Resumen financiero: ingresos, gastos y deuda con coach local.",
@@ -9,6 +10,39 @@
   "background_color": "#0c0d12",
   "theme_color": "#0c0d12",
   "lang": "es",
+  "categories": ["finance", "productivity"],
+  "screenshots": [
+    {
+      "src": "./screenshots/dashboard-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Comfort Ledger — resumen (móvil)"
+    },
+    {
+      "src": "./screenshots/dashboard-desktop.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Comfort Ledger — escritorio"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Abrir app",
+      "short_name": "App",
+      "description": "Abrir Comfort Ledger",
+      "url": "./COMFORT-LEDGER-abrir-aqui.html",
+      "icons": [{ "src": "./pwa-icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Informe ejecutivo",
+      "short_name": "Dashboard",
+      "description": "Ir al informe y tablero",
+      "url": "./COMFORT-LEDGER-abrir-aqui.html#dash",
+      "icons": [{ "src": "./pwa-icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ],
   "icons": [
     {
       "src": "./pwa-icons/icon-192.png",

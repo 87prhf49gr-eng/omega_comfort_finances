@@ -4,9 +4,12 @@
 
 const STORAGE_KEY = "comfort_ledger_v1";
 const NOTIFY_LOG_KEY = "comfort_ledger_notify_v1";
+const COMFORT_THEME_KEY = "comfort_ui_theme_v1";
 
 window.__COMFORT_HOSTED = false;
 window.__COMFORT_AI_COACH = false;
+/** Matches server OPENAI_COACH_MAX_TOKENS after /api/public-config (#19 BYOK alignment). */
+window.__COMFORT_COACH_MAX_TOKENS = 450;
 window.__COMFORT_ACCESS_MODE = "onboarding";
 window.__COMFORT_SUBSCRIBE_URL = "";
 window.__COMFORT_DEMO_EXPIRES_AT = null;
@@ -15,12 +18,60 @@ let comfortTrialEnded = false;
 let comfortDemoInterval = null;
 let comfortSessionPoll = null;
 
+/** Same-document View Transitions for overlay gates/modals — auditoría #33; exposed for coach/onboarding. */
+function comfortRunViewTransition(update) {
+  if (typeof document !== "undefined" && typeof document.startViewTransition === "function") {
+    document.startViewTransition(() => update());
+  } else {
+    update();
+  }
+}
+window.comfortRunViewTransition = comfortRunViewTransition;
+
+/** Native `<dialog>` (audit #35) with fallback class toggles for backwards compatibility. */
+function comfortOverlayReveal(node) {
+  if (!node) return;
+  if (typeof node.showModal === "function") {
+    try {
+      if (!node.open) node.showModal();
+    } catch {
+      /* fall through */
+    }
+    return;
+  }
+  node.classList.remove("comfort-beta-overlay--hidden");
+  node.setAttribute("aria-hidden", "false");
+}
+
+function comfortOverlayDismiss(node) {
+  if (!node) return;
+  if (typeof node.close === "function") {
+    try {
+      node.close();
+      return;
+    } catch {
+      /* fall through */
+    }
+  }
+  node.classList.add("comfort-beta-overlay--hidden");
+  node.setAttribute("aria-hidden", "true");
+}
+
 function purgeComfortLocalData() {
+  void (async () => {
+    try {
+      if (typeof window.comfortStorageWipePersistedLedger === "function") {
+        await window.comfortStorageWipePersistedLedger();
+      }
+    } catch {
+      /* ignore */
+    }
+  })();
   try {
     const drop = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && k.startsWith("comfort_")) {
+      if (k && k.startsWith("comfort_") && k !== COMFORT_THEME_KEY) {
         drop.push(k);
       }
     }
@@ -192,11 +243,16 @@ async function endComfortDemoTrial() {
     subBtn.setAttribute("href", window.__COMFORT_SUBSCRIBE_URL);
   }
   if (modal) {
-    modal.classList.remove("comfort-beta-overlay--hidden");
-    modal.setAttribute("aria-hidden", "false");
-    applyStaticI18n();
+    comfortRunViewTransition(() => {
+      comfortOverlayReveal(modal);
+      applyStaticI18n();
+    });
   }
-  state = loadState();
+  state = hydrateStateFromStorageRaw(
+    typeof window.__COMFORT_STATE_RAW_PENDING === "string"
+      ? window.__COMFORT_STATE_RAW_PENDING
+      : ""
+  );
   try {
     if (typeof renderAll === "function") {
       renderAll();
@@ -213,8 +269,7 @@ function wireTrialModal() {
     dismiss.addEventListener("click", () => {
       const modal = document.getElementById("comfortBetaTrialEnd");
       if (modal) {
-        modal.classList.add("comfort-beta-overlay--hidden");
-        modal.setAttribute("aria-hidden", "true");
+        comfortRunViewTransition(() => comfortOverlayDismiss(modal));
       }
       window.location.reload();
     });
@@ -343,6 +398,7 @@ const EXPENSE_CATEGORIES = [
   "Multas e imprevistos",
   "Otros"
 ];
+const EXPENSE_CATEGORY_SET = new Set(EXPENSE_CATEGORIES);
 
 const CATEGORY_EN = [
   "Dining out",
@@ -417,6 +473,10 @@ const UI_STRINGS = {
     page_title: "Comfort Ledger — Resumen y coach",
     meta_description: "Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.",
     lang_label: "Idioma",
+    theme_label: "Apariencia",
+    theme_dark: "Oscuro",
+    theme_light: "Claro",
+    theme_auto: "Sistema",
     brand_eyebrow: "Vista patrimonial",
     tagline: "Menos ruido. Más claridad.",
     pill_local: "100% local",
@@ -430,6 +490,7 @@ const UI_STRINGS = {
     backup_import_ok: "Importación correcta. Datos guardados en este dispositivo.",
     backup_import_err_invalid: "El archivo no es un respaldo válido de Comfort Ledger.",
     backup_import_err_read: "No se pudo leer el archivo.",
+    backup_fs_ok: "Copia guardada donde elegiste.",
     health_title: "Resumen de salud",
     goals_title: "Metas con tus cobros",
     goals_add: "+ Meta",
@@ -456,6 +517,7 @@ const UI_STRINGS = {
     coach_placeholder: "Ej.: ¿Estoy cómodo con 10k ahorrados si debo 9.2k?",
     coach_send: "Enviar",
     coach_status: "Coach local (reglas + tus números). No llama a Omega ni a internet.",
+    skip_to_main: "Ir al contenido principal",
     onboarding_title: "Tu espacio en Comfort Ledger",
     onboarding_intro_html:
       "Antes de entrar, deja tu <strong>nombre</strong> y, si quieres, tu <strong>correo</strong> y tu enfoque. Lo guardamos <strong>en este dispositivo</strong> para que vuelvas directo.",
@@ -469,6 +531,8 @@ const UI_STRINGS = {
     onboarding_lifestyle_family: "Familia",
     onboarding_lifestyle_student: "Estudiante",
     onboarding_lifestyle_simple: "Solo orden rápido",
+    onboarding_currency: "Moneda (solo visual)",
+    onboarding_currency_auto: "Automática (según el navegador)",
     onboarding_template_applied: "Aplicamos una plantilla inicial para {mode}. Puedes editar todo.",
     profile_lifestyle_prefix: "Modo:",
     onboarding_submit: "Continuar",
@@ -512,18 +576,35 @@ const UI_STRINGS = {
     coach_openai_key_placeholder: "sk-...",
     coach_openai_model_label: "Modelo",
     coach_openai_hint_html:
-      "Obtén tu API key en <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a>. Cada consulta cuesta fracciones de centavo. La key se guarda <strong>solo en este dispositivo</strong>.",
+      "Obtén tu API key en <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a>. Cada consulta cuesta fracciones de centavo. La key se guarda en <strong>sessionStorage</strong> de esta pestaña; al cerrarla se borra. El modo y el modelo siguen en almacenamiento local.",
     coach_openai_warn:
-      "No compartas tu navegador con otras personas si guardas la key aquí.",
+      "No compartas tu navegador con otras personas si guardas la key aquí; cierra la pestaña si dejas el equipo desatendido.",
     coach_openai_key_missing: "Pega tu API key de OpenAI para activar este modo.",
     coach_openai_key_format: "La API key debe empezar por sk- y tener al menos 20 caracteres.",
     coach_openai_key_invalid: "API key rechazada por OpenAI. Revisa o regenérala.",
     coach_openai_rate_limit: "OpenAI te pidió esperar un momento (rate limit). Reintenta en unos segundos.",
     coach_openai_server_err: "OpenAI tuvo un problema interno. Reintenta en un minuto.",
     coach_openai_network_err: "No pude contactar con OpenAI. Revisa tu conexión.",
+    coach_openai_timeout: "OpenAI tardó demasiado. Prueba con una pregunta más corta.",
     coach_openai_empty: "OpenAI respondió sin texto. Intenta reformular la pregunta.",
     coach_settings_save: "Guardar",
     coach_settings_close: "Cerrar",
+    lifestyle_income_payroll_main: "Nómina principal",
+    lifestyle_utility_rent: "Renta",
+    lifestyle_utility_electric: "Luz",
+    lifestyle_utility_internet: "Internet",
+    lifestyle_income_client_a: "Cliente A",
+    lifestyle_income_client_b: "Cliente B",
+    lifestyle_expense_taxes: "Impuestos",
+    lifestyle_income_household: "Ingreso hogar",
+    lifestyle_expense_family: "Gastos familiares",
+    lifestyle_expense_grocery_weekly: "Despensa",
+    lifestyle_utility_mortgage: "Hipoteca / renta",
+    lifestyle_utility_insurance: "Seguro",
+    lifestyle_income_student_base: "Ingreso base",
+    lifestyle_expense_school: "Escuela / cursos",
+    lifestyle_expense_transport: "Transporte",
+    lifestyle_income_simple_main: "Ingreso principal",
     twin_clocks_title: "Chicago y Nueva York",
     twin_clocks_sub: "Hora local en cada ciudad; se calcula en tu dispositivo (sin internet).",
     income_title: "Ingresos",
@@ -762,6 +843,10 @@ const UI_STRINGS = {
     page_title: "Comfort Ledger — Summary & coach",
     meta_description: "Minimal finance snapshot: income, expenses, and debt with a local AI-style coach.",
     lang_label: "Language",
+    theme_label: "Appearance",
+    theme_dark: "Dark",
+    theme_light: "Light",
+    theme_auto: "System",
     brand_eyebrow: "Wealth snapshot",
     tagline: "Less noise. More clarity.",
     pill_local: "100% on-device",
@@ -775,6 +860,7 @@ const UI_STRINGS = {
     backup_import_ok: "Import complete. Data saved on this device.",
     backup_import_err_invalid: "This file is not a valid Comfort Ledger backup.",
     backup_import_err_read: "Could not read the file.",
+    backup_fs_ok: "Backup saved to the location you chose.",
     health_title: "Health summary",
     goals_title: "Goals from your paychecks",
     goals_add: "+ Goal",
@@ -800,6 +886,7 @@ const UI_STRINGS = {
     coach_placeholder: "E.g.: Am I comfortable with 10k saved if I owe 9.2k?",
     coach_send: "Send",
     coach_status: "Local coach (rules + your numbers). Does not call Omega or the internet.",
+    skip_to_main: "Skip to main content",
     onboarding_title: "Your space in Comfort Ledger",
     onboarding_intro_html:
       "Before you enter, leave your <strong>name</strong> and, if you want, your <strong>email</strong> and focus. We keep it <strong>on this device</strong> so you come back straight in.",
@@ -813,6 +900,8 @@ const UI_STRINGS = {
     onboarding_lifestyle_family: "Family",
     onboarding_lifestyle_student: "Student",
     onboarding_lifestyle_simple: "Quick setup",
+    onboarding_currency: "Display currency",
+    onboarding_currency_auto: "Automatic (browser locale)",
     onboarding_template_applied: "We applied a starter template for {mode}. You can edit everything.",
     profile_lifestyle_prefix: "Mode:",
     onboarding_submit: "Continue",
@@ -856,18 +945,35 @@ const UI_STRINGS = {
     coach_openai_key_placeholder: "sk-...",
     coach_openai_model_label: "Model",
     coach_openai_hint_html:
-      "Grab your API key at <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a>. Each question costs a fraction of a cent. The key is stored <strong>only on this device</strong>.",
+      "Grab your API key at <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a>. Each question costs a fraction of a cent. The key is stored in this tab's <strong>sessionStorage</strong> (cleared when the tab closes). Mode and model stay in local storage.",
     coach_openai_warn:
-      "Do not share this browser with others if you save the key here.",
+      "Do not share this browser with others if you save the key here; close the tab if you step away.",
     coach_openai_key_missing: "Paste your OpenAI API key to enable this mode.",
     coach_openai_key_format: "The API key must start with sk- and be at least 20 characters.",
     coach_openai_key_invalid: "API key rejected by OpenAI. Check or regenerate it.",
     coach_openai_rate_limit: "OpenAI asked to slow down (rate limit). Try again in a few seconds.",
     coach_openai_server_err: "OpenAI had an internal issue. Try again in a minute.",
     coach_openai_network_err: "Could not reach OpenAI. Check your connection.",
+    coach_openai_timeout: "OpenAI took too long. Try a shorter question.",
     coach_openai_empty: "OpenAI returned no text. Try rephrasing the question.",
     coach_settings_save: "Save",
     coach_settings_close: "Close",
+    lifestyle_income_payroll_main: "Main paycheck",
+    lifestyle_utility_rent: "Rent",
+    lifestyle_utility_electric: "Electricity",
+    lifestyle_utility_internet: "Internet",
+    lifestyle_income_client_a: "Client A",
+    lifestyle_income_client_b: "Client B",
+    lifestyle_expense_taxes: "Taxes",
+    lifestyle_income_household: "Household income",
+    lifestyle_expense_family: "Family expenses",
+    lifestyle_expense_grocery_weekly: "Groceries",
+    lifestyle_utility_mortgage: "Mortgage / rent",
+    lifestyle_utility_insurance: "Insurance",
+    lifestyle_income_student_base: "Base income",
+    lifestyle_expense_school: "School / courses",
+    lifestyle_expense_transport: "Transit",
+    lifestyle_income_simple_main: "Main income",
     twin_clocks_title: "Chicago & New York",
     twin_clocks_sub: "Local time in each city, calculated on your device (no internet needed).",
     income_title: "Income",
@@ -1103,6 +1209,10 @@ const UI_STRINGS = {
     page_title: "Comfort Ledger — 概览与顾问",
     meta_description: "简洁财务概览：收入、支出与债务，并配备本地规则型顾问。",
     lang_label: "语言",
+    theme_label: "外观",
+    theme_dark: "深色",
+    theme_light: "浅色",
+    theme_auto: "跟随系统",
     brand_eyebrow: "资产视图",
     tagline: "少噪音，更清晰。",
     pill_local: "100% 本地",
@@ -1115,6 +1225,7 @@ const UI_STRINGS = {
     backup_import_ok: "导入成功。数据已保存在本机。",
     backup_import_err_invalid: "该文件不是有效的 Comfort Ledger 备份。",
     backup_import_err_read: "无法读取该文件。",
+    backup_fs_ok: "已保存到你选择的位置。",
     health_title: "健康摘要",
     goals_title: "与工资挂钩的目标",
     goals_add: "+ 目标",
@@ -1140,6 +1251,7 @@ const UI_STRINGS = {
     coach_placeholder: "例：若欠款 9.2k，储蓄 1 万是否安心？",
     coach_send: "发送",
     coach_status: "本地顾问（规则+你的数据）。不调用 Omega 或互联网。",
+    skip_to_main: "跳到主要内容",
     onboarding_title: "你的 Comfort Ledger 空间",
     onboarding_intro_html:
       "进入前先留下你的<strong>姓名</strong>，以及可选的<strong>邮箱</strong>和使用重点。资料会<strong>保存在此设备</strong>，下次可直接进入。",
@@ -1153,6 +1265,8 @@ const UI_STRINGS = {
     onboarding_lifestyle_family: "家庭开支",
     onboarding_lifestyle_student: "学生",
     onboarding_lifestyle_simple: "快速整理",
+    onboarding_currency: "显示货币",
+    onboarding_currency_auto: "自动（跟随浏览器）",
     onboarding_template_applied: "已为你应用 {mode} 的初始模板，后续可随时修改。",
     profile_lifestyle_prefix: "模式：",
     onboarding_submit: "继续",
@@ -1192,17 +1306,34 @@ const UI_STRINGS = {
     coach_openai_key_placeholder: "sk-...",
     coach_openai_model_label: "模型",
     coach_openai_hint_html:
-      "在 <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a> 获取 API key。每次问答费用仅为几分之一美分。key <strong>仅保存在此设备</strong>。",
-    coach_openai_warn: "若此浏览器与他人共用，请勿在此保存 key。",
+      "在 <a href=\"https://platform.openai.com/api-keys\" target=\"_blank\" rel=\"noopener noreferrer\">platform.openai.com/api-keys</a> 获取 API key。每次问答费用仅为几分之一美分。key 保存在本标签页的 <strong>sessionStorage</strong>（关闭标签即清除）；模式与模型仍在本地存储。",
+    coach_openai_warn: "若与他人共用浏览器，请勿保存 key；离开设备前请关闭标签页。",
     coach_openai_key_missing: "粘贴你的 OpenAI API key 以启用该模式。",
     coach_openai_key_format: "API key 必须以 sk- 开头，且至少 20 个字符。",
     coach_openai_key_invalid: "OpenAI 拒绝了此 API key。请检查或重新生成。",
     coach_openai_rate_limit: "OpenAI 要求稍候（速率限制）。数秒后再试。",
     coach_openai_server_err: "OpenAI 内部故障，请稍后再试。",
     coach_openai_network_err: "无法连接到 OpenAI，请检查网络。",
+    coach_openai_timeout: "OpenAI 响应超时。请尝试更短的问题。",
     coach_openai_empty: "OpenAI 未返回文本。请尝试改写问题。",
     coach_settings_save: "保存",
     coach_settings_close: "关闭",
+    lifestyle_income_payroll_main: "主要工资",
+    lifestyle_utility_rent: "房租",
+    lifestyle_utility_electric: "电费",
+    lifestyle_utility_internet: "网络",
+    lifestyle_income_client_a: "客户 A",
+    lifestyle_income_client_b: "客户 B",
+    lifestyle_expense_taxes: "税费",
+    lifestyle_income_household: "家庭收入",
+    lifestyle_expense_family: "家庭支出",
+    lifestyle_expense_grocery_weekly: "日常食品",
+    lifestyle_utility_mortgage: "房贷 / 房租",
+    lifestyle_utility_insurance: "保险",
+    lifestyle_income_student_base: "基本收入",
+    lifestyle_expense_school: "学费 / 课程",
+    lifestyle_expense_transport: "交通",
+    lifestyle_income_simple_main: "主要收入",
     twin_clocks_title: "芝加哥与纽约",
     twin_clocks_sub: "各城市当地时间，由本机计算（无需联网）。",
     income_title: "收入",
@@ -1541,6 +1672,76 @@ function categoryDisplayLabel(esKey) {
   return esKey;
 }
 
+/** Alias used by comfort-ledger-modules (presupuestos, weekly check-in). */
+function categoryLabel(esKey) {
+  return categoryDisplayLabel(esKey);
+}
+
+function isLifestyleLabelKey(key) {
+  return typeof key === "string" && /^lifestyle_[a-z0-9_]+$/.test(key);
+}
+
+/** Re-applies t() for rows created from lifestyle templates when UI_LOCALE changes (#16). */
+function refreshLifestyleI18nLabels() {
+  if (!state || typeof state !== "object") return;
+  for (const line of state.incomeLines || []) {
+    if (line && isLifestyleLabelKey(line.labelKey)) line.label = t(line.labelKey);
+  }
+  for (const e of state.expenses || []) {
+    if (e && isLifestyleLabelKey(e.labelKey)) e.label = t(e.labelKey);
+  }
+  for (const b of state.utilityBills || []) {
+    if (b && isLifestyleLabelKey(b.labelKey)) b.label = t(b.labelKey);
+  }
+}
+
+/**
+ * Builds a safe href for i18n-sanitized <a>; drops javascript:, data:, unknown schemes, malformed URLs.
+ * Allows #:fragment, https:, optional http:, mailto:, tel:
+ */
+function safeI18nAnchorHref(raw) {
+  const href = String(raw || "")
+    .replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, "")
+    .trim();
+  if (!href || href.startsWith(":")) return "";
+  const noSpace = href.replace(/\s+/g, "");
+  const lowStart = noSpace.slice(0, 14).toLowerCase();
+  if (
+    lowStart.startsWith("javascript:") ||
+    lowStart.startsWith("data:") ||
+    lowStart.startsWith("vbscript:")
+  ) {
+    return "";
+  }
+  if (href.startsWith("#")) {
+    if (href.length > 512 || /[<"'`]/.test(href)) return "";
+    /* fragment-only: permissive chars for SPA / deep links */
+    if (!/^#[^#\s]+$/.test(href)) return "";
+    return href;
+  }
+  let u = null;
+  try {
+    u = new URL(href);
+  } catch {
+    return "";
+  }
+  const p = (u.protocol || "").toLowerCase();
+  if (p === "https:" || p === "http:") {
+    if (href.length > 4096 || /[<"'`]/.test(href)) return "";
+    return u.href;
+  }
+  if (p === "mailto:") {
+    if (u.href.length > 4096 || /[<"'`]/.test(u.href)) return "";
+    return u.href;
+  }
+  if (p === "tel:") {
+    const h = u.href;
+    if (h.length > 128 || /[<"'`]/.test(h)) return "";
+    return h;
+  }
+  return "";
+}
+
 /** Solo etiquetas de copy estático; el resto se convierte a texto plano (mitiga XSS vía i18n). */
 function sanitizeI18nHtml(html) {
   const allowed = new Set(["strong", "em", "br", "span", "a", "p", "code"]);
@@ -1575,15 +1776,20 @@ function sanitizeI18nHtml(html) {
     if (name === "br") return document.createElement("br");
     const el = document.createElement(name);
     if (name === "a") {
-      const href = node.getAttribute("href") || "";
-      if (!/^https?:\/\//i.test(href)) {
+      let safeHref = safeI18nAnchorHref(node.getAttribute("href"));
+      if (!safeHref) {
         const frag = document.createDocumentFragment();
         appendCleaned(frag, node.childNodes);
         return frag;
       }
-      el.setAttribute("href", href);
-      el.setAttribute("rel", "noopener noreferrer");
-      el.setAttribute("target", "_blank");
+      el.setAttribute("href", safeHref);
+      if (safeHref.startsWith("#")) {
+        el.removeAttribute("target");
+        el.removeAttribute("rel");
+      } else {
+        el.setAttribute("rel", "noopener noreferrer");
+        el.setAttribute("target", "_blank");
+      }
     }
     appendCleaned(el, node.childNodes);
     return el;
@@ -1641,6 +1847,7 @@ function setLocale(next) {
   applyHostedCoachCopy();
   comfortApplyTrustPills();
   updateLangButtons();
+  refreshLifestyleI18nLabels();
   renderAll();
   renderWorldClocks();
 }
@@ -1690,15 +1897,80 @@ function parseNum(raw) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+const PROFILE_DISPLAY_CURRENCY_WHITELIST = new Set([
+  "USD",
+  "EUR",
+  "GBP",
+  "MXN",
+  "ARS",
+  "COP",
+  "CLP",
+  "BRL",
+  "CAD",
+  "AUD",
+  "NZD",
+  "CHF",
+  "JPY",
+  "CNY",
+  "SEK",
+  "NOK",
+  "DKK",
+  "PLN",
+  "INR",
+  "PEN"
+]);
+
+function sanitizeProfileDisplayCurrency(raw) {
+  const c = String(raw || "").trim().toUpperCase();
+  if (!c || !/^[A-Z]{3}$/.test(c)) return "";
+  return PROFILE_DISPLAY_CURRENCY_WHITELIST.has(c) ? c : "";
+}
+
+function comfortCurrencyForLocaleHint() {
+  try {
+    const nav = (
+      typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-US"
+    ).toLowerCase();
+    if (nav.includes("-mx") || nav === "es-mx") return "MXN";
+    if (nav.includes("-ar")) return "ARS";
+    if (nav.includes("-co")) return "COP";
+    if (nav.includes("-cl")) return "CLP";
+    if (nav.startsWith("es")) return "EUR";
+    if (nav.startsWith("pt-br") || nav === "pt_br") return "BRL";
+    if (nav.includes("-gb") || nav === "en-gb") return "GBP";
+    if (nav.startsWith("zh")) return "CNY";
+    if (nav.startsWith("ja")) return "JPY";
+    if (nav.startsWith("en")) return "USD";
+    return "USD";
+  } catch {
+    return "USD";
+  }
+}
+
+function comfortDisplayCurrency() {
+  try {
+    const p = normalizeProfile(typeof state !== "undefined" ? state?.profile : null);
+    const chosen = p && sanitizeProfileDisplayCurrency(p.currency);
+    if (chosen) return chosen;
+  } catch {
+    /* ignore */
+  }
+  return comfortCurrencyForLocaleHint();
+}
+
 function fmtMoney(n) {
   const num = Number(n);
   const value = Number.isFinite(num) ? num : 0;
+  const cur = comfortDisplayCurrency();
+  const zeroDecimal = cur === "JPY" || cur === "CLP";
   const isWholeInteger = Number.isInteger(value);
-  return new Intl.NumberFormat("en-US", {
+  const minFrac = zeroDecimal ? 0 : isWholeInteger ? 0 : 2;
+  const maxFrac = zeroDecimal ? 0 : 2;
+  return new Intl.NumberFormat(getIntlLocale(), {
     style: "currency",
-    currency: "USD",
-    minimumFractionDigits: isWholeInteger ? 0 : 2,
-    maximumFractionDigits: 2
+    currency: cur,
+    minimumFractionDigits: minFrac,
+    maximumFractionDigits: maxFrac
   }).format(value);
 }
 
@@ -1730,7 +2002,10 @@ function normalizeProfile(profile) {
     ? lifestyleRaw
     : "simple";
   const createdAt = String(profile.createdAt || new Date().toISOString());
-  return { id, displayName, email, focus, lifestyle, createdAt };
+  const currency = sanitizeProfileDisplayCurrency(profile.currency);
+  const out = { id, displayName, email, focus, lifestyle, createdAt };
+  if (currency) out.currency = currency;
+  return out;
 }
 
 /* extracted to comfort-ledger-modules.js */
@@ -1745,18 +2020,23 @@ function normalizeIncomeCadence(c) {
 }
 
 function normalizeExpense(e) {
-  const cat = EXPENSE_CATEGORIES.includes(e.category) ? e.category : "Otros";
-  return {
+  const cat = EXPENSE_CATEGORY_SET.has(e.category) ? e.category : "Otros";
+  const out = {
     id: typeof e.id === "string" ? e.id : createId("e"),
     category: cat,
     label: String(e.label ?? ""),
     amount: Number(e.amount) || 0,
     cadence: normalizeCadence(e.cadence)
   };
+  if (isLifestyleLabelKey(e.labelKey)) {
+    out.labelKey = e.labelKey;
+    out.label = t(e.labelKey);
+  }
+  return out;
 }
 
 function normalizeBudget(b) {
-  const cat = EXPENSE_CATEGORIES.includes(b?.category) ? b.category : "Otros";
+  const cat = EXPENSE_CATEGORY_SET.has(b?.category) ? b.category : "Otros";
   return {
     id: typeof b?.id === "string" ? b.id : createId("bg"),
     category: cat,
@@ -1779,13 +2059,18 @@ function normalizeDebt(d) {
 }
 
 function normalizeIncomeLine(line) {
-  return {
+  const out = {
     id: typeof line.id === "string" ? line.id : createId("inc"),
     label: String(line.label ?? "Ingreso"),
     amount: Number(line.amount) || 0,
     date: line.date ? sanitizeISODate(line.date) : formatDateInput(),
     cadence: normalizeIncomeCadence(line.cadence)
   };
+  if (isLifestyleLabelKey(line.labelKey)) {
+    out.labelKey = line.labelKey;
+    out.label = t(line.labelKey);
+  }
+  return out;
 }
 
 function normalizeSavingsGoal(g) {
@@ -1822,7 +2107,7 @@ function sortSavingsGoalsNewestFirstInPlace(goals) {
 
 function normalizeUtilityBill(b) {
   const cat = UTILITY_CATEGORY_KEYS.includes(b.categoryKey) ? b.categoryKey : "other";
-  return {
+  const out = {
     id: typeof b.id === "string" ? b.id : createId("util"),
     categoryKey: cat,
     label: String(b.label ?? "").trim(),
@@ -1832,6 +2117,11 @@ function normalizeUtilityBill(b) {
     payUrl: String(b.payUrl ?? "").trim(),
     cancelled: Boolean(b.cancelled)
   };
+  if (isLifestyleLabelKey(b.labelKey)) {
+    out.labelKey = b.labelKey;
+    out.label = t(b.labelKey);
+  }
+  return out;
 }
 
 function normalizeSubscriptionCadence(c) {
@@ -1891,20 +2181,27 @@ function calendarDaysBetween(fromDate, toDate) {
 
 function loadNotifyLog() {
   try {
-    const raw = localStorage.getItem(NOTIFY_LOG_KEY);
-    if (!raw) return {};
-    const o = JSON.parse(raw);
-    return o && typeof o === "object" ? o : {};
+    const c = typeof window.__COMFORT_NOTIFY_LOG_CACHE === "object" && window.__COMFORT_NOTIFY_LOG_CACHE
+      ? window.__COMFORT_NOTIFY_LOG_CACHE
+      : {};
+    const out = { ...c };
+    return typeof out === "object" && out !== null ? out : {};
   } catch {
     return {};
   }
 }
 
 function saveNotifyLog(log) {
-  try {
-    localStorage.setItem(NOTIFY_LOG_KEY, JSON.stringify(log));
-  } catch {
-    /* ignore */
+  window.__COMFORT_NOTIFY_LOG_CACHE =
+    log && typeof log === "object" ? { ...log } : {};
+  if (typeof window.comfortPersistNotifyLogDebounced === "function") {
+    window.comfortPersistNotifyLogDebounced();
+  } else {
+    try {
+      localStorage.setItem(NOTIFY_LOG_KEY, JSON.stringify(window.__COMFORT_NOTIFY_LOG_CACHE));
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -2030,11 +2327,116 @@ function hydrateComfortStateFromRaw(data) {
   }
 }
 
-function loadState() {
+function comfortLedgerDemoSampleState() {
+  const catMercado = EXPENSE_CATEGORY_SET.has("Mercado") ? "Mercado" : EXPENSE_CATEGORIES[0];
+  const base = defaultState();
+  base.profile = normalizeProfile({
+    id: "demo-profile-id",
+    displayName: UI_LOCALE === "en" ? "Alex M." : UI_LOCALE === "zh" ? "演示" : "Alex M.",
+    email: "",
+    focus: "",
+    lifestyle: "payroll",
+    currency: "USD"
+  });
+  base.incomeLines = [
+    normalizeIncomeLine({
+      label:
+        UI_LOCALE === "en"
+          ? "Main paycheck"
+          : UI_LOCALE === "zh"
+            ? "工资"
+            : "Nómina principal",
+      amount: 5400,
+      date: formatDateInput(),
+      cadence: "monthly"
+    })
+  ];
+  base.liquidSavings = 4800;
+  base.expenses = [
+    normalizeExpense({
+      category: catMercado,
+      label:
+        UI_LOCALE === "en"
+          ? "Rent & groceries bucket"
+          : UI_LOCALE === "zh"
+            ? "房租与日常"
+            : "Renta y despensa",
+      amount: 1920,
+      cadence: "monthly"
+    }),
+    normalizeExpense({
+      category: "Otros",
+      label:
+        UI_LOCALE === "en"
+          ? "Subscriptions & streaming"
+          : UI_LOCALE === "zh"
+            ? "订阅与流媒体"
+            : "Suscripciones y streaming",
+      amount: 145,
+      cadence: "monthly"
+    })
+  ];
+  base.debts = [
+    normalizeDebt({
+      debtType: "card",
+      label:
+        UI_LOCALE === "en"
+          ? "Card balance"
+          : UI_LOCALE === "zh"
+            ? "信用卡"
+            : "Saldo tarjeta",
+      balance: 2300,
+      minPayment: 90
+    })
+  ];
+  base.savingsGoals = [
+    normalizeSavingsGoal({
+      label:
+        UI_LOCALE === "en" ? "Trip fund" : UI_LOCALE === "zh" ? "旅行备用金" : "Fondo vacaciones",
+      targetAmount: 3200,
+      months: 7
+    })
+  ];
+  sortSavingsGoalsNewestFirstInPlace(base.savingsGoals);
+  base.utilityBills = [];
+  base.subscriptions = base.subscriptions.slice();
+  base.budgets = [
+    normalizeBudget({ category: catMercado, monthly: 550 }),
+    normalizeBudget({ category: "Otros", monthly: 380 })
+  ];
+  return base;
+}
+
+function comfortLedgerUrlDemoBootstrap() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
-    const data = JSON.parse(raw);
+    if (
+      typeof window.__COMFORT_LEDGER_EMBED_PREVIEW === "boolean" &&
+      window.__COMFORT_LEDGER_EMBED_PREVIEW
+    ) {
+      window.__COMFORT_LEDGER_DEMO = true;
+      window.__COMFORT_LEDGER_SKIP_PERSIST = true;
+      return true;
+    }
+    const qs = typeof location !== "undefined" ? String(location.search || "") : "";
+    if (!/\bcomfort_demo=1\b/.test(qs) && !/\bdemo=1\b/.test(qs)) return false;
+    window.__COMFORT_LEDGER_DEMO = true;
+    window.__COMFORT_LEDGER_SKIP_PERSIST = /\bembed=1\b/.test(qs);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function hydrateStateFromStorageRaw(raw) {
+  try {
+    const r =
+      typeof raw === "string" && raw.trim()
+        ? raw
+        : typeof window.__COMFORT_STATE_RAW_PENDING === "string" && window.__COMFORT_STATE_RAW_PENDING.trim()
+          ? window.__COMFORT_STATE_RAW_PENDING
+          : "";
+    if (!r) return defaultState();
+    const data = JSON.parse(r);
     const hydrated = hydrateComfortStateFromRaw(data);
     return hydrated || defaultState();
   } catch {
@@ -2042,29 +2444,73 @@ function loadState() {
   }
 }
 
+function loadState() {
+  return hydrateStateFromStorageRaw("");
+}
+
 function saveState(payload) {
   const snapshot = payload || (typeof state !== "undefined" ? state : null);
   if (!snapshot) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    if (window.__COMFORT_LEDGER_SKIP_PERSIST) {
+      flashSavedIndicator();
+      if (typeof refreshRecurringNotificationState === "function") {
+        refreshRecurringNotificationState();
+      } else if (typeof scheduleHostedPushSync === "function") {
+        scheduleHostedPushSync();
+      }
+      return;
+    }
+    const json = JSON.stringify(snapshot);
+    if (typeof window.comfortPersistStateJsonDebounced === "function") {
+      window.comfortPersistStateJsonDebounced(json);
+    } else {
+      localStorage.setItem(STORAGE_KEY, json);
+    }
     flashSavedIndicator();
   } catch (err) {
     console.warn("Comfort Ledger: no se pudo guardar", err);
   }
-  scheduleHostedPushSync();
+  if (typeof refreshRecurringNotificationState === "function") {
+    refreshRecurringNotificationState();
+  } else if (typeof scheduleHostedPushSync === "function") {
+    scheduleHostedPushSync();
+  }
 }
 
+const SAVED_INDICATOR_DEBOUNCE_MS = 500;
+const SAVED_INDICATOR_VISIBLE_MS = 1200;
+
 let __savedFlashTimer = null;
+let __savedFlashDebounceTimer = null;
 function flashSavedIndicator() {
   const host = document.getElementById("comfortSavedIndicator");
   if (!host) return;
-  host.textContent = t("saved_label");
-  host.classList.add("comfort-saved-indicator--visible");
-  host.setAttribute("aria-live", "polite");
-  if (__savedFlashTimer) clearTimeout(__savedFlashTimer);
-  __savedFlashTimer = setTimeout(() => {
-    host.classList.remove("comfort-saved-indicator--visible");
-  }, 1200);
+
+  const armHideTimer = () => {
+    if (__savedFlashTimer) clearTimeout(__savedFlashTimer);
+    __savedFlashTimer = setTimeout(() => {
+      host.classList.remove("comfort-saved-indicator--visible");
+      __savedFlashTimer = null;
+    }, SAVED_INDICATOR_VISIBLE_MS);
+  };
+
+  const showOrExtendVisible = () => {
+    host.textContent = t("saved_label");
+    host.classList.add("comfort-saved-indicator--visible");
+    host.setAttribute("aria-live", "polite");
+    armHideTimer();
+  };
+
+  if (__savedFlashDebounceTimer) clearTimeout(__savedFlashDebounceTimer);
+  __savedFlashDebounceTimer = setTimeout(() => {
+    __savedFlashDebounceTimer = null;
+    if (host.classList.contains("comfort-saved-indicator--visible")) {
+      armHideTimer();
+      return;
+    }
+    showOrExtendVisible();
+  }, SAVED_INDICATOR_DEBOUNCE_MS);
 }
 
 let __undoTimer = null;
@@ -2129,7 +2575,7 @@ function comfortSnapshotForExport() {
   };
 }
 
-function comfortExportBackup() {
+async function comfortExportBackup() {
   const wrap = {
     [COMFORT_BACKUP_FORMAT]: true,
     version: COMFORT_BACKUP_VERSION,
@@ -2138,11 +2584,31 @@ function comfortExportBackup() {
     data: comfortSnapshotForExport()
   };
   const blob = new Blob([JSON.stringify(wrap, null, 2)], { type: "application/json" });
-  const a = document.createElement("a");
   const stamp = new Date().toISOString().slice(0, 10);
+  const fname = `comfort-ledger-backup-${stamp}.json`;
+
+  if (typeof window.showSaveFilePicker === "function") {
+    try {
+      const fh = await window.showSaveFilePicker({
+        suggestedName: fname,
+        types: [{ description: "JSON", accept: { "application/json": [".json"] } }]
+      });
+      const writable = await fh.createWritable();
+      await writable.write(blob);
+      await writable.close();
+      if (typeof comfortSetBackupStatus === "function") {
+        comfortSetBackupStatus(t("backup_fs_ok"), "ok");
+      }
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+  }
+
+  const a = document.createElement("a");
   const objUrl = URL.createObjectURL(blob);
   a.href = objUrl;
-  a.download = `comfort-ledger-backup-${stamp}.json`;
+  a.download = fname;
   a.rel = "noopener";
   document.body.appendChild(a);
   a.click();
@@ -2614,7 +3080,7 @@ function coachReply(question, snap) {
   return lines.join(" ");
 }
 
-let state = loadState();
+let state = defaultState();
 
 let els = {};
 
@@ -2715,7 +3181,7 @@ function renderHealth(snap) {
     <li><strong>${fmtMoney(snap.freeAfterGoals)}</strong>${t("health_free_after_goals")}</li>`
       : "";
   els.healthMetrics.innerHTML = `
-    <li><strong>${fmtMoney(snap.income)}</strong>${t("health_income")} (${snap.incomeMonthLabel})</li>
+    <li><strong>${fmtMoney(snap.income)}</strong>${t("health_income")} (${escapeHtml(snap.incomeMonthLabel)})</li>
     <li><strong>${fmtMoney(snap.monthlyExpenses)}</strong>${t("health_expenses")}</li>
     <li><strong>${fmtMoney(snap.monthlyDebtPay)}</strong>${t("health_debt_min")}</li>
     <li><strong>${fmtMoney(snap.freeAfter)}</strong>${t("health_free_after")}</li>
@@ -2987,7 +3453,7 @@ function renderIncomeLines() {
   els.incomeList.innerHTML = lines
     .map(
       (line) => `
-    <div class="income-row" data-id="${line.id}">
+    <div class="income-row" data-id="${escapeHtml(line.id)}">
       <label>${escapeHtml(t("income_date"))}<input type="date" data-field="date" value="${escapeHtml(line.date)}" /></label>
       <label>${escapeHtml(t("income_cadence"))}<select data-field="cadence">
         <option value="monthly" ${(line.cadence || "monthly") === "monthly" ? "selected" : ""}>${escapeHtml(t("cadence_m"))}</option>
@@ -2997,7 +3463,7 @@ function renderIncomeLines() {
       </select></label>
       <label>${escapeHtml(t("income_label"))}<input type="text" data-field="label" value="${escapeHtml(line.label)}" /></label>
       <label>${escapeHtml(t("income_amount"))}<input type="text" inputmode="decimal" data-field="amount" value="${escapeHtml(String(line.amount))}" /></label>
-      <button type="button" class="row-remove" data-remove-income="${line.id}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
+      <button type="button" class="row-remove" data-remove-income="${escapeHtml(line.id)}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
     </div>
   `
     )
@@ -3018,7 +3484,7 @@ function renderExpenses() {
   els.expenseList.innerHTML = state.expenses
     .map(
       (e) => `
-    <div class="expense-row" data-id="${e.id}">
+    <div class="expense-row" data-id="${escapeHtml(e.id)}">
       <label>${escapeHtml(t("expense_category"))}<select data-field="category" class="expense-category">${categoryOptions(e.category)}</select></label>
       <label>${escapeHtml(t("expense_label"))}<input type="text" data-field="label" value="${escapeHtml(e.label)}" /></label>
       <label>${escapeHtml(t("expense_amount"))}<input type="text" inputmode="decimal" data-field="amount" value="${escapeHtml(String(e.amount))}" /></label>
@@ -3027,7 +3493,7 @@ function renderExpenses() {
         <option value="weekly" ${e.cadence === "weekly" ? "selected" : ""}>${escapeHtml(t("cadence_w"))}</option>
         <option value="monthly" ${e.cadence === "monthly" ? "selected" : ""}>${escapeHtml(t("cadence_m"))}</option>
       </select></label>
-      <button type="button" class="row-remove" data-remove-expense="${e.id}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
+      <button type="button" class="row-remove" data-remove-expense="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
     </div>
   `
     )
@@ -3070,7 +3536,7 @@ function renderGoals() {
     <div class="goal-row" data-id="${escapeHtml(g.id)}">
       <label>${escapeHtml(t("goal_name"))}<input type="text" data-field="label" value="${escapeHtml(g.label)}" /></label>
       <label>${escapeHtml(t("goal_target"))}<input type="text" inputmode="decimal" data-field="targetAmount" value="${escapeHtml(String(g.targetAmount))}" /></label>
-      <label>${escapeHtml(t("goal_months"))}<input type="number" min="1" max="240" step="1" data-field="months" value="${g.months}" /></label>
+      <label>${escapeHtml(t("goal_months"))}<input type="number" min="1" max="240" step="1" data-field="months" value="${escapeHtml(String(g.months))}" /></label>
       <div class="goal-apart" title="${escapeHtml(t("goal_apart_title"))}">
         <span class="goal-apart-hint">${escapeHtml(t("goal_apart_hint"))}</span>
         <strong>${fmtMoney(per)}</strong>
@@ -3125,11 +3591,14 @@ function buildSubReminderLine(s, now = new Date()) {
 
 function syncUtilityRowFromDom(rowEl, bill) {
   const labelInp = rowEl.querySelector('[data-field="label"]');
-  if (labelInp) bill.label = labelInp.value;
+  if (labelInp) {
+    bill.label = labelInp.value;
+    delete bill.labelKey;
+  }
   const cat = rowEl.querySelector('[data-field="categoryKey"]');
   if (cat) bill.categoryKey = UTILITY_CATEGORY_KEYS.includes(cat.value) ? cat.value : "other";
   const amt = rowEl.querySelector('[data-field="amount"]');
-  if (amt) bill.amount = coerceParsedNumber(amt.value);
+  if (amt) bill.amount = Math.max(0, coerceParsedNumber(amt.value));
   const dt = rowEl.querySelector('[data-field="date"]');
   if (dt) bill.date = sanitizeISODate(dt.value);
   const dm = rowEl.querySelector('[data-field="dayOfMonth"]');
@@ -3149,7 +3618,7 @@ function syncSubRowFromDom(rowEl, s) {
   const cu = rowEl.querySelector('[data-field="customUnsubUrl"]');
   if (cu) s.customUnsubUrl = cu.value.trim();
   const amt = rowEl.querySelector('[data-field="amount"]');
-  if (amt) s.amount = coerceParsedNumber(amt.value);
+  if (amt) s.amount = Math.max(0, coerceParsedNumber(amt.value));
   const cad = rowEl.querySelector('[data-field="cadence"]');
   if (cad) s.cadence = normalizeSubscriptionCadence(cad.value);
   const dm = rowEl.querySelector('[data-field="dayOfMonth"]');
@@ -3175,7 +3644,7 @@ function updatePostDashSummaries() {
     else {
       const cat = utilityCategoryLabel(u.categoryKey);
       const note = u.label ? ` — ${escapeHtml(u.label)}` : "";
-      uEl.innerHTML = `<strong>${escapeHtml(t("utility_last_label"))}</strong> ${escapeHtml(cat)}${note} · <strong>${escapeHtml(fmtMoney(u.amount))}</strong> · ${escapeHtml(u.date)}`;
+      uEl.innerHTML = `<strong>${escapeHtml(t("utility_last_label"))}</strong> ${escapeHtml(cat)}${note} · <strong>${escapeHtml(fmtMoney(u.amount))}</strong> · ${escapeHtml(String(u.date || ""))}`;
     }
   }
   if (sEl) {
@@ -3299,7 +3768,7 @@ function renderDebts() {
   els.debtList.innerHTML = state.debts
     .map(
       (d) => `
-    <div class="debt-row" data-id="${d.id}">
+    <div class="debt-row" data-id="${escapeHtml(d.id)}">
       <label>${escapeHtml(t("debt_type"))}<select data-field="debtType">
         <option value="card" ${d.debtType === "card" ? "selected" : ""}>${escapeHtml(t("debt_type_card"))}</option>
         <option value="other" ${d.debtType === "other" ? "selected" : ""}>${escapeHtml(t("debt_type_other"))}</option>
@@ -3307,7 +3776,7 @@ function renderDebts() {
       <label>${escapeHtml(t("debt_label"))}<input type="text" data-field="label" value="${escapeHtml(d.label)}" /></label>
       <label>${escapeHtml(t("debt_balance"))}<input type="text" inputmode="decimal" data-field="balance" value="${escapeHtml(String(d.balance))}" /></label>
       <label>${escapeHtml(t("debt_min"))}<input type="text" inputmode="decimal" data-field="minPayment" value="${escapeHtml(String(d.minPayment))}" /></label>
-      <button type="button" class="row-remove" data-remove-debt="${d.id}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
+      <button type="button" class="row-remove" data-remove-debt="${escapeHtml(d.id)}" aria-label="${escapeHtml(t("remove_aria"))}">×</button>
     </div>
   `
     )
@@ -3574,6 +4043,7 @@ function bootComfortLedger() {
   document.documentElement.lang = UI_LOCALE === "zh" ? "zh-Hans" : UI_LOCALE === "en" ? "en" : "es";
   document.body.classList.toggle("lang-zh", UI_LOCALE === "zh");
   document.title = t("page_title");
+  wireComfortStrictDialogs();
   const metaDesc = document.querySelector('meta[name="description"]');
   if (metaDesc) metaDesc.setAttribute("content", t("meta_description"));
   applyStaticI18n();
@@ -3612,9 +4082,135 @@ function bootComfortLedger() {
 
 async function comfortEntry() {
   UI_LOCALE = loadLocale();
+  if (typeof window.comfortStorageInit === "function") {
+    await window.comfortStorageInit();
+  }
+
+  if (comfortLedgerUrlDemoBootstrap()) {
+    state = comfortLedgerDemoSampleState();
+  } else {
+    state = hydrateStateFromStorageRaw(
+      typeof window.__COMFORT_STATE_RAW_PENDING === "string" ? window.__COMFORT_STATE_RAW_PENDING : ""
+    );
+  }
+
+  comfortThemeInitFromStorage();
+
   await initComfortHostedMode();
   bootComfortLedger();
   installGlobalEscapeHandler();
+}
+
+function comfortThemeEffectiveMode() {
+  const stored =
+    typeof window.__COMFORT_THEME_STORED === "string" ? window.__COMFORT_THEME_STORED : "dark";
+  if (stored === "auto") {
+    if (typeof matchMedia !== "function") return "dark";
+    return matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  return stored === "light" ? "light" : "dark";
+}
+
+function comfortThemeApplyFromStorage() {
+  const root = document.documentElement;
+  const stored =
+    typeof window.__COMFORT_THEME_STORED === "string"
+      ? window.__COMFORT_THEME_STORED
+      : typeof loadComfortStoredThemePreference === "function"
+        ? loadComfortStoredThemePreference()
+        : "dark";
+  window.__COMFORT_THEME_STORED = stored;
+  const palette = comfortThemeEffectiveMode() === "light" ? "light" : "dark";
+  root.setAttribute("data-theme", palette);
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    const light = "#e8eef5";
+    const dark = "#121212";
+    meta.setAttribute("content", comfortThemeEffectiveMode() === "light" ? light : dark);
+  }
+
+  document.querySelectorAll("[data-theme-value]").forEach((btn) => {
+    const v = btn.getAttribute("data-theme-value");
+    if (!v) return;
+    btn.setAttribute("aria-pressed", v === stored ? "true" : "false");
+  });
+}
+
+function loadComfortStoredThemePreference() {
+  try {
+    const v = localStorage.getItem(COMFORT_THEME_KEY);
+    return v === "light" || v === "dark" || v === "auto" ? v : "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+function persistComfortThemePreference(mode) {
+  window.__COMFORT_THEME_STORED = mode;
+  try {
+    localStorage.setItem(COMFORT_THEME_KEY, mode);
+  } catch {
+    /* ignore */
+  }
+  comfortThemeApplyFromStorage();
+}
+
+function comfortThemeInitFromStorage() {
+  window.__COMFORT_THEME_STORED = loadComfortStoredThemePreference();
+  comfortThemeApplyFromStorage();
+
+  document.querySelectorAll("[data-theme-value]").forEach((btn) => {
+    const v = btn.getAttribute("data-theme-value");
+    if (!v || btn.dataset.themeWired === "1") return;
+    btn.dataset.themeWired = "1";
+    btn.addEventListener("click", () => persistComfortThemePreference(v));
+    btn.addEventListener("keydown", (ev) => {
+      if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+      ev.preventDefault();
+      const wrap = btn.closest('[role="radiogroup"]');
+      const opts = wrap ? [...wrap.querySelectorAll("[data-theme-value]")] : [];
+      const i = opts.indexOf(btn);
+      const nextIdx = ev.key === "ArrowRight" ? Math.min(opts.length - 1, i + 1) : Math.max(0, i - 1);
+      opts[nextIdx]?.focus?.();
+    });
+    btn.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        persistComfortThemePreference(v);
+      }
+    });
+  });
+
+  try {
+    if (typeof window.matchMedia === "function" && typeof window.MediaQueryList === "function") {
+      window
+        .matchMedia("(prefers-color-scheme: light)")
+        .addEventListener("change", () => {
+          const s = typeof window.__COMFORT_THEME_STORED === "string" ? window.__COMFORT_THEME_STORED : "dark";
+          if (s === "auto") comfortThemeApplyFromStorage();
+        });
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function wireComfortStrictDialogs() {
+  const block = ["comfortOnboardingGate", "comfortBetaLogin"];
+  for (const id of block) {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.comfortDialogGuard === "1") continue;
+    if (typeof el.showModal !== "function") continue;
+    el.dataset.comfortDialogGuard = "1";
+    el.addEventListener(
+      "cancel",
+      function (event) {
+        event.preventDefault();
+      },
+      { passive: false }
+    );
+  }
 }
 
 function installGlobalEscapeHandler() {
@@ -3622,13 +4218,13 @@ function installGlobalEscapeHandler() {
   window.__COMFORT_ESC_INSTALLED = true;
   document.addEventListener("keydown", function (event) {
     if (event.key !== "Escape") return;
-    const overlays = Array.from(document.querySelectorAll(".comfort-beta-overlay"));
-    for (let i = overlays.length - 1; i >= 0; i--) {
-      const node = overlays[i];
-      if (node.classList.contains("comfort-beta-overlay--hidden")) continue;
-      if (node.getAttribute("data-dismissible") !== "true") continue;
-      node.classList.add("comfort-beta-overlay--hidden");
-      node.setAttribute("aria-hidden", "true");
+    const dialogs = Array.from(
+      document.querySelectorAll('dialog[data-comfort-dismissible="true"]')
+    );
+    for (let i = dialogs.length - 1; i >= 0; i--) {
+      const node = dialogs[i];
+      if (!(node instanceof HTMLDialogElement) || !node.open) continue;
+      comfortRunViewTransition(() => comfortOverlayDismiss(node));
       event.preventDefault();
       return;
     }

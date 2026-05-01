@@ -1,8 +1,12 @@
 /* Comfort Ledger — service worker (caché PWA + clic en notificaciones) */
-const CACHE_NAME = "comfort-ledger-v31";
+/* Bump CACHE_NAME cada deploy: RELEASE_HASH=… npm run patch-sw-cache (comfort-ledger/scripts/patch-sw-cache.cjs). */
+const CACHE_NAME = "comfort-ledger-v44";
 const APP_SHELL = "./COMFORT-LEDGER-abrir-aqui.html";
 const PRECACHE = [
   APP_SHELL,
+  "./comfort-ledger-critical.css",
+  "./comfort-ledger-charts.css",
+  "./comfort-ledger-animations.css",
   "./comfort-ledger-core.js",
   "./comfort-ledger-onboarding.js",
   "./comfort-ledger-reminders.js",
@@ -14,6 +18,7 @@ const PRECACHE = [
   "./comfort-ledger-bindings.js",
   "./comfort-ledger-pwa.js",
   "./comfort-ledger.webmanifest",
+  "./branding/comfort-ledger-nav-icon.webp",
   "./branding/comfort-ledger-nav-icon.png",
   "./pwa-icons/icon-192.png",
   "./pwa-icons/icon-512.png"
@@ -40,6 +45,22 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+function safeOpenUrl(raw) {
+  const fallback = new URL("./COMFORT-LEDGER-abrir-aqui.html", self.location.href).pathname;
+  const s = String(raw || "").trim();
+  if (!s) return fallback;
+  try {
+    const u = new URL(s, self.location.href);
+    const p = (u.protocol || "").toLowerCase();
+    if (p === "javascript:" || p === "data:" || p === "vbscript:") return fallback;
+    if (u.origin === self.location.origin) return u.pathname + u.search + u.hash;
+    if (p === "https:") return u.href;
+  } catch {
+    /* ignore */
+  }
+  return fallback;
+}
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -53,7 +74,7 @@ self.addEventListener("push", (event) => {
   }
   const title = String(data.title || "Comfort Ledger");
   const body = String(data.body || "");
-  const url = String(data.url || "/app");
+  const url = safeOpenUrl(data.url);
   const tag = String(data.tag || "comfort-reminder");
   const options = {
     body,
@@ -83,25 +104,28 @@ self.addEventListener("pushsubscriptionchange", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data && event.notification.data.url;
-  if (!url || !clients.openWindow) return;
+  const raw = event.notification.data && event.notification.data.url;
+  if (!raw || !clients.openWindow) return;
   event.waitUntil(
     (async () => {
       let target;
       try {
-        target = new URL(url, self.location.href);
+        target = new URL(String(raw), self.location.href);
       } catch {
-        return clients.openWindow(url);
+        return undefined;
       }
+      if (target.protocol === "javascript:" || target.protocol === "data:") return undefined;
+      const href = target.href;
       const ext = target.origin !== self.location.origin;
       if (ext) {
-        return clients.openWindow(url);
+        if (target.protocol !== "https:") return undefined;
+        return clients.openWindow(href);
       }
       const windowClients = await clients.matchAll({ type: "window", includeUncontrolled: true });
       for (const client of windowClients) {
         if ("navigate" in client && typeof client.navigate === "function") {
           try {
-            await client.navigate(url);
+            await client.navigate(href);
             if ("focus" in client) return client.focus();
             return undefined;
           } catch {
@@ -110,7 +134,7 @@ self.addEventListener("notificationclick", (event) => {
         }
         if ("focus" in client) return client.focus();
       }
-      return clients.openWindow(url);
+      return clients.openWindow(href);
     })()
   );
 });
