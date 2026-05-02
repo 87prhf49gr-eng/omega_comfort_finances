@@ -1671,7 +1671,8 @@ function sendJson(res, status, payload, extraHeaders = {}, isHead = false) {
   res.end(body);
 }
 
-function comfortCsp() {
+function comfortCsp(sameOriginEmbed = false) {
+  const frameAncestors = sameOriginEmbed ? "'self'" : "'none'";
   return [
     "default-src 'self'",
     "script-src 'self'",
@@ -1683,19 +1684,20 @@ function comfortCsp() {
     "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
-    "frame-ancestors 'none'",
+    `frame-ancestors ${frameAncestors}`,
     "form-action 'self'"
   ].join("; ");
 }
 
-function createHeaders(contentType, extra = {}) {
+function createHeaders(contentType, extra = {}, framing = {}) {
+  const sameOriginIframe = Boolean(framing.sameOriginIframe);
   const headers = {
     "Content-Type": contentType,
-    "Content-Security-Policy": comfortCsp(),
+    "Content-Security-Policy": comfortCsp(sameOriginIframe),
     "Cross-Origin-Opener-Policy": "same-origin",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Content-Type-Options": "nosniff",
-    "X-Frame-Options": "DENY",
+    "X-Frame-Options": sameOriginIframe ? "SAMEORIGIN" : "DENY",
     ...extra
   };
   if (IS_PRODUCTION) {
@@ -1780,6 +1782,16 @@ function safeStaticPath(pathname) {
   return candidate;
 }
 
+function wantsComfortLandingEmbed(req) {
+  if (!req) return false;
+  try {
+    const u = new URL(req.url || "/", "http://localhost");
+    return u.searchParams.get("embed") === "1";
+  } catch {
+    return false;
+  }
+}
+
 function serveComfortStatic(pathname, res, isHead, req) {
   const filePath = safeStaticPath(pathname);
   if (!filePath) {
@@ -1803,7 +1815,11 @@ function serveComfortStatic(pathname, res, isHead, req) {
   if (extension === ".html" && req) {
     data = rewriteLandingHtmlAbsoluteUrls(data, filePath, req);
   }
-  res.writeHead(200, createHeaders(contentType, { "Cache-Control": cacheControl }));
+  const framing =
+    basename === "COMFORT-LEDGER-abrir-aqui.html" && wantsComfortLandingEmbed(req)
+      ? { sameOriginIframe: true }
+      : {};
+  res.writeHead(200, createHeaders(contentType, { "Cache-Control": cacheControl }, framing));
   if (isHead) {
     res.end();
     return;
