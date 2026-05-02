@@ -443,6 +443,151 @@ body.lang-zh .dash-tactical-title {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
+/* Trial countdown pill — amber/warning tone */
+.pill-trust--trial {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+:root[data-theme="light"] .pill-trust--trial {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(202, 138, 4, 0.4);
+  color: #92400e;
+}
+
+/* ── Onboarding step progress bar ── */
+.onboarding-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+}
+.onboarding-progress-steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+.onboarding-step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.25);
+  border: 1.5px solid rgba(148, 163, 184, 0.35);
+  transition: background 0.25s, border-color 0.25s;
+}
+.onboarding-step-dot.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(45, 212, 191, 0.4);
+}
+.onboarding-step-dot.done {
+  background: rgba(45, 212, 191, 0.55);
+  border-color: rgba(45, 212, 191, 0.7);
+}
+.onboarding-step-line {
+  width: 28px;
+  height: 1.5px;
+  background: rgba(148, 163, 184, 0.2);
+  transition: background 0.25s;
+}
+.onboarding-step-line.done {
+  background: rgba(45, 212, 191, 0.45);
+}
+.onboarding-progress-label {
+  font-size: 0.72rem;
+  color: var(--text-soft);
+  letter-spacing: 0.03em;
+}
+
+/* Step group visibility — JS sets data-onboarding-step on the form */
+.onboarding-step-group { display: none; }
+.onboarding-step-group.active { display: block; }
+
+/* ── Post-onboarding welcome card ── */
+.comfort-welcome-card {
+  max-width: 420px;
+}
+.welcome-tips {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.welcome-tips li {
+  padding: 10px 14px;
+  background: rgba(45, 212, 191, 0.06);
+  border: 1px solid rgba(45, 212, 191, 0.15);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+.welcome-tips li strong {
+  color: var(--accent);
+}
+
+/* ── Coach side-by-side examples ── */
+.coach-example-compare {
+  margin: 14px 0 0;
+  padding: 14px;
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 12px;
+}
+:root[data-theme="light"] .coach-example-compare {
+  background: rgba(248, 250, 252, 0.7);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+.coach-example-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin: 0 0 10px;
+}
+.coach-example-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 520px) {
+  .coach-example-grid { grid-template-columns: 1fr; }
+}
+.coach-example-card {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(148, 163, 184, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+.coach-example-card--ai {
+  background: rgba(45, 212, 191, 0.06);
+  border-color: rgba(45, 212, 191, 0.2);
+}
+.coach-example-mode {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+  margin: 0 0 6px;
+}
+.coach-example-card--ai .coach-example-mode {
+  color: var(--accent);
+}
+.coach-example-text {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--text);
+  border: none;
+  padding: 0;
+  font-style: italic;
+}
+
 .backup-toolbar {
   display: flex;
   flex-wrap: wrap;

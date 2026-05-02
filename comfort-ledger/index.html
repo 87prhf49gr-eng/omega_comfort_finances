@@ -496,6 +496,78 @@
       .bento-wide { grid-column: span 1; }
     }
 
+    /* ── Bento card 6: Informe táctico mockup ── */
+    .report-mockup {
+      margin-top: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 14px 12px;
+      font-size: 0.72rem;
+      letter-spacing: 0;
+      user-select: none;
+      pointer-events: none;
+    }
+    .report-mockup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .report-mockup-title {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--text-soft);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    .report-badge {
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(62, 207, 142, 0.15);
+      color: #3ecf8e;
+      border: 1px solid rgba(62, 207, 142, 0.3);
+    }
+    .report-rows { display: flex; flex-direction: column; gap: 7px; }
+    .report-row { display: flex; flex-direction: column; gap: 3px; }
+    .report-row-label {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-soft);
+      font-size: 0.67rem;
+    }
+    .report-row-label span:last-child { color: var(--text); font-weight: 500; }
+    .report-bar-track {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .report-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: width 0.3s;
+    }
+    .report-bar-fill--green  { background: #3ecf8e; }
+    .report-bar-fill--amber  { background: #f59e0b; }
+    .report-bar-fill--red    { background: #f4729a; }
+    .report-divider {
+      height: 1px;
+      background: var(--line);
+      margin: 8px 0;
+    }
+    .report-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.65rem;
+      color: var(--text-soft);
+    }
+    .report-footer-amount { font-weight: 600; color: var(--text); font-size: 0.72rem; }
+
     .steps {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -1436,6 +1508,51 @@
             <h3>Coach que entiende tu mes</h3>
             <p>Por defecto es 100% local: reglas + tus cifras, sin salir del navegador. Si activas el modo nube, la consulta se envía a OpenAI — tú decides cuándo.</p>
           </div>
+          <div class="bento-card bento-wide">
+            <h3>Informe táctico del mes</h3>
+            <p>Una línea por categoría, porcentaje sobre el ingreso y barra visual. Al instante ves dónde va tu dinero — sin hojas de cálculo.</p>
+            <div class="report-mockup" aria-hidden="true">
+              <div class="report-mockup-header">
+                <span class="report-mockup-title">Mayo · resumen ejecutivo</span>
+                <span class="report-badge">Zona de confort</span>
+              </div>
+              <div class="report-rows">
+                <div class="report-row">
+                  <div class="report-row-label">
+                    <span>Vivienda &amp; servicios</span>
+                    <span>32 % · $9 600</span>
+                  </div>
+                  <div class="report-bar-track"><div class="report-bar-fill report-bar-fill--green" style="width:32%"></div></div>
+                </div>
+                <div class="report-row">
+                  <div class="report-row-label">
+                    <span>Suscripciones</span>
+                    <span>8 % · $2 400</span>
+                  </div>
+                  <div class="report-bar-track"><div class="report-bar-fill report-bar-fill--amber" style="width:8%"></div></div>
+                </div>
+                <div class="report-row">
+                  <div class="report-row-label">
+                    <span>Deuda activa</span>
+                    <span>18 % · $5 400</span>
+                  </div>
+                  <div class="report-bar-track"><div class="report-bar-fill report-bar-fill--red" style="width:18%"></div></div>
+                </div>
+                <div class="report-row">
+                  <div class="report-row-label">
+                    <span>Metas de ahorro</span>
+                    <span>12 % · $3 600</span>
+                  </div>
+                  <div class="report-bar-track"><div class="report-bar-fill report-bar-fill--green" style="width:12%"></div></div>
+                </div>
+              </div>
+              <div class="report-divider"></div>
+              <div class="report-footer">
+                <span>Margen libre estimado</span>
+                <span class="report-footer-amount">30 % · $9 000</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -1501,6 +1618,42 @@
               No quiero enlazar mi banco; esto respeta ese límite y aun así me da claridad cada mes.
             </blockquote>
             <cite>— Jorge R., nómina</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              El coach me preguntó cómo iba este mes y en dos líneas me di cuenta de que las suscripciones me comían el 30% del ingreso. Llevaba un año sin notarlo.
+            </blockquote>
+            <cite>— Valentina S., diseñadora UX</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              Usé una hoja de cálculo durante años. Comfort Ledger hace lo mismo pero no tengo que actualizar fórmulas cada mes. Lo tengo listo en diez minutos.
+            </blockquote>
+            <cite>— Rodrigo T., ingeniería</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              Soy freelance con ingresos variables. El panel de metas me ayuda a apartar dinero para impuestos sin que se me olvide cada trimestre.
+            </blockquote>
+            <cite>— Pilar G., consultora</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              Me convenció que todo quede en mi dispositivo. Con otras apps siempre tuve miedo de qué hacen con mis datos de gasto. Aquí no hay esa duda.
+            </blockquote>
+            <cite>— Andrés F., estudiante de posgrado</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              Lo usé tres meses y por primera vez vi que sí puedo tener un colchón de emergencia. El resumen de salud me motivó más que cualquier app de presupuesto.
+            </blockquote>
+            <cite>— Lucía H., nómina · familia</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              Me gusta que no me juzga. Registro lo que gasté, veo los números y decido yo. El coach da contexto pero la decisión siempre es mía.
+            </blockquote>
+            <cite>— Marco A., emprendedor</cite>
           </li>
         </ul>
       </div>

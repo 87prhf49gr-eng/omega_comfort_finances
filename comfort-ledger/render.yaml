@@ -1,0 +1,74 @@
+services:
+  - type: web
+    name: comfort-ledger
+    runtime: node
+    rootDir: comfort-ledger-beta
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    disk:
+      name: comfort-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      # ── Obligatorias ─────────────────────────────────────────────
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "8787"
+      - key: COMFORT_SESSION_SECRET
+        sync: false          # rellena en el panel de Render
+      - key: COMFORT_DATA_DIR
+        value: /var/data
+
+      # ── Acceso ────────────────────────────────────────────────────
+      - key: COMFORT_ACCESS_MODE
+        value: beta          # beta | onboarding | hybrid
+      - key: COMFORT_REQUIRE_BETA_LOGIN
+        value: "true"
+      - key: COMFORT_LANDING_DEMO_MINUTES
+        value: "10"
+
+      # ── OpenAI coach (opcional) ───────────────────────────────────
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENAI_COACH_MAX_TOKENS
+        value: "450"
+
+      # ── LemonSqueezy billing (opcional) ──────────────────────────
+      - key: LEMONSQUEEZY_API_KEY
+        sync: false
+      - key: LEMONSQUEEZY_STORE_ID
+        sync: false
+      - key: LEMONSQUEEZY_VARIANT_MONTHLY
+        sync: false
+      - key: LEMONSQUEEZY_VARIANT_ANNUAL
+        sync: false
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false
+      - key: COMFORT_PUBLIC_PURCHASE
+        value: "false"
+      - key: COMFORT_CHECKOUT_REDIRECT_URL
+        sync: false
+
+      # ── Web Push VAPID (opcional) ─────────────────────────────────
+      - key: COMFORT_VAPID_PUBLIC_KEY
+        sync: false
+      - key: COMFORT_VAPID_PRIVATE_KEY
+        sync: false
+      - key: COMFORT_VAPID_SUBJECT
+        value: mailto:support@comfortledger.app
+
+      # ── Misc ──────────────────────────────────────────────────────
+      - key: COMFORT_SUPPORT_EMAIL
+        value: support@comfortledger.app
+      - key: COMFORT_PUBLIC_ORIGIN
+        sync: false          # ej: https://comfortledger.onrender.com
+      - key: COMFORT_SUBSCRIBE_URL
+        sync: false
+      - key: COMFORT_RATE_WAITLIST_MAX
+        value: "1"
+      - key: COMFORT_RATE_AI_COACH_HOURLY_MAX
+        value: "5"

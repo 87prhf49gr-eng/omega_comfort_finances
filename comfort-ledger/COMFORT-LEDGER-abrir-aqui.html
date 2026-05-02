@@ -30,57 +30,78 @@
     <div class="comfort-beta-card">
       <h2 id="comfortOnboardingTitle" data-i18n="onboarding_title">Welcome to Comfort Ledger</h2>
       <p class="beta-lede" data-i18n-html="onboarding_intro_html">Leave your name and how you want to use the app. We keep it on this device so you can come back straight in.</p>
-      <p class="comfort-beta-note" data-i18n="onboarding_saved_note">Saved on this device.</p>
+      <!-- Onboarding progress indicator -->
+      <div class="onboarding-progress" id="comfortOnboardingProgress" aria-hidden="true">
+        <div class="onboarding-progress-steps">
+          <span class="onboarding-step-dot active" data-step="1"></span>
+          <span class="onboarding-step-line"></span>
+          <span class="onboarding-step-dot" data-step="2"></span>
+          <span class="onboarding-step-line"></span>
+          <span class="onboarding-step-dot" data-step="3"></span>
+        </div>
+        <span class="onboarding-progress-label" id="comfortOnboardingStepLabel" data-i18n="onboarding_step_1_of_3">Paso 1 de 3 · ~1 min</span>
+      </div>
       <form id="comfortOnboardingForm" autocomplete="on">
-        <div class="comfort-beta-field">
-          <label for="comfortOnboardingName" data-i18n="onboarding_name">Name</label>
-          <input id="comfortOnboardingName" name="displayName" autocomplete="name" required />
+        <!-- Step 1: Identity -->
+        <div class="onboarding-step-group" data-onboarding-group="1">
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingName" data-i18n="onboarding_name">Name</label>
+            <input id="comfortOnboardingName" name="displayName" autocomplete="name" required />
+          </div>
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingEmail" data-i18n="onboarding_email">Email</label>
+            <input id="comfortOnboardingEmail" name="email" type="email" autocomplete="email" />
+          </div>
         </div>
-        <div class="comfort-beta-field">
-          <label for="comfortOnboardingEmail" data-i18n="onboarding_email">Email</label>
-          <input id="comfortOnboardingEmail" name="email" type="email" autocomplete="email" />
+        <!-- Step 2: Focus & lifestyle -->
+        <div class="onboarding-step-group" data-onboarding-group="2">
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingFocus" data-i18n="onboarding_focus">What do you want to organize first?</label>
+            <textarea
+              id="comfortOnboardingFocus"
+              name="focus"
+              data-i18n-attr="placeholder|onboarding_focus_placeholder"
+              placeholder="Example: subscriptions, card debt, monthly cash flow."
+            ></textarea>
+          </div>
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingLifestyle" data-i18n="onboarding_lifestyle">Tu situación principal</label>
+            <select id="comfortOnboardingLifestyle" name="lifestyle">
+              <option value="payroll" data-i18n="onboarding_lifestyle_payroll">Nómina</option>
+              <option value="freelance" data-i18n="onboarding_lifestyle_freelance">Freelance</option>
+              <option value="family" data-i18n="onboarding_lifestyle_family">Familia</option>
+              <option value="student" data-i18n="onboarding_lifestyle_student">Estudiante</option>
+              <option value="simple" data-i18n="onboarding_lifestyle_simple">Solo orden rápido</option>
+            </select>
+          </div>
         </div>
-        <div class="comfort-beta-field">
-          <label for="comfortOnboardingFocus" data-i18n="onboarding_focus">What do you want to organize first?</label>
-          <textarea
-            id="comfortOnboardingFocus"
-            name="focus"
-            data-i18n-attr="placeholder|onboarding_focus_placeholder"
-            placeholder="Example: subscriptions, card debt, monthly cash flow."
-          ></textarea>
-        </div>
-        <div class="comfort-beta-field">
-          <label for="comfortOnboardingLifestyle" data-i18n="onboarding_lifestyle">Tu situación principal</label>
-          <select id="comfortOnboardingLifestyle" name="lifestyle">
-            <option value="payroll" data-i18n="onboarding_lifestyle_payroll">Nómina</option>
-            <option value="freelance" data-i18n="onboarding_lifestyle_freelance">Freelance</option>
-            <option value="family" data-i18n="onboarding_lifestyle_family">Familia</option>
-            <option value="student" data-i18n="onboarding_lifestyle_student">Estudiante</option>
-            <option value="simple" data-i18n="onboarding_lifestyle_simple">Solo orden rápido</option>
-          </select>
-        </div>
-        <div class="comfort-beta-field">
-          <label for="comfortOnboardingCurrency" data-i18n="onboarding_currency">Display currency</label>
-          <select id="comfortOnboardingCurrency" name="currency">
-            <option value="" data-i18n="onboarding_currency_auto">Automatic (browser locale)</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="GBP">GBP</option>
-            <option value="MXN">MXN</option>
-            <option value="ARS">ARS</option>
-            <option value="COP">COP</option>
-            <option value="CLP">CLP</option>
-            <option value="BRL">BRL</option>
-            <option value="CAD">CAD</option>
-            <option value="JPY">JPY</option>
-            <option value="CNY">CNY</option>
-            <option value="CHF">CHF</option>
-            <option value="PEN">PEN</option>
-          </select>
+        <!-- Step 3: Currency -->
+        <div class="onboarding-step-group" data-onboarding-group="3">
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingCurrency" data-i18n="onboarding_currency">Display currency</label>
+            <select id="comfortOnboardingCurrency" name="currency">
+              <option value="" data-i18n="onboarding_currency_auto">Automatic (browser locale)</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="MXN">MXN</option>
+              <option value="ARS">ARS</option>
+              <option value="COP">COP</option>
+              <option value="CLP">CLP</option>
+              <option value="BRL">BRL</option>
+              <option value="CAD">CAD</option>
+              <option value="JPY">JPY</option>
+              <option value="CNY">CNY</option>
+              <option value="CHF">CHF</option>
+              <option value="PEN">PEN</option>
+            </select>
+          </div>
         </div>
         <p id="comfortOnboardingErr" class="comfort-beta-err" hidden></p>
         <div class="comfort-beta-actions">
-          <button type="submit" class="btn-coach" data-i18n="onboarding_submit">Continue</button>
+          <button type="button" class="btn-coach" id="comfortOnboardingNext" data-i18n="onboarding_next">Siguiente</button>
+          <button type="submit" class="btn-coach" id="comfortOnboardingSubmit" data-i18n="onboarding_submit" hidden>Continue</button>
+          <button type="button" class="btn-ghost" id="comfortOnboardingBack" data-i18n="onboarding_back" hidden>Atrás</button>
           <button type="button" class="btn-ghost" id="comfortOnboardingCancel" data-i18n="onboarding_cancel" hidden>
             Cancel
           </button>
@@ -176,6 +197,21 @@
           </label>
         </fieldset>
 
+        <!-- Side-by-side response examples -->
+        <div class="coach-example-compare">
+          <p class="coach-example-label" data-i18n="coach_example_label">Ejemplo de respuesta a la misma pregunta:</p>
+          <div class="coach-example-grid">
+            <div class="coach-example-card">
+              <p class="coach-example-mode" data-i18n="coach_example_mode_local">⚡ Local</p>
+              <blockquote class="coach-example-text" data-i18n="coach_example_local_text">Tu gasto (85% del ingreso) supera la zona de confort. Recomiendo revisar suscripciones y mover el remanente a tu meta de ahorro.</blockquote>
+            </div>
+            <div class="coach-example-card coach-example-card--ai">
+              <p class="coach-example-mode" data-i18n="coach_example_mode_ai">✨ OpenAI</p>
+              <blockquote class="coach-example-text" data-i18n="coach_example_ai_text">Veo que este mes gastas MXN 12,400 vs. MXN 14,600 de ingreso — te quedan ~MXN 2,200 libres. ¿Quieres que proyecte cuántos meses tardarías en alcanzar tu meta de vacaciones apartando ese remanente?</blockquote>
+            </div>
+          </div>
+        </div>
+
         <div class="coach-openai-setup" id="coachOpenAISetup" hidden>
           <label class="comfort-beta-field">
             <span data-i18n="coach_openai_key_label">Tu API key de OpenAI</span>
@@ -211,6 +247,26 @@
           <button type="button" class="btn-ghost" id="coachSettingsCancel" data-i18n="coach_settings_close">Cerrar</button>
         </div>
       </form>
+    </div>
+  </dialog>
+  <!-- Post-onboarding welcome modal — shown once after first-time setup -->
+  <dialog
+    id="comfortWelcomeModal"
+    class="comfort-beta-overlay-shell"
+    aria-labelledby="comfortWelcomeTitle"
+    data-comfort-dismissible="true"
+  >
+    <div class="comfort-beta-card comfort-welcome-card">
+      <h2 id="comfortWelcomeTitle" data-i18n="welcome_title">¡Todo listo!</h2>
+      <p class="beta-lede" id="comfortWelcomeIntro" data-i18n="welcome_intro">Tu perfil quedó guardado en este dispositivo.</p>
+      <ul class="welcome-tips">
+        <li data-i18n-html="welcome_tip1_html"><strong>Ingreso primero:</strong> Registra tu salario o cobros para que los cálculos de salud sean precisos.</li>
+        <li data-i18n-html="welcome_tip2_html"><strong>Coach financiero:</strong> Pregunta "¿cómo voy este mes?" cuando quieras un análisis rápido de tu situación.</li>
+        <li data-i18n-html="welcome_tip3_html"><strong>Todo local:</strong> Tu información nunca sale de este dispositivo. Exporta respaldo cuando quieras.</li>
+      </ul>
+      <div class="comfort-beta-actions">
+        <button type="button" class="btn-coach" id="comfortWelcomeStart" data-i18n="welcome_start">Empezar →</button>
+      </div>
     </div>
   </dialog>
   <div id="comfortBetaDemoBar" class="comfort-beta-demo comfort-beta-demo--hidden" aria-live="polite"></div>
@@ -267,6 +323,7 @@
           <div class="trust-row">
             <span class="pill-trust" id="comfortTrustPillPrimary">100% local</span>
             <span class="pill-trust pill-trust--muted" id="comfortTrustPillSecondary">Sin conexión a red</span>
+            <span class="pill-trust pill-trust--trial" id="comfortTrialPill" hidden aria-live="polite"></span>
           </div>
           <div class="backup-toolbar">
             <button type="button" class="btn-ghost" id="comfortExportBtn" data-i18n="backup_export">

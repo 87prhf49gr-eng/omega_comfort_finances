@@ -8,6 +8,142 @@ function comfortVt(fn) {
   }
 }
 
+/**
+ * Wires up the multi-step onboarding form.
+ * Groups are controlled via data-onboarding-group attributes.
+ * When isEdit=true, shows all groups at once and hides multi-step UI.
+ * Returns a cleanup function.
+ */
+function wireOnboardingSteps(form, isEdit = false) {
+  if (!form || form.dataset.stepsWired) return () => {};
+  form.dataset.stepsWired = "1";
+
+  const groups = Array.from(form.querySelectorAll("[data-onboarding-group]"));
+  const totalSteps = groups.length;
+  let currentStep = 1;
+
+  const nextBtn = document.getElementById("comfortOnboardingNext");
+  const backBtn = document.getElementById("comfortOnboardingBack");
+  const submitBtn = document.getElementById("comfortOnboardingSubmit");
+  const stepLabel = document.getElementById("comfortOnboardingStepLabel");
+  const progressContainer = document.getElementById("comfortOnboardingProgress");
+  const dots = Array.from(document.querySelectorAll("#comfortOnboardingProgress .onboarding-step-dot"));
+  const lines = Array.from(document.querySelectorAll("#comfortOnboardingProgress .onboarding-step-line"));
+
+  // Edit mode: show all groups, hide multi-step UI
+  if (isEdit) {
+    groups.forEach((g) => g.classList.add("active"));
+    if (progressContainer) progressContainer.hidden = true;
+    if (nextBtn) nextBtn.hidden = true;
+    if (backBtn) backBtn.hidden = true;
+    if (submitBtn) submitBtn.hidden = false;
+    return function cleanup() {
+      delete form.dataset.stepsWired;
+    };
+  }
+
+  function applyStep(step) {
+    // Show/hide groups
+    groups.forEach((g) => {
+      const gStep = Number(g.dataset.onboardingGroup);
+      g.classList.toggle("active", gStep === step);
+    });
+    // Update dots
+    dots.forEach((dot, i) => {
+      const dotStep = i + 1;
+      dot.classList.toggle("active", dotStep === step);
+      dot.classList.toggle("done", dotStep < step);
+    });
+    // Update connector lines
+    lines.forEach((line, i) => {
+      line.classList.toggle("done", i + 1 < step);
+    });
+    // Update step label
+    if (stepLabel) {
+      const key = `onboarding_step_${step}_of_${totalSteps}`;
+      stepLabel.textContent = typeof t === "function" ? t(key) : `Step ${step} of ${totalSteps}`;
+    }
+    // Toggle next/back/submit buttons
+    if (nextBtn) nextBtn.hidden = step >= totalSteps;
+    if (backBtn) backBtn.hidden = step <= 1;
+    if (submitBtn) submitBtn.hidden = step < totalSteps;
+  }
+
+  const onNext = (ev) => {
+    ev.preventDefault();
+    // Validate current group's required fields
+    const activeGroup = groups.find((g) => Number(g.dataset.onboardingGroup) === currentStep);
+    if (activeGroup) {
+      const required = Array.from(activeGroup.querySelectorAll("[required]"));
+      const invalid = required.find((el) => !el.value.trim());
+      if (invalid) {
+        invalid.focus();
+        return;
+      }
+    }
+    if (currentStep < totalSteps) {
+      currentStep++;
+      applyStep(currentStep);
+      // Focus first input in new step
+      const newGroup = groups.find((g) => Number(g.dataset.onboardingGroup) === currentStep);
+      if (newGroup) {
+        const firstInput = newGroup.querySelector("input, select, textarea");
+        if (firstInput) firstInput.focus();
+      }
+    }
+  };
+
+  const onBack = (ev) => {
+    ev.preventDefault();
+    if (currentStep > 1) {
+      currentStep--;
+      applyStep(currentStep);
+    }
+  };
+
+  // Intercept Enter/submit on non-final steps — advance instead of submitting
+  const onSubmitIntercept = (ev) => {
+    if (currentStep < totalSteps) {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+      onNext(ev);
+    }
+  };
+
+  nextBtn?.addEventListener("click", onNext);
+  backBtn?.addEventListener("click", onBack);
+  form.addEventListener("submit", onSubmitIntercept, true); // capture phase
+
+  // Initialise on step 1
+  applyStep(1);
+
+  return function cleanup() {
+    delete form.dataset.stepsWired;
+    nextBtn?.removeEventListener("click", onNext);
+    backBtn?.removeEventListener("click", onBack);
+    form.removeEventListener("submit", onSubmitIntercept, true);
+  };
+}
+
+/**
+ * Fetches subscription status for the given email and shows the trial pill if on_trial.
+ */
+async function fetchAndShowTrialStatus(email) {
+  if (!email || !window.__COMFORT_HOSTED) return;
+  try {
+    const res = await fetch(`/api/subscription/status?email=${encodeURIComponent(email)}`, {
+      credentials: "include"
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && typeof window.showTrialCountdown === "function") {
+      window.showTrialCountdown(data.renewsAt || null, data.status || "");
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 async function showOnboardingUntilDone(existingProfile = null, opts = {}) {
   const offerBetaShortcut = Boolean(opts.offerBetaShortcut);
   const shell = document.getElementById("comfortOnboardingGate");
@@ -54,6 +190,10 @@ async function showOnboardingUntilDone(existingProfile = null, opts = {}) {
   applyStaticI18n();
   applyPaidOnboardingCopy();
 
+  // Wire multi-step progress (skip steps when editing existing profile)
+  const isEdit = !!profile;
+  const cleanupSteps = wireOnboardingSteps(form, isEdit);
+
   return new Promise((resolve) => {
     if (!form) {
       document.body.classList.remove("comfort--gate-active");
@@ -62,12 +202,14 @@ async function showOnboardingUntilDone(existingProfile = null, opts = {}) {
       return;
     }
 
+    const isFirstTime = !profile; // show welcome modal only for brand-new users
     let hybridBetaHandler = null;
 
     const detachListeners = () => {
       form.removeEventListener("submit", onSubmit);
       cancel?.removeEventListener("click", onCancel);
       if (hybridBtn && hybridBetaHandler) hybridBtn.removeEventListener("click", hybridBetaHandler);
+      cleanupSteps();
     };
 
     const dismissOverlayUi = () => {
@@ -136,6 +278,14 @@ async function showOnboardingUntilDone(existingProfile = null, opts = {}) {
         detachListeners();
         dismissOverlayUi();
         hideHybridRow();
+        // Show welcome modal on first-time onboarding
+        if (isFirstTime && typeof window.showWelcomeModal === "function") {
+          window.showWelcomeModal(savedProfile.displayName || "");
+        }
+        // Fetch subscription trial status (for trial pill in header)
+        if (savedProfile.email) {
+          void fetchAndShowTrialStatus(savedProfile.email);
+        }
         resolve(savedProfile);
       } catch (error) {
         if (err) {
@@ -410,6 +560,14 @@ async function initComfortHostedMode() {
       window.__COMFORT_SESSION_KIND = "";
       applyHostedCoachCopy();
       startLandingDemoCountdown(window.__COMFORT_LANDING_DEMO_MS);
+    }
+  }
+
+  // After session is established, show trial countdown pill if applicable
+  if (window.__COMFORT_SESSION_ACTIVE) {
+    const storedProfile = typeof getStoredProfile === "function" ? getStoredProfile() : null;
+    if (storedProfile?.email) {
+      void fetchAndShowTrialStatus(storedProfile.email);
     }
   }
 

@@ -14,6 +14,9 @@ window.__COMFORT_ACCESS_MODE = "onboarding";
 window.__COMFORT_SUBSCRIBE_URL = "";
 window.__COMFORT_DEMO_EXPIRES_AT = null;
 window.__COMFORT_SESSION_ACTIVE = false;
+/** Subscription trial tracking — set by onboarding.js after /api/subscription/status */
+window.__COMFORT_TRIAL_RENEWS_AT = null;
+window.__COMFORT_SUBSCRIPTION_STATUS = "";
 let comfortTrialEnded = false;
 let comfortDemoInterval = null;
 let comfortSessionPoll = null;
@@ -276,6 +279,70 @@ function wireTrialModal() {
   }
 }
 
+/**
+ * Shows (or hides) the trial countdown pill in the header trust-row.
+ * Call this after fetching /api/subscription/status.
+ * @param {string|null} renewsAt  — ISO date string when subscription renews/ends
+ * @param {string} status         — LemonSqueezy subscription status (on_trial, active, …)
+ */
+function showTrialCountdown(renewsAt, status) {
+  window.__COMFORT_TRIAL_RENEWS_AT = renewsAt || null;
+  window.__COMFORT_SUBSCRIPTION_STATUS = String(status || "");
+  const pill = document.getElementById("comfortTrialPill");
+  if (!pill) return;
+  const isOnTrial = String(status || "").toLowerCase() === "on_trial";
+  if (!isOnTrial || !renewsAt) {
+    pill.hidden = true;
+    return;
+  }
+  const end = new Date(renewsAt).getTime();
+  if (!Number.isFinite(end)) {
+    pill.hidden = true;
+    return;
+  }
+  const msLeft = end - Date.now();
+  const daysLeft = Math.max(0, Math.ceil(msLeft / (1000 * 60 * 60 * 24)));
+  if (daysLeft <= 0) {
+    pill.hidden = true;
+    return;
+  }
+  const label = typeof tFill === "function"
+    ? tFill("trial_days_left", { n: daysLeft, s: daysLeft === 1 ? "" : "s" })
+    : `Trial: ${daysLeft}d`;
+  pill.textContent = label;
+  pill.hidden = false;
+}
+window.showTrialCountdown = showTrialCountdown;
+
+/**
+ * Wires the post-onboarding welcome modal and shows it once for first-time users.
+ * @param {string} displayName — user's display name to personalise the greeting
+ */
+function showWelcomeModal(displayName) {
+  const modal = document.getElementById("comfortWelcomeModal");
+  if (!modal) return;
+  const intro = document.getElementById("comfortWelcomeIntro");
+  if (intro && displayName) {
+    const name = String(displayName).trim().split(" ")[0];
+    const greeting = typeof tFill === "function"
+      ? tFill("welcome_intro_name", { name })
+      : `¡Bienvenido/a, ${name}! Tu perfil quedó guardado en este dispositivo.`;
+    intro.textContent = greeting;
+  }
+  // Apply i18n for translated list items
+  if (typeof applyStaticI18n === "function") applyStaticI18n();
+  comfortRunViewTransition(() => comfortOverlayReveal(modal));
+  // Wire the start button if not already wired
+  const startBtn = document.getElementById("comfortWelcomeStart");
+  if (startBtn && !startBtn.dataset.comfortWired) {
+    startBtn.dataset.comfortWired = "1";
+    startBtn.addEventListener("click", () => {
+      comfortRunViewTransition(() => comfortOverlayDismiss(modal));
+    });
+  }
+}
+window.showWelcomeModal = showWelcomeModal;
+
 async function fetchHostedSession(endpoint) {
   try {
     const res = await fetch(endpoint, { credentials: "include" });
@@ -495,7 +562,7 @@ const UI_STRINGS = {
     goals_title: "Metas con tus cobros",
     goals_add: "+ Meta",
     goals_sub_html:
-      "Define <strong>monto objetivo</strong> (vacaciones, enganche de auto, etc.) y <strong>meses</strong> para lograrlo. Calculamos cuánto apartar <strong>cada mes del cheque</strong>; los totales aparecen en el <strong>Resumen de salud</strong> de arriba.",
+      "Define <strong>monto objetivo</strong> (vacaciones, enganche de auto, etc.) y <strong>meses</strong> para lograrlo. Fórmula: <code>apartado mensual = objetivo ÷ meses</code>. Los totales se suman al bloque <em>Compromisos</em> del <strong>Resumen de salud</strong> de arriba.",
     chart_flow_title: "Flujo del mes",
     chart_flow_sub: "Ingreso vs gasto mensualizado vs carga de deuda",
     donut_aria: "Gráfico de flujo del ingreso",
@@ -554,6 +621,24 @@ const UI_STRINGS = {
       "La <strong>demo desde el navegador</strong> (sin sesión beta) terminó. Se borró la información de prueba guardada aquí. Los usuarios beta con sesión iniciada no tienen este límite de tiempo. Suscríbete o entra con tu acceso beta para continuar.",
     beta_trial_subscribe: "Suscribirse",
     beta_trial_cancel: "Cerrar",
+    trial_days_left: "Trial: {n} día{s}",
+    onboarding_step_1_of_3: "Paso 1 de 3 · ~1 min",
+    onboarding_step_2_of_3: "Paso 2 de 3",
+    onboarding_step_3_of_3: "Paso 3 de 3",
+    onboarding_next: "Siguiente",
+    onboarding_back: "Atrás",
+    welcome_title: "¡Todo listo!",
+    welcome_intro: "Tu perfil quedó guardado en este dispositivo.",
+    welcome_intro_name: "¡Bienvenido/a, {name}! Todo quedó guardado en este dispositivo.",
+    welcome_tip1_html: "<strong>Ingreso primero:</strong> Registra tu salario o cobros para que los cálculos de salud sean precisos.",
+    welcome_tip2_html: "<strong>Coach financiero:</strong> Escribe «¿cómo voy este mes?» cuando quieras un análisis rápido.",
+    welcome_tip3_html: "<strong>100% local:</strong> Tu información nunca sale de este dispositivo. Exporta respaldo cuando quieras.",
+    welcome_start: "Empezar →",
+    coach_example_label: "Ejemplo de respuesta a la misma pregunta:",
+    coach_example_mode_local: "⚡ Local",
+    coach_example_mode_ai: "✨ OpenAI",
+    coach_example_local_text: "Tu gasto (85% del ingreso) supera la zona de confort. Recomiendo revisar suscripciones y mover el remanente a tu meta de ahorro.",
+    coach_example_ai_text: "Veo que este mes gastas MXN 12,400 vs. MXN 14,600 de ingreso — te quedan ~MXN 2,200 libres. ¿Quieres que proyecte cuántos meses tardarías en alcanzar tu meta de vacaciones apartando ese remanente?",
     coach_badge_cloud: "OpenAI",
     coach_intro_cloud_html:
       "Pregunta por tu mes, deudas o zona de confort. Este coach usa <strong>OpenAI</strong> en el servidor: se envía un <strong>resumen numérico</strong> de tu vista (no números de cuenta bancaria).",
@@ -789,7 +874,7 @@ const UI_STRINGS = {
       "Debajo del <strong>Informe ejecutivo</strong>: servicios del hogar a la izquierda y <strong>suscripciones</strong> a la derecha. Activa avisos para recordatorios 3 días antes y el día del cargo (mejor con la app servida por <code>https</code> o <code>localhost</code>).",
     utility_section_title: "Hogar y servicios",
     utility_section_sub_html:
-      "Renta, agua, luz, gas, seguros, teléfono, etc. La franja oscura muestra el <strong>último registro</strong> (la fila de arriba); desplázate para editar categoría, monto, fecha y día de recordatorio.",
+      "<strong>Servicios físicos con cargo irregular:</strong> renta, agua, luz, gas, seguros, teléfono. Para servicios digitales con cobro fijo mensual (Netflix, Spotify…) usa la sección <em>Suscripciones</em> de abajo. La franja oscura muestra el <strong>último registro</strong>; desplázate para editar categoría, monto y día de recordatorio.",
     utility_add: "+ Agregar",
     utility_list_empty: "Sin filas: agrega renta, luz u otros servicios.",
     utility_summary_empty: "Sin datos aún.",
@@ -866,7 +951,7 @@ const UI_STRINGS = {
     goals_title: "Goals from your paychecks",
     goals_add: "+ Goal",
     goals_sub_html:
-      "Set a <strong>target amount</strong> (vacation, car down payment, etc.) and <strong>months</strong> to get there. We estimate how much to set aside <strong>each month from your check</strong>; totals roll into the <strong>Health summary</strong> above.",
+      "Set a <strong>target amount</strong> (vacation, car down payment, etc.) and <strong>months</strong> to reach it. Formula: <code>monthly set-aside = goal ÷ months</code>. Totals roll into the <em>Commitments</em> block in the <strong>Health summary</strong> above.",
     chart_flow_title: "Month cash flow",
     chart_flow_sub: "Income vs monthly expenses vs debt load",
     donut_aria: "Income flow chart",
@@ -924,6 +1009,24 @@ const UI_STRINGS = {
       "The <strong>browser demo</strong> (without a beta login) has ended. Trial data stored here was cleared. Signed-in beta testers are not limited this way. Subscribe or sign in with beta access to continue.",
     beta_trial_subscribe: "Subscribe",
     beta_trial_cancel: "Close",
+    trial_days_left: "Trial: {n} day{s} left",
+    onboarding_step_1_of_3: "Step 1 of 3 · ~1 min",
+    onboarding_step_2_of_3: "Step 2 of 3",
+    onboarding_step_3_of_3: "Step 3 of 3",
+    onboarding_next: "Next",
+    onboarding_back: "Back",
+    welcome_title: "You're all set!",
+    welcome_intro: "Your profile is saved on this device.",
+    welcome_intro_name: "Welcome, {name}! Everything is saved on this device.",
+    welcome_tip1_html: "<strong>Income first:</strong> Add your salary or income so health calculations are accurate.",
+    welcome_tip2_html: "<strong>Financial coach:</strong> Ask «how am I doing this month?» for a quick analysis.",
+    welcome_tip3_html: "<strong>100% local:</strong> Your data never leaves this device. Export a backup whenever you like.",
+    welcome_start: "Let's go →",
+    coach_example_label: "Example response to the same question:",
+    coach_example_mode_local: "⚡ Local",
+    coach_example_mode_ai: "✨ OpenAI",
+    coach_example_local_text: "Your spending (85% of income) exceeds comfort zone. I recommend reviewing subscriptions and allocating the remainder to your savings goal.",
+    coach_example_ai_text: "I see your spending this month is MXN 12,400 vs. MXN 14,600 income — leaving ~MXN 2,200 free. Would you like me to project how many months it'd take to reach your vacation goal if you set that aside?",
     coach_badge_cloud: "OpenAI",
     coach_intro_cloud_html:
       "Ask about your month, debt, or comfort zone. This coach uses <strong>OpenAI</strong> on the server: we send a <strong>numeric summary</strong> of your view (not bank account numbers).",
@@ -1156,7 +1259,7 @@ const UI_STRINGS = {
       "Below <strong>Executive briefing</strong>: household bills on the left, <strong>subscriptions</strong> on the right. Turn on alerts for reminders 3 days before and on the charge day (works best when the app is served over <code>https</code> or <code>localhost</code>).",
     utility_section_title: "Home & utilities",
     utility_section_sub_html:
-      "Rent, water, power, gas, insurance, phone, etc. The dark strip shows the <strong>latest entry</strong> (top row); scroll to edit category, amount, date, and reminder day.",
+      "<strong>Physical services with irregular charges:</strong> rent, water, power, gas, insurance, phone. For digital services with a fixed monthly fee (Netflix, Spotify…) use the <em>Subscriptions</em> section below. The dark strip shows the <strong>latest entry</strong>; scroll to edit category, amount, and reminder day.",
     utility_add: "+ Add",
     utility_list_empty: "No rows yet — add rent, utilities, etc.",
     utility_summary_empty: "Nothing yet.",
@@ -1232,7 +1335,7 @@ const UI_STRINGS = {
     goals_title: "与工资挂钩的目标",
     goals_add: "+ 目标",
     goals_sub_html:
-      "填写<strong>目标金额</strong>（旅行、购车首付等）与<strong>月数</strong>。我们会估算每月从工资中需<strong>预留</strong>多少；合计显示在上方<strong>健康摘要</strong>。",
+      "填写<strong>目标金额</strong>（旅行、购车首付等）与<strong>月数</strong>。计算公式：<code>每月预留 = 目标金额 ÷ 月数</code>。合计计入上方<strong>健康摘要</strong>的<em>承诺支出</em>模块。",
     chart_flow_title: "当月现金流",
     chart_flow_sub: "收入对比月化支出与债务负担",
     donut_aria: "收入结构图",
@@ -1290,6 +1393,24 @@ const UI_STRINGS = {
       "<strong>浏览器访客演示</strong>已结束（未登录内测）。本机试用数据已清除。已登录的内测用户不受此时长限制。请订阅或使用内测账号继续。",
     beta_trial_subscribe: "订阅",
     beta_trial_cancel: "关闭",
+    trial_days_left: "试用剩余 {n} 天",
+    onboarding_step_1_of_3: "第 1 步，共 3 步 · 约 1 分钟",
+    onboarding_step_2_of_3: "第 2 步，共 3 步",
+    onboarding_step_3_of_3: "第 3 步，共 3 步",
+    onboarding_next: "下一步",
+    onboarding_back: "上一步",
+    welcome_title: "设置完成！",
+    welcome_intro: "你的资料已保存在此设备上。",
+    welcome_intro_name: "欢迎，{name}！你的信息已安全存储在此设备。",
+    welcome_tip1_html: "<strong>先录入收入：</strong>添加薪资或收入，让健康评分更准确。",
+    welcome_tip2_html: "<strong>财务顾问：</strong>输入「这个月我的状态怎么样？」获取快速分析。",
+    welcome_tip3_html: "<strong>100% 本地：</strong>你的数据从不离开此设备。随时可导出备份。",
+    welcome_start: "开始使用 →",
+    coach_example_label: "同一问题的示例回答：",
+    coach_example_mode_local: "⚡ 本地",
+    coach_example_mode_ai: "✨ OpenAI",
+    coach_example_local_text: "你的支出（占收入的 85%）超出舒适区。建议检查订阅项目，并将结余划入储蓄目标。",
+    coach_example_ai_text: "我看到本月支出 12,400 元，收入 14,600 元，剩余约 2,200 元。如果把这笔结余存起来，要多少个月才能达到你的假期目标——要我帮你估算一下吗？",
     coach_badge_cloud: "OpenAI",
     coach_intro_cloud_html:
       "可询问当月、债务或安全感。本顾问在服务器使用 <strong>OpenAI</strong>：仅发送你界面上的<strong>数字摘要</strong>（不含银行账户）。",
@@ -1515,7 +1636,7 @@ const UI_STRINGS = {
       "在<strong>执行简报</strong>下方：左侧为家庭账单，右侧为<strong>订阅</strong>。开启通知可在扣款前 3 天与当天提醒（建议通过 <code>https</code> 或 <code>localhost</code> 打开应用）。",
     utility_section_title: "家庭与公用事业",
     utility_section_sub_html:
-      "房租、水、电、气、保险、电话等。深色条显示<strong>最新一条</strong>（列表最上）；向下滚动可编辑类别、金额、日期与提醒日。",
+      "<strong>不定期收费的实体服务：</strong>房租、水、电、气、保险、电话。固定月费的数字服务（Netflix、Spotify 等）请使用下方<em>订阅服务</em>。深色条显示<strong>最新一条</strong>；向下滚动可编辑类别、金额与提醒日。",
     utility_add: "+ 添加",
     utility_list_empty: "暂无记录，可添加房租、水电等。",
     utility_summary_empty: "暂无数据。",
