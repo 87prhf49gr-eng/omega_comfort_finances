@@ -1846,6 +1846,7 @@ function setLocale(next) {
   const meta = document.querySelector('meta[name="description"]');
   if (meta) meta.setAttribute("content", t("meta_description"));
   applyStaticI18n();
+  if (typeof applyPaidOnboardingCopy === "function") applyPaidOnboardingCopy();
   renderHostedProfileCard();
   applyHostedCoachCopy();
   comfortApplyTrustPills();

@@ -52,6 +52,7 @@ async function showOnboardingUntilDone(existingProfile = null, opts = {}) {
     document.body.classList.add("comfort--gate-active");
   });
   applyStaticI18n();
+  applyPaidOnboardingCopy();
 
   return new Promise((resolve) => {
     if (!form) {
@@ -320,6 +321,8 @@ async function initComfortHostedMode() {
   window.__COMFORT_LANDING_DEMO = false;
   window.__COMFORT_PUBLIC_CFG = null;
   window.__COMFORT_SESSION_KIND = "";
+  window.__COMFORT_PAID_ONBOARDING_REQUIRES_SUBSCRIPTION = false;
+  window.__COMFORT_SUPPORT_EMAIL = "support@comfortledger.app";
   wireTrialModal();
 
   let cfg;
@@ -346,6 +349,8 @@ async function initComfortHostedMode() {
     window.__COMFORT_COACH_MAX_TOKENS = Math.floor(cmt);
   }
   window.__COMFORT_REQUIRE_BETA_LOGIN = Boolean(cfg.requireBetaLogin);
+  window.__COMFORT_PAID_ONBOARDING_REQUIRES_SUBSCRIPTION = Boolean(cfg.paidOnboardingRequiresSubscription);
+  window.__COMFORT_SUPPORT_EMAIL = String(cfg.supportEmail || "").trim() || "support@comfortledger.app";
   window.__COMFORT_LANDING_DEMO_MS = Number(cfg.landingDemoMs) || 0;
   window.__COMFORT_PUSH_CONFIGURED = Boolean(cfg.pushConfigured);
   window.__COMFORT_PUSH_VAPID_PUBLIC_KEY = String(cfg.pushVapidPublicKey || "");
@@ -469,6 +474,30 @@ async function initComfortHostedMode() {
       /* ignore */
     }
   }, 120000);
+}
+
+function applyPaidOnboardingCopy() {
+  if (!window.__COMFORT_PAID_ONBOARDING_REQUIRES_SUBSCRIPTION) {
+    return;
+  }
+  const intro = document.querySelector("#comfortOnboardingGate [data-i18n-html='onboarding_intro_html']");
+  const emailLabel = document.querySelector("label[for='comfortOnboardingEmail']");
+  const emailInput = document.getElementById("comfortOnboardingEmail");
+  const support = window.__COMFORT_SUPPORT_EMAIL || "support@comfortledger.app";
+  const lang = String(document.documentElement.lang || "").toLowerCase().startsWith("es") ? "es" : "en";
+  if (intro) {
+    intro.textContent =
+      lang === "es"
+        ? `Entra con el correo que usaste al pagar. Si acabas de comprar, el webhook puede tardar un minuto; soporte: ${support}.`
+        : `Enter with the email you used at checkout. If you just paid, the webhook can take a minute; support: ${support}.`;
+  }
+  if (emailLabel) {
+    emailLabel.textContent = lang === "es" ? "Correo usado al pagar" : "Email used at checkout";
+  }
+  if (emailInput) {
+    emailInput.required = true;
+    emailInput.placeholder = lang === "es" ? "tu-correo@ejemplo.com" : "you@example.com";
+  }
 }
 
 function renderHostedProfileCard() {

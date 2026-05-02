@@ -36,8 +36,9 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - `COMFORT_LANDING_DEMO_MINUTES`
   - `COMFORT_REQUIRE_BETA_LOGIN`
   - `COMFORT_DATA_DIR`
+  - `COMFORT_SUPPORT_EMAIL` (se muestra cuando falla el acceso pagado o el portal)
 - **Persistencia:** `data/beta-sessions.json` no va en git. En un servicio con filesystem efímero, las sesiones se reinician al redeploy o reinicio salvo que montes disco persistente.
-- **Disk recomendado para beta estable:** monta un disco en `/var/data` y define `COMFORT_DATA_DIR=/var/data`. Si el disco arranca vacío, el servidor copia automáticamente `beta-users.json` versionado a ese directorio. En deploys posteriores, si el `beta-users.json` del repo cambia, el servidor lo resincroniza al disco persistente y vacía `beta-sessions.json` para forzar login con las credenciales nuevas.
+- **Disk requerido para producción estable:** monta un disco en `/var/data` y define `COMFORT_DATA_DIR=/var/data`. Sin disco persistente se pierden en reinicios/redeploys: `beta-sessions.json` (usuarios salen de sesión), `subscriptions.json` (pagadores pueden quedar bloqueados hasta reentrar webhooks o soporte), `waitlist.json` y `push-subscriptions.json`. Si el disco arranca vacío, el servidor copia automáticamente `beta-users.json` versionado a ese directorio. En deploys posteriores, si el `beta-users.json` del repo cambia, el servidor lo resincroniza al disco persistente y vacía `beta-sessions.json` para forzar login con las credenciales nuevas.
 
 ### Pasos rápidos
 
@@ -92,6 +93,7 @@ LEMONSQUEEZY_VARIANT_ANNUAL=67891
 LEMONSQUEEZY_WEBHOOK_SECRET=el-secreto-que-elegiste
 COMFORT_CHECKOUT_REDIRECT_URL=https://TU_DOMINIO/app
 COMFORT_PUBLIC_PURCHASE=true
+COMFORT_SUPPORT_EMAIL=support@comfortledger.app
 ```
 
 Reinicia. En el log verás `LemonSqueezy: configured · Public purchase: ON`. Los botones de la landing pasan de “Unirme a la lista” a “Empezar mensual/anual →” y abren el checkout hosted de LemonSqueezy.
@@ -118,6 +120,8 @@ Después, en LemonSqueezy, usa *Send test* para verificar.
 ### 5. Persistencia en Render
 
 Los archivos `data/subscriptions.json`, `data/waitlist.json` y `data/push-subscriptions.json` **deben persistir** entre deploys. Monta el disco persistente como ya haces con `beta-sessions.json` y apunta `COMFORT_DATA_DIR` al mismo path. Los tres están en `.gitignore` para no committear datos de clientes.
+
+En Render Blueprint, `render.yaml` ya declara un disco de 1 GB en `/var/data` y `COMFORT_DATA_DIR=/var/data`. Si creas el servicio manualmente, replica esa configuración antes de abrir ventas públicas.
 
 ## Web Push (notificaciones en segundo plano)
 

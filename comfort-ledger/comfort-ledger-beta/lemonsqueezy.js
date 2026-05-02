@@ -39,6 +39,35 @@ function variantIdForPlan(plan) {
   return cfg.variantMonthly;
 }
 
+function normalizeEmail(value) {
+  const email = String(value || "").trim().toLowerCase();
+  if (!email) return "";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "";
+  return email;
+}
+
+function planForVariantId(variantId, fallback = PLAN_MONTHLY) {
+  const cfg = getConfig();
+  const id = String(variantId || "").trim();
+  if (id && cfg.variantAnnual && id === cfg.variantAnnual) return PLAN_ANNUAL;
+  if (id && cfg.variantMonthly && id === cfg.variantMonthly) return PLAN_MONTHLY;
+  return fallback === PLAN_ANNUAL ? PLAN_ANNUAL : PLAN_MONTHLY;
+}
+
+function statusForWebhookEvent(eventName, attrs) {
+  const name = String(eventName || "").trim().toLowerCase();
+  const rawStatus = String(attrs?.status || "").trim().toLowerCase();
+  const subscriptionStatus = String(attrs?.subscription_status || "").trim().toLowerCase();
+  if (name.startsWith("subscription_payment_")) {
+    if (subscriptionStatus) return subscriptionStatus;
+    if (name === "subscription_payment_success") return "active";
+    if (name === "subscription_payment_failed") return "past_due";
+    if (name === "subscription_payment_recovered") return "active";
+    return "";
+  }
+  return rawStatus;
+}
+
 /**
  * Verifica firma HMAC-SHA256 del webhook de LemonSqueezy.
  * La firma viene en el header `X-Signature` y se calcula sobre el raw body.
@@ -159,13 +188,16 @@ function parseWebhookEvent(payload) {
   if (!eventName || !data) return null;
   const attrs = data.attributes || {};
   const custom = payload?.meta?.custom_data || {};
-  const email = String(attrs.user_email || attrs.email || "").trim().toLowerCase();
-  const subscriptionId = data.type === "subscriptions" ? String(data.id || "") : String(attrs.subscription_id || "");
-  const status = String(attrs.status || "").trim();
+  const email = normalizeEmail(attrs.user_email || attrs.email || custom.email || "");
+  const subscriptionId =
+    data.type === "subscriptions"
+      ? String(data.id || "")
+      : String(attrs.subscription_id || attrs.subscription?.id || "");
+  const status = statusForWebhookEvent(eventName, attrs);
   const renewsAt = attrs.renews_at || attrs.ends_at || null;
-  const variantId = String(attrs.variant_id || "");
+  const variantId = String(attrs.variant_id || attrs.first_subscription_item?.variant_id || "");
   const customerId = String(attrs.customer_id || "");
-  const plan = custom?.plan === PLAN_ANNUAL ? PLAN_ANNUAL : PLAN_MONTHLY;
+  const plan = custom?.plan === PLAN_ANNUAL ? PLAN_ANNUAL : planForVariantId(variantId, PLAN_MONTHLY);
   return {
     eventName,
     email,
@@ -195,6 +227,8 @@ module.exports = {
   PLAN_ANNUAL,
   getConfig,
   isConfigured,
+  normalizeEmail,
+  planForVariantId,
   verifyWebhookSignature,
   createCheckoutUrl,
   getCustomerPortalUrl,

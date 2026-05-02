@@ -11,6 +11,10 @@ services:
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/health
+    disk:
+      name: comfort-ledger-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: NODE_ENV
         value: production
@@ -20,11 +24,12 @@ services:
         sync: false
       - key: COMFORT_SESSION_SECRET
         sync: false
+      - key: COMFORT_DATA_DIR
+        value: /var/data
+      - key: COMFORT_SUPPORT_EMAIL
+        value: support@comfortledger.app
       - key: OPENAI_MODEL
         value: gpt-4o-mini
-      # Optional: mount a persistent disk and set COMFORT_DATA_DIR (see comfort-ledger/README.md)
-      # - key: COMFORT_DATA_DIR
-      #   value: /var/data
       # LemonSqueezy (when going live with paid checkout)
       - key: LEMONSQUEEZY_API_KEY
         sync: false

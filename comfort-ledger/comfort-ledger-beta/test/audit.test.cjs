@@ -9,6 +9,8 @@ const path = require("path");
 const lockfile = require("proper-lockfile");
 
 process.env.LEMONSQUEEZY_WEBHOOK_SECRET = "test-wh-secret";
+process.env.LEMONSQUEEZY_VARIANT_MONTHLY = "111";
+process.env.LEMONSQUEEZY_VARIANT_ANNUAL = "222";
 const lemon = require("../lemonsqueezy.js");
 
 test("verifyWebhookSignature accepts valid HMAC hex", () => {
@@ -39,6 +41,64 @@ test("normalizeEmail lowercases and validates", () => {
   assert.strictEqual(normalizeEmail("  Test@Example.com "), "test@example.com");
   assert.strictEqual(normalizeEmail("bad"), "");
   assert.strictEqual(normalizeEmail(""), "");
+});
+
+test("Lemon webhook parser maps subscription events to active subscription records", () => {
+  const event = lemon.parseWebhookEvent({
+    meta: { event_name: "subscription_created", custom_data: { plan: "annual" } },
+    data: {
+      type: "subscriptions",
+      id: "sub_123",
+      attributes: {
+        user_email: " Buyer@Example.com ",
+        status: "on_trial",
+        variant_id: "222",
+        customer_id: "cus_123",
+        renews_at: "2026-06-01T00:00:00Z"
+      }
+    }
+  });
+  assert.strictEqual(event.email, "buyer@example.com");
+  assert.strictEqual(event.subscriptionId, "sub_123");
+  assert.strictEqual(event.status, "on_trial");
+  assert.strictEqual(event.plan, "annual");
+  assert.strictEqual(lemon.isActiveStatus(event.status), true);
+});
+
+test("Lemon subscription payment success does not persist invoice status as access status", () => {
+  const event = lemon.parseWebhookEvent({
+    meta: { event_name: "subscription_payment_success" },
+    data: {
+      type: "subscription-invoices",
+      id: "inv_123",
+      attributes: {
+        user_email: "buyer@example.com",
+        subscription_id: "sub_123",
+        status: "paid",
+        variant_id: "111"
+      }
+    }
+  });
+  assert.strictEqual(event.status, "active");
+  assert.strictEqual(event.plan, "monthly");
+  assert.strictEqual(lemon.isActiveStatus(event.status), true);
+});
+
+test("Lemon subscription payment failure maps to a non-active subscription status", () => {
+  const event = lemon.parseWebhookEvent({
+    meta: { event_name: "subscription_payment_failed" },
+    data: {
+      type: "subscription-invoices",
+      id: "inv_456",
+      attributes: {
+        user_email: "buyer@example.com",
+        subscription_id: "sub_123",
+        status: "failed"
+      }
+    }
+  });
+  assert.strictEqual(event.status, "past_due");
+  assert.strictEqual(lemon.isActiveStatus(event.status), false);
 });
 
 /** Mirrors server sanitizeSensitiveText (keep in sync). */

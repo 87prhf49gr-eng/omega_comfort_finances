@@ -1,11 +1,12 @@
 /**
- * Comfort Ledger hosted server (Fastify 4 hijack → handler HTTP único): static parent folder + onboarding/beta access + OpenAI coach + LemonSqueezy billing.
+ * Comfort Ledger hosted server (Fastify hijack → handler HTTP único): static parent folder + onboarding/beta access + OpenAI coach + LemonSqueezy billing.
  * Run from repo: cd comfort-ledger/comfort-ledger-beta && npm install && npm start
  *
  * Env (core):
  *   OPENAI_API_KEY, OPENAI_TIMEOUT_MS (optional; default 30000, coach HTTP timeout),
  *   OPENAI_COACH_MAX_TOKENS (optional; default 450, max output tokens por respuesta del coach — auditoría #19),
  *   COMFORT_SESSION_SECRET (optional), COMFORT_SUBSCRIBE_URL,
+ *   COMFORT_SUPPORT_EMAIL (optional; shown in paid access / billing error copy),
  *   COMFORT_HEALTH_DEEP (optional: set true so /api/health?deep=1 runs an OpenAI reachability probe in production),
  *   COMFORT_RATE_WAITLIST_MAX — max POST /api/waitlist por IP cada hora (defecto 1; auditing #7 anti-spam),
  *   COMFORT_RATE_AI_COACH_HOURLY_MAX — max consultas /api/ai-coach por usuario autenticado por hora (defecto 5),
@@ -73,6 +74,7 @@ const LANDING_LOCALE_COOKIE = "comfort_landing_locale";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
 const LANDING_DEMO_MS = Math.max(0, Number(process.env.COMFORT_LANDING_DEMO_MINUTES || 10)) * 60 * 1000;
 const SUBSCRIBE_URL = String(process.env.COMFORT_SUBSCRIBE_URL || "https://example.com/subscribe").trim();
+const SUPPORT_EMAIL = normalizeEmail(process.env.COMFORT_SUPPORT_EMAIL || "support@comfortledger.app") || "support@comfortledger.app";
 const LOGIN_WINDOW_MS = 1000 * 60 * 15;
 const LOGIN_ATTEMPT_LIMIT = 12;
 const AI_HISTORY_LIMIT = 4;
@@ -275,7 +277,7 @@ async function handleComfortLedgerRequest(req, res) {
   }
 
   try {
-    if (pathname === "/api/health" && req.method === "GET") {
+    if (pathname === "/api/health" && (req.method === "GET" || req.method === "HEAD")) {
       const sessionOk = IS_PRODUCTION ? Boolean(process.env.COMFORT_SESSION_SECRET) : true;
       const lemonOk =
         !String(process.env.LEMONSQUEEZY_API_KEY || "").trim() ||
@@ -345,7 +347,7 @@ async function handleComfortLedgerRequest(req, res) {
         payload.openaiProbe = openaiProbe;
       }
 
-      return sendJson(res, healthy ? 200 : 503, payload);
+      return sendJson(res, healthy ? 200 : 503, payload, {}, req.method === "HEAD");
     }
 
     if (pathname === "/api/public-config" && req.method === "GET") {
@@ -373,6 +375,7 @@ async function handleComfortLedgerRequest(req, res) {
         coachMaxTokens: OPENAI_COACH_MAX_TOKENS,
         publicPurchaseEnabled: lemonCfg.publicPurchaseEnabled && lemon.isConfigured(),
         paidOnboardingRequiresSubscription: onboardingRequiresPaidSubscription(),
+        supportEmail: SUPPORT_EMAIL,
         pushConfigured: Boolean(pushConfig.configured),
         pushVapidPublicKey: pushConfig.configured ? pushConfig.publicKey : ""
       });
@@ -472,7 +475,7 @@ async function handleComfortLedgerRequest(req, res) {
           return sendJson(res, 403, {
             ok: false,
             error:
-              "No encontramos una suscripción activa para este correo. Usa el mismo email con el que compraste."
+              `No encontramos una suscripción activa para este correo. Usa el mismo email con el que pagaste. Si acabas de comprar, espera un minuto y vuelve a intentar; si sigue fallando, escribe a ${SUPPORT_EMAIL}.`
           });
         }
       }
@@ -675,6 +678,11 @@ async function handleComfortLedgerRequest(req, res) {
       }
       const event = lemon.parseWebhookEvent(payload);
       if (!event) {
+        logEvent("lemon.webhook.ignored", {
+          reason: "unrecognized_payload",
+          eventName: String(payload?.meta?.event_name || "").slice(0, 80),
+          dataType: String(payload?.data?.type || "").slice(0, 80)
+        });
         return sendJson(res, 202, { ok: true, ignored: true });
       }
       await applySubscriptionEvent(event);
@@ -703,7 +711,10 @@ async function handleComfortLedgerRequest(req, res) {
       }
       const record = findSubscription(email);
       if (!record || !record.subscriptionId) {
-        return sendJson(res, 404, { ok: false, error: "No encontramos una suscripción para este email." });
+        return sendJson(res, 404, {
+          ok: false,
+          error: `No encontramos una suscripción para este email. Si pagaste con otro correo, prueba ese; si necesitas ayuda, escribe a ${SUPPORT_EMAIL}.`
+        });
       }
       const result = await lemon.getCustomerPortalUrl(record.subscriptionId);
       if (result.error) {
@@ -763,10 +774,14 @@ const fastify = Fastify({
 });
 
 fastify.removeAllContentTypeParsers();
+fastify.addContentTypeParser("*", { parseAs: "buffer" }, (_request, body, done) => {
+  done(null, Buffer.isBuffer(body) ? body : Buffer.from(body || ""));
+});
 
 fastify.all("/*", async (request, reply) => {
   reply.hijack();
   try {
+    request.raw.__comfortRawBody = request.body;
     await handleComfortLedgerRequest(request.raw, reply.raw);
   } catch (error) {
     console.error(error);
@@ -1533,6 +1548,12 @@ async function readJsonBody(req) {
 }
 
 async function readRawBody(req) {
+  if (Buffer.isBuffer(req.__comfortRawBody)) {
+    if (req.__comfortRawBody.length > 1024 * 1024 * 2) {
+      throw new Error("Payload too large");
+    }
+    return req.__comfortRawBody;
+  }
   const chunks = [];
   let size = 0;
   for await (const chunk of req) {
@@ -1546,10 +1567,7 @@ async function readRawBody(req) {
 }
 
 function normalizeEmail(value) {
-  const email = String(value || "").trim().toLowerCase();
-  if (!email) return "";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "";
-  return email;
+  return lemon.normalizeEmail(value);
 }
 
 function addToWaitlist(email, source) {
@@ -1583,21 +1601,30 @@ function findSubscription(email) {
 
 function applySubscriptionEvent(event) {
   return runExclusiveFileTask(SUBSCRIPTIONS_FILE, () => {
-    if (!event || !event.email) return;
+    if (!event || !event.email) {
+      logEvent("lemon.webhook.ignored", {
+        reason: "missing_email",
+        eventName: String(event?.eventName || "").slice(0, 80),
+        subscriptionId: String(event?.subscriptionId || "").slice(0, 80)
+      });
+      return;
+    }
     const list = readSubscriptions();
     const idx = list.findIndex((entry) => entry.email === event.email);
     const now = new Date().toISOString();
+    const previous = idx >= 0 ? list[idx] : {};
+    const nextStatus = event.status || previous.status || "unknown";
     const next = {
       email: event.email,
-      subscriptionId: event.subscriptionId || (idx >= 0 ? list[idx].subscriptionId : ""),
-      customerId: event.customerId || (idx >= 0 ? list[idx].customerId : ""),
-      variantId: event.variantId || (idx >= 0 ? list[idx].variantId : ""),
-      plan: event.plan || (idx >= 0 ? list[idx].plan : "monthly"),
-      status: event.status || (idx >= 0 ? list[idx].status : "unknown"),
-      renewsAt: event.renewsAt || null,
+      subscriptionId: event.subscriptionId || previous.subscriptionId || "",
+      customerId: event.customerId || previous.customerId || "",
+      variantId: event.variantId || previous.variantId || "",
+      plan: event.plan || previous.plan || "monthly",
+      status: nextStatus,
+      renewsAt: event.renewsAt || previous.renewsAt || null,
       lastEvent: event.eventName,
       updatedAt: now,
-      createdAt: idx >= 0 ? list[idx].createdAt : now
+      createdAt: previous.createdAt || now
     };
     if (idx >= 0) {
       list[idx] = next;
@@ -1605,17 +1632,42 @@ function applySubscriptionEvent(event) {
       list.push(next);
     }
     writeSubscriptions(list);
-    console.log(`LS webhook: ${event.eventName} · ${event.email} · status=${next.status}`);
+    logEvent("lemon.webhook.applied", {
+      eventName: event.eventName,
+      emailHash: hashLogValue(event.email),
+      subscriptionId: next.subscriptionId,
+      status: next.status,
+      active: lemon.isActiveStatus(next.status),
+      plan: next.plan
+    });
   });
 }
 
-function sendJson(res, status, payload, extraHeaders = {}) {
+function hashLogValue(value) {
+  return crypto.createHash("sha256").update(String(value || "")).digest("hex").slice(0, 16);
+}
+
+function logEvent(eventName, fields = {}) {
+  const payload = {
+    level: "info",
+    event: eventName,
+    time: new Date().toISOString(),
+    ...fields
+  };
+  console.log(JSON.stringify(payload));
+}
+
+function sendJson(res, status, payload, extraHeaders = {}, isHead = false) {
   const body = `${JSON.stringify(payload)}\n`;
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
     ...extraHeaders
   });
+  if (isHead) {
+    res.end();
+    return;
+  }
   res.end(body);
 }
 
