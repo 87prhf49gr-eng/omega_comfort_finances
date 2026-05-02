@@ -9,7 +9,11 @@
  *   COMFORT_HEALTH_DEEP (optional: set true so /api/health?deep=1 runs an OpenAI reachability probe in production),
  *   COMFORT_RATE_WAITLIST_MAX — max POST /api/waitlist por IP cada hora (defecto 1; auditing #7 anti-spam),
  *   COMFORT_RATE_AI_COACH_HOURLY_MAX — max consultas /api/ai-coach por usuario autenticado por hora (defecto 5),
- *   COMFORT_ACCESS_MODE (default onboarding; set beta to enforce username/password),
+ *   COMFORT_ACCESS_MODE: beta | onboarding | hybrid — hybrid: onboarding público (comprueba Lemon si está
+ *     configurado) + enlace opcional para testers con login beta sin pagar.
+ *   COMFORT_ONBOARDING_REQUIRES_SUBSCRIPTION (opcional): si Lemon está configurado, en modo hybrid por
+ *     defecto exige correo con suscripción activa al completar onboarding. Pon false si quieres abrir onboarding
+ *     sin comprobar pago incluso en hybrid; pon true para forzar comprobación también en onboarding puro.
  *   COMFORT_REQUIRE_BETA_LOGIN (solo en access mode beta),
  *   COMFORT_LANDING_DEMO_MINUTES (default 10; visitantes sin sesión beta)
  *
@@ -359,7 +363,7 @@ async function handleComfortLedgerRequest(req, res) {
         ok: true,
         comfortHosted: true,
         accessMode,
-        onboardingEnabled: accessMode === "onboarding",
+        onboardingEnabled: accessMode === "onboarding" || accessMode === "hybrid",
         betaEnabled,
         requireBetaLogin: betaEnabled ? requireBetaLogin : false,
         subscribeUrl: SUBSCRIBE_URL,
@@ -368,6 +372,7 @@ async function handleComfortLedgerRequest(req, res) {
         aiCoachConfigured: Boolean(openaiClient),
         coachMaxTokens: OPENAI_COACH_MAX_TOKENS,
         publicPurchaseEnabled: lemonCfg.publicPurchaseEnabled && lemon.isConfigured(),
+        paidOnboardingRequiresSubscription: onboardingRequiresPaidSubscription(),
         pushConfigured: Boolean(pushConfig.configured),
         pushVapidPublicKey: pushConfig.configured ? pushConfig.publicKey : ""
       });
@@ -455,9 +460,21 @@ async function handleComfortLedgerRequest(req, res) {
     if (pathname === "/api/onboarding/start" && req.method === "POST") {
       const body = await readJsonBody(req);
       const profile = normalizeOnboardingProfile(body?.profile || body);
-      const validationError = validateOnboardingProfile(profile);
+      const gated = onboardingRequiresPaidSubscription();
+      const validationError = validateOnboardingProfile(profile, { requirePaidEmail: gated });
       if (validationError) {
         return sendJson(res, 400, { ok: false, error: validationError });
+      }
+      if (gated) {
+        const email = normalizeEmail(profile.email || "");
+        const record = findSubscription(email);
+        if (!record || !lemon.isActiveStatus(record.status)) {
+          return sendJson(res, 403, {
+            ok: false,
+            error:
+              "No encontramos una suscripción activa para este correo. Usa el mismo email con el que compraste."
+          });
+        }
       }
       const session = await createOnboardingSessionAsync(profile);
       return sendJson(
@@ -481,20 +498,15 @@ async function handleComfortLedgerRequest(req, res) {
     if (pathname === "/api/ai-coach" && req.method === "POST") {
       const body = await readJsonBody(req);
       const accessMode = resolveAccessMode(readBetaUsers().length > 0);
-      const auth =
-        accessMode === "beta" ? await authenticateBetaRequestAsync(req) : await authenticateOnboardingRequestAsync(req);
+      const auth = await authenticateComfortSessionAsync(req);
       if (!auth) {
-        return sendJson(
-          res,
-          401,
-          {
-            ok: false,
-            error:
-              accessMode === "beta"
-                ? "Inicia sesión para usar el coach."
-                : "Completa tu onboarding para usar el coach."
-          }
-        );
+        const msg =
+          accessMode === "hybrid"
+            ? "Abre la app con tu sesión pagada u obtén primero tu acceso tester (login beta)."
+            : accessMode === "beta"
+              ? "Inicia sesión para usar el coach."
+              : "Completa tu onboarding para usar el coach.";
+        return sendJson(res, 401, { ok: false, error: msg });
       }
       if (!openaiClient) {
         return sendJson(res, 503, { ok: false, error: "Coach no configurado (falta OPENAI_API_KEY en el servidor)." });
@@ -505,7 +517,8 @@ async function handleComfortLedgerRequest(req, res) {
         return sendJson(res, 400, { ok: false, error: "Escribe una pregunta." });
       }
 
-      const userId = accessMode === "beta" ? auth.user.id : auth.profile.id;
+      const userId =
+        auth.accessKind === "beta" ? auth.user.id : auth.profile.id;
       const monthKey = currentMonthKey();
       const queriesThisMonth = countMonthlyQueries(userId, monthKey);
       if (queriesThisMonth >= AI_MONTHLY_LIMIT) {
@@ -916,10 +929,25 @@ function resolveAccessMode(betaEnabled = readBetaUsers().length > 0) {
   const raw = String(process.env.COMFORT_ACCESS_MODE || (betaEnabled ? "beta" : "onboarding"))
     .trim()
     .toLowerCase();
+  if (raw === "hybrid") {
+    return "hybrid";
+  }
   if (raw === "beta" && betaEnabled) {
     return "beta";
   }
   return "onboarding";
+}
+
+function onboardingRequiresPaidSubscription() {
+  if (!lemon.isConfigured()) {
+    return false;
+  }
+  const explicit = process.env.COMFORT_ONBOARDING_REQUIRES_SUBSCRIPTION;
+  if (explicit !== undefined && String(explicit).trim() !== "") {
+    const raw = String(explicit).trim().toLowerCase();
+    return !["false", "0", "no", "off"].includes(raw);
+  }
+  return resolveAccessMode(readBetaUsers().length > 0) === "hybrid";
 }
 
 async function createHostedSessionAsync(payload = {}) {
@@ -1015,6 +1043,18 @@ async function authenticateOnboardingRequestAsync(req) {
   return { session: activeSession.session, profile };
 }
 
+async function authenticateComfortSessionAsync(req) {
+  const beta = await authenticateBetaRequestAsync(req);
+  if (beta) {
+    return { accessKind: "beta", ...beta };
+  }
+  const onboard = await authenticateOnboardingRequestAsync(req);
+  if (onboard) {
+    return { accessKind: "onboarding", ...onboard };
+  }
+  return null;
+}
+
 function publicBetaUser(user) {
   return {
     id: user.id,
@@ -1064,14 +1104,20 @@ function normalizeOnboardingProfile(input) {
   return base;
 }
 
-function validateOnboardingProfile(profile) {
+function validateOnboardingProfile(profile, opts = {}) {
+  const requirePaidEmail = Boolean(opts.requirePaidEmail);
   if (!profile || !profile.displayName) {
     return "Escribe tu nombre para continuar.";
   }
   if (profile.displayName.length < 2) {
     return "Tu nombre debe tener al menos 2 caracteres.";
   }
-  if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profile.email)) {
+  const emailTrim = profile.email ? String(profile.email).trim() : "";
+  if (requirePaidEmail) {
+    if (!emailTrim || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrim)) {
+      return "Escribe el correo con el que te suscribiste (tiene que coincidir con Lemon Squeezy).";
+    }
+  } else if (profile.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(profile.email).trim())) {
     return "Revisa el correo antes de continuar.";
   }
   return "";
@@ -1733,11 +1779,9 @@ function initPushConfig() {
 }
 
 async function resolvePushOwnerContextAsync(req) {
-  const betaEnabled = readBetaUsers().length > 0;
-  const accessMode = resolveAccessMode(betaEnabled);
-  if (accessMode === "beta") {
-    const auth = await authenticateBetaRequestAsync(req);
-    if (!auth) return null;
+  const auth = await authenticateComfortSessionAsync(req);
+  if (!auth) return null;
+  if (auth.accessKind === "beta") {
     return {
       ownerKey: `beta:${auth.user.id}`,
       sessionKind: "beta",
@@ -1745,8 +1789,6 @@ async function resolvePushOwnerContextAsync(req) {
       onboardingProfileId: ""
     };
   }
-  const auth = await authenticateOnboardingRequestAsync(req);
-  if (!auth) return null;
   return {
     ownerKey: `onboarding:${auth.profile.id}`,
     sessionKind: "onboarding",

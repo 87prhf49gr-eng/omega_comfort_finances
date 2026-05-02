@@ -38,6 +38,9 @@ services:
         sync: false
       - key: COMFORT_PUBLIC_PURCHASE
         value: "false"
+      # Paid users (onboarding + Lemon) + beta testers without pay: uncomment in Render / Blueprint:
+      # - key: COMFORT_ACCESS_MODE
+      #   value: hybrid
       # Web Push (optional)
       - key: COMFORT_VAPID_PUBLIC_KEY
         sync: false

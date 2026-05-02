@@ -8,7 +8,8 @@ function comfortVt(fn) {
   }
 }
 
-async function showOnboardingUntilDone(existingProfile = null) {
+async function showOnboardingUntilDone(existingProfile = null, opts = {}) {
+  const offerBetaShortcut = Boolean(opts.offerBetaShortcut);
   const shell = document.getElementById("comfortOnboardingGate");
   if (!shell) {
     return existingProfile;
@@ -22,6 +23,8 @@ async function showOnboardingUntilDone(existingProfile = null) {
   const currencyInput = document.getElementById("comfortOnboardingCurrency");
   const err = document.getElementById("comfortOnboardingErr");
   const cancel = document.getElementById("comfortOnboardingCancel");
+  const hybridRow = document.getElementById("comfortHybridBetaRow");
+  const hybridBtn = document.getElementById("comfortHybridBetaBtn");
 
   if (nameInput) nameInput.value = profile?.displayName || "";
   if (emailInput) emailInput.value = profile?.email || "";
@@ -53,11 +56,20 @@ async function showOnboardingUntilDone(existingProfile = null) {
   return new Promise((resolve) => {
     if (!form) {
       document.body.classList.remove("comfort--gate-active");
+      if (hybridRow) hybridRow.hidden = true;
       resolve(profile);
       return;
     }
 
-    const closeShell = () => {
+    let hybridBetaHandler = null;
+
+    const detachListeners = () => {
+      form.removeEventListener("submit", onSubmit);
+      cancel?.removeEventListener("click", onCancel);
+      if (hybridBtn && hybridBetaHandler) hybridBtn.removeEventListener("click", hybridBetaHandler);
+    };
+
+    const dismissOverlayUi = () => {
       comfortVt(() => {
         if (typeof comfortOverlayDismiss === "function") {
           comfortOverlayDismiss(shell);
@@ -67,12 +79,18 @@ async function showOnboardingUntilDone(existingProfile = null) {
         }
         document.body.classList.remove("comfort--gate-active");
       });
-      form.removeEventListener("submit", onSubmit);
-      cancel?.removeEventListener("click", onCancel);
     };
 
+    const hideHybridRow = () => {
+      if (hybridRow) hybridRow.hidden = true;
+    };
+
+    if (hybridRow) hybridRow.hidden = !offerBetaShortcut;
+
     const onCancel = () => {
-      closeShell();
+      detachListeners();
+      dismissOverlayUi();
+      hideHybridRow();
       resolve(profile);
     };
 
@@ -114,7 +132,9 @@ async function showOnboardingUntilDone(existingProfile = null) {
         stopDemoBar();
         window.__COMFORT_DEMO_EXPIRES_AT = null;
         window.__COMFORT_LANDING_DEMO = false;
-        closeShell();
+        detachListeners();
+        dismissOverlayUi();
+        hideHybridRow();
         resolve(savedProfile);
       } catch (error) {
         if (err) {
@@ -124,9 +144,69 @@ async function showOnboardingUntilDone(existingProfile = null) {
       }
     };
 
+    hybridBetaHandler = async () => {
+      detachListeners();
+      dismissOverlayUi();
+      hideHybridRow();
+      await showBetaLoginUntilDone();
+      resolve({ via: "beta" });
+    };
+
     form.addEventListener("submit", onSubmit);
     cancel?.addEventListener("click", onCancel);
+    if (offerBetaShortcut && hybridBtn) hybridBtn.addEventListener("click", hybridBetaHandler);
   });
+}
+
+async function ensureHybridEntry(cfg) {
+  window.__COMFORT_SESSION_KIND = "";
+  let betaProbe = await fetchHostedSession("/api/beta/session");
+  if (betaProbe.authenticated) {
+    window.__COMFORT_SESSION_KIND = "beta";
+    window.__COMFORT_SESSION_ACTIVE = true;
+    return true;
+  }
+  let onboardingProbe = await fetchHostedSession("/api/onboarding/session");
+  if (onboardingProbe.authenticated) {
+    const sessionProfile = normalizeProfile(onboardingProbe.profile);
+    if (sessionProfile) {
+      setStoredProfile(sessionProfile);
+    }
+    window.__COMFORT_SESSION_KIND = "onboarding";
+    window.__COMFORT_SESSION_ACTIVE = true;
+    return true;
+  }
+  const hybridRes = await showOnboardingUntilDone(getStoredProfile(), { offerBetaShortcut: !!cfg.betaEnabled });
+  if (hybridRes && hybridRes.via === "beta") {
+    window.__COMFORT_SESSION_KIND = "beta";
+    const j = await fetchHostedSession("/api/beta/session");
+    window.__COMFORT_SESSION_ACTIVE = Boolean(j.authenticated);
+    try {
+      sessionStorage.removeItem("comfort_landing_demo_until_ms");
+    } catch {
+      /* ignore */
+    }
+    window.__COMFORT_DEMO_EXPIRES_AT = null;
+    window.__COMFORT_LANDING_DEMO = false;
+    stopDemoBar();
+    return window.__COMFORT_SESSION_ACTIVE;
+  }
+  if (!hybridRes) {
+    window.__COMFORT_SESSION_ACTIVE = false;
+    window.__COMFORT_SESSION_KIND = "";
+    return false;
+  }
+  window.__COMFORT_SESSION_KIND = "onboarding";
+  window.__COMFORT_SESSION_ACTIVE = true;
+  try {
+    sessionStorage.removeItem("comfort_landing_demo_until_ms");
+  } catch {
+    /* ignore */
+  }
+  window.__COMFORT_DEMO_EXPIRES_AT = null;
+  window.__COMFORT_LANDING_DEMO = false;
+  stopDemoBar();
+  return true;
 }
 
 async function ensureOnboardingSession() {
@@ -150,7 +230,7 @@ async function ensureOnboardingSession() {
     }
   }
 
-  return showOnboardingUntilDone(localProfile);
+  return showOnboardingUntilDone(localProfile, {});
 }
 
 async function showBetaLoginUntilDone() {
@@ -238,6 +318,8 @@ async function initComfortHostedMode() {
   window.__COMFORT_REQUIRE_BETA_LOGIN = false;
   window.__COMFORT_LANDING_DEMO_MS = 0;
   window.__COMFORT_LANDING_DEMO = false;
+  window.__COMFORT_PUBLIC_CFG = null;
+  window.__COMFORT_SESSION_KIND = "";
   wireTrialModal();
 
   let cfg;
@@ -254,6 +336,7 @@ async function initComfortHostedMode() {
     return;
   }
 
+  window.__COMFORT_PUBLIC_CFG = cfg;
   window.__COMFORT_HOSTED = true;
   window.__COMFORT_ACCESS_MODE = String(cfg.accessMode || "onboarding");
   window.__COMFORT_SUBSCRIBE_URL = String(cfg.subscribeUrl || "").trim() || "https://example.com";
@@ -271,6 +354,7 @@ async function initComfortHostedMode() {
   if (window.__COMFORT_ACCESS_MODE === "onboarding") {
     const onboardingProfile = await ensureOnboardingSession();
     window.__COMFORT_SESSION_ACTIVE = Boolean(onboardingProfile);
+    window.__COMFORT_SESSION_KIND = window.__COMFORT_SESSION_ACTIVE ? "onboarding" : "";
     try {
       sessionStorage.removeItem("comfort_landing_demo_until_ms");
     } catch {
@@ -279,6 +363,11 @@ async function initComfortHostedMode() {
     window.__COMFORT_DEMO_EXPIRES_AT = null;
     window.__COMFORT_LANDING_DEMO = false;
     stopDemoBar();
+    renderHostedProfileCard();
+    applyHostedCoachCopy();
+  } else if (window.__COMFORT_ACCESS_MODE === "hybrid") {
+    window.__COMFORT_SESSION_KIND = "";
+    await ensureHybridEntry(cfg);
     renderHostedProfileCard();
     applyHostedCoachCopy();
   } else {
@@ -294,12 +383,14 @@ async function initComfortHostedMode() {
       window.__COMFORT_DEMO_EXPIRES_AT = null;
       window.__COMFORT_LANDING_DEMO = false;
       window.__COMFORT_SESSION_ACTIVE = true;
+      window.__COMFORT_SESSION_KIND = "beta";
       stopDemoBar();
       applyHostedCoachCopy();
     } else if (wantsBetaGate) {
       await showBetaLoginUntilDone();
       const j2 = await fetchHostedSession("/api/beta/session");
       window.__COMFORT_SESSION_ACTIVE = Boolean(j2.authenticated);
+      window.__COMFORT_SESSION_KIND = window.__COMFORT_SESSION_ACTIVE ? "beta" : "";
       try {
         sessionStorage.removeItem("comfort_landing_demo_until_ms");
       } catch {
@@ -311,6 +402,7 @@ async function initComfortHostedMode() {
       applyHostedCoachCopy();
     } else {
       window.__COMFORT_SESSION_ACTIVE = false;
+      window.__COMFORT_SESSION_KIND = "";
       applyHostedCoachCopy();
       startLandingDemoCountdown(window.__COMFORT_LANDING_DEMO_MS);
     }
@@ -327,22 +419,50 @@ async function initComfortHostedMode() {
       return;
     }
     try {
-      const endpoint =
-        window.__COMFORT_ACCESS_MODE === "onboarding" ? "/api/onboarding/session" : "/api/beta/session";
-      const j = await fetchHostedSession(endpoint);
-      if (!j.authenticated) {
-        if (window.__COMFORT_ACCESS_MODE === "onboarding") {
+      const mode = window.__COMFORT_ACCESS_MODE;
+      if (mode === "onboarding") {
+        const j = await fetchHostedSession("/api/onboarding/session");
+        if (!j.authenticated) {
           const restoredProfile = await ensureOnboardingSession();
           window.__COMFORT_SESSION_ACTIVE = Boolean(restoredProfile);
           renderHostedProfileCard();
         } else {
+          const sessionProfile = normalizeProfile(j.profile);
+          if (sessionProfile) {
+            setStoredProfile(sessionProfile);
+          }
+        }
+        return;
+      }
+      if (mode === "beta") {
+        const j = await fetchHostedSession("/api/beta/session");
+        if (!j.authenticated) {
           window.__COMFORT_SESSION_ACTIVE = false;
+          window.__COMFORT_SESSION_KIND = "";
           applyHostedCoachCopy();
         }
-      } else if (window.__COMFORT_ACCESS_MODE === "onboarding") {
-        const sessionProfile = normalizeProfile(j.profile);
-        if (sessionProfile) {
-          setStoredProfile(sessionProfile);
+        return;
+      }
+      if (mode === "hybrid") {
+        const kind = window.__COMFORT_SESSION_KIND || "onboarding";
+        if (kind === "beta") {
+          const j = await fetchHostedSession("/api/beta/session");
+          if (!j.authenticated) {
+            window.__COMFORT_SESSION_ACTIVE = false;
+            window.__COMFORT_SESSION_KIND = "";
+            applyHostedCoachCopy();
+          }
+        } else {
+          const j = await fetchHostedSession("/api/onboarding/session");
+          if (!j.authenticated) {
+            await ensureHybridEntry(window.__COMFORT_PUBLIC_CFG || {});
+            renderHostedProfileCard();
+          } else {
+            const sessionProfile = normalizeProfile(j.profile);
+            if (sessionProfile) {
+              setStoredProfile(sessionProfile);
+            }
+          }
         }
       }
     } catch {
@@ -356,7 +476,13 @@ function renderHostedProfileCard() {
   const name = document.getElementById("comfortProfileName");
   const lifestyle = document.getElementById("comfortProfileLifestyle");
   const profile = getStoredProfile();
-  const shouldShow = Boolean(window.__COMFORT_HOSTED && window.__COMFORT_ACCESS_MODE === "onboarding" && profile);
+  const modeOk =
+    window.__COMFORT_ACCESS_MODE === "onboarding" ||
+    window.__COMFORT_ACCESS_MODE === "hybrid";
+  const onboardingLike =
+    modeOk &&
+    window.__COMFORT_SESSION_KIND !== "beta";
+  const shouldShow = Boolean(window.__COMFORT_HOSTED && onboardingLike && profile);
   if (!card || !name) {
     return;
   }

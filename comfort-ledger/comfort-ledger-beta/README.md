@@ -31,7 +31,7 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - `NODE_ENV=production`
   - `PORT` lo inyecta Render automáticamente
 - **Opcionales:**
-  - `COMFORT_ACCESS_MODE` (`beta` por defecto mientras existan usuarios; usa `onboarding` cuando quieras abrir el acceso)
+  - `COMFORT_ACCESS_MODE` (`beta` por defecto mientras existan usuarios; `onboarding` para acceso sólo onboarding; **`hybrid`** = onboarding público con comprobación Lemon Squeezy cuando esté configurado + botón de acceso tester con login beta)
   - `COMFORT_SUBSCRIBE_URL`
   - `COMFORT_LANDING_DEMO_MINUTES`
   - `COMFORT_REQUIRE_BETA_LOGIN`
@@ -52,8 +52,9 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
 - **Por defecto en beta:** `COMFORT_ACCESS_MODE=beta`
   - La landing pública explica el producto en `/`.
   - El web app financiero vive en `/app` y usa `data/beta-users.json` con usuario/contraseña.
-- **Más adelante:** `COMFORT_ACCESS_MODE=onboarding`
-  - Cambia a acceso más abierto cuando quieras pasar de beta privada a pre-lanzamiento o venta.
+- **Ventas públicas + testers gratis:** `COMFORT_ACCESS_MODE=hybrid` (mantén tus filas en `beta-users.json`, configura Lemon y webhook como en la guía inferior). Los compradores pasan onboarding con el **correo con el que pagaron en Lemon**. Los testers usan «Tengo acceso tester» y el login beta.
+- **Sólo onboarding (sin chequeo Lemon salvo overrides):** `COMFORT_ACCESS_MODE=onboarding`
+  - Útil en pre-lanzamiento sin PSP o con `COMFORT_ONBOARDING_REQUIRES_SUBSCRIPTION=true` obligando pago incluso fuera de hybrid.
 
 ## Usuarios beta
 
