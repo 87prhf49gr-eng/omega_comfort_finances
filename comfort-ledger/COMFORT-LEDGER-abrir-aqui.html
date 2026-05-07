@@ -347,13 +347,13 @@
       </div>
     </header>
 
-    <section class="kpi-hero" id="comfortKpiHero" aria-labelledby="comfortKpiLabel" data-tone="empty">
+    <section class="kpi-hero" id="comfortKpiHero" aria-labelledby="comfortKpiLabel" data-tone="empty" data-mobile-tab="home">
       <p class="kpi-hero-label" id="comfortKpiLabel" data-i18n="kpi_free_label">Libres después de todo este mes</p>
       <p class="kpi-hero-value" id="comfortKpiValue">—</p>
       <p class="kpi-hero-status" id="comfortKpiStatus"></p>
     </section>
 
-    <section class="panel health" id="healthPanel" aria-labelledby="healthTitle">
+    <section class="panel health" id="healthPanel" aria-labelledby="healthTitle" data-mobile-tab="home">
       <h2 id="healthTitle" data-i18n="health_title">Resumen de salud</h2>
       <div class="health-score" id="healthScore" role="status">
         <span class="health-ring" id="healthRing" aria-hidden="true"></span>
@@ -365,7 +365,7 @@
       <ul class="health-metrics" id="healthMetrics"></ul>
     </section>
 
-    <section class="panel goals-panel" id="goalsPanel" aria-labelledby="goalsTitle">
+    <section class="panel goals-panel" id="goalsPanel" aria-labelledby="goalsTitle" data-mobile-tab="goals">
       <div class="section-head">
         <h2 id="goalsTitle" data-i18n="goals_title">Metas con tus cobros</h2>
         <button type="button" class="btn-ghost" id="addGoalBtn" data-i18n="goals_add">+ Meta</button>
@@ -386,7 +386,7 @@
     </section>
 
     <div class="grid-main">
-      <div class="charts-column">
+      <div class="charts-column" data-mobile-tab="home" id="comfortChartsRegion">
         <section class="panel chart-card">
           <h3 data-i18n="chart_flow_title">Flujo del mes</h3>
           <p class="sub" data-i18n="chart_flow_sub">Ingreso vs gasto mensualizado vs carga de deuda</p>
@@ -413,7 +413,7 @@
         </section>
       </div>
 
-      <aside class="coach-column">
+      <aside class="coach-column" id="comfortCoachColumn" data-mobile-tab="coach">
         <section class="panel coach" id="coachPanel" aria-labelledby="coachTitle">
           <div class="coach-head">
             <h2 id="coachTitle" data-i18n="coach_title">Coach IA</h2>
@@ -467,8 +467,44 @@
       </aside>
     </div>
 
+    <div
+      class="comfort-moves-subnav"
+      id="comfortMovesSubnav"
+      role="tablist"
+      data-i18n-attr="aria-label|moves_subnav_aria"
+      aria-label="Ingresos y gastos"
+      hidden
+    >
+      <button
+        type="button"
+        class="comfort-moves-seg"
+        id="comfortMovesTabIncome"
+        role="tab"
+        aria-selected="true"
+        aria-controls="incomePanel"
+        data-moves-sub="income"
+        tabindex="0"
+        data-i18n="moves_tab_income"
+      >
+        Ingresos
+      </button>
+      <button
+        type="button"
+        class="comfort-moves-seg"
+        id="comfortMovesTabExpense"
+        role="tab"
+        aria-selected="false"
+        aria-controls="expensePanel"
+        data-moves-sub="expense"
+        tabindex="-1"
+        data-i18n="moves_tab_expense"
+      >
+        Gastos
+      </button>
+    </div>
+
     <div class="grid-inputs">
-      <section class="panel inputs-card" id="incomePanel">
+      <section class="panel inputs-card" id="incomePanel" data-mobile-tab="moves" data-mobile-moves-sub="income">
         <div class="section-head">
           <h2 data-i18n="income_title">Ingresos</h2>
           <button type="button" class="btn-ghost" id="addIncomeBtn" data-i18n="add_row">+ Agregar</button>
@@ -483,7 +519,7 @@
         </label>
       </section>
 
-      <section class="panel inputs-card" id="expensePanel">
+      <section class="panel inputs-card" id="expensePanel" data-mobile-tab="moves" data-mobile-moves-sub="expense">
         <div class="section-head">
           <h2 data-i18n="expenses_title">Gastos</h2>
           <button type="button" class="btn-ghost" id="addExpenseBtn" data-i18n="add_row">+ Agregar</button>
@@ -494,7 +530,7 @@
         </div>
       </section>
 
-      <section class="panel inputs-card" id="debtPanel">
+      <section class="panel inputs-card" id="debtPanel" data-mobile-tab="debts">
         <div class="section-head">
           <h2 data-i18n="debts_title">Deudas</h2>
           <button type="button" class="btn-ghost" id="addDebtBtn" data-i18n="add_row">+ Agregar</button>
@@ -506,13 +542,13 @@
       </section>
     </div>
 
-    <section class="dash-tactical" id="dash" aria-labelledby="dashTacticalTitle">
+    <section class="dash-tactical" id="dash" aria-labelledby="dashTacticalTitle" data-mobile-tab="home">
       <h2 id="dashTacticalTitle" class="dash-tactical-title" data-i18n="dash_title">Informe ejecutivo</h2>
       <p class="sub dash-tactical-lede" data-i18n="dash_sub">Misma información que arriba, en porcentaje del ingreso del mes y lectura compacta tipo sala de juntas.</p>
       <div class="dash-grid" id="dashTacticalGrid"></div>
     </section>
 
-    <div class="post-dash-wrap">
+    <div class="post-dash-wrap" data-mobile-tab="home">
       <div class="post-dash-weekly" id="postDashWeekly" hidden aria-live="polite"></div>
       <div class="post-dash-today" id="postDashToday" hidden aria-live="polite"></div>
       <div class="post-dash-global-toolbar">
@@ -569,8 +605,23 @@
       </div>
     </div>
 
-    <nav class="comfort-mobile-nav" id="comfortMobileNav" data-i18n-attr="aria-label|mobile_nav_aria" aria-label="Navegación rápida">
-      <button type="button" class="comfort-mobile-nav-btn" data-target="comfortKpiHero" aria-current="true">
+    <nav
+      class="comfort-mobile-nav"
+      id="comfortMobileNav"
+      role="tablist"
+      data-i18n-attr="aria-label|mobile_nav_aria"
+      aria-label="Navegación rápida"
+    >
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabHome"
+        aria-selected="true"
+        aria-controls="comfortChartsRegion"
+        data-target="comfortKpiHero"
+        aria-current="true"
+      >
         <span class="comfort-mobile-nav-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 11.5 12 4l9 7.5"></path>
@@ -579,7 +630,15 @@
         </span>
         <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_home">Inicio</span>
       </button>
-      <button type="button" class="comfort-mobile-nav-btn" data-target="goalsPanel">
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabGoals"
+        aria-selected="false"
+        aria-controls="goalsPanel"
+        data-target="goalsPanel"
+      >
         <span class="comfort-mobile-nav-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="7"></circle>
@@ -590,7 +649,15 @@
         <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_goals">Metas</span>
         <span class="comfort-mobile-nav-badge" data-badge="goals" hidden>!</span>
       </button>
-      <button type="button" class="comfort-mobile-nav-btn" data-target="incomePanel">
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabMoves"
+        aria-selected="false"
+        aria-controls="incomePanel"
+        data-target="incomePanel"
+      >
         <span class="comfort-mobile-nav-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 12h18"></path>
@@ -600,7 +667,15 @@
         </span>
         <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_moves">Movs</span>
       </button>
-      <button type="button" class="comfort-mobile-nav-btn" data-target="debtPanel">
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabDebts"
+        aria-selected="false"
+        aria-controls="debtPanel"
+        data-target="debtPanel"
+      >
         <span class="comfort-mobile-nav-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="6.5" width="18" height="11" rx="2"></rect>
@@ -609,7 +684,15 @@
         </span>
         <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_debts">Deudas</span>
       </button>
-      <button type="button" class="comfort-mobile-nav-btn" data-target="coachPanel">
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabCoach"
+        aria-selected="false"
+        aria-controls="coachPanel"
+        data-target="coachPanel"
+      >
         <span class="comfort-mobile-nav-ico" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 3.5a6.5 6.5 0 0 0-6.5 6.5c0 2.3 1.2 3.7 2.5 5"></path>

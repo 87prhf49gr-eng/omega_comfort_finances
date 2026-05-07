@@ -565,6 +565,9 @@ const UI_STRINGS = {
     mobile_nav_moves: "Movs",
     mobile_nav_debts: "Deudas",
     mobile_nav_coach: "Coach",
+    moves_subnav_aria: "Ingresos y gastos",
+    moves_tab_income: "Ingresos",
+    moves_tab_expense: "Gastos",
     theme_label: "Apariencia",
     theme_dark: "Oscuro",
     theme_light: "Claro",
@@ -960,6 +963,9 @@ const UI_STRINGS = {
     mobile_nav_moves: "Flow",
     mobile_nav_debts: "Debts",
     mobile_nav_coach: "Coach",
+    moves_subnav_aria: "Income and expenses",
+    moves_tab_income: "Income",
+    moves_tab_expense: "Expenses",
     theme_label: "Appearance",
     theme_dark: "Dark",
     theme_light: "Light",
@@ -1351,6 +1357,9 @@ const UI_STRINGS = {
     mobile_nav_moves: "流水",
     mobile_nav_debts: "债务",
     mobile_nav_coach: "顾问",
+    moves_subnav_aria: "收入与支出",
+    moves_tab_income: "收入",
+    moves_tab_expense: "支出",
     theme_label: "外观",
     theme_dark: "深色",
     theme_light: "浅色",
@@ -4208,7 +4217,32 @@ function setupComfortMobileNav() {
     .filter((entry) => entry.el);
   if (!targets.length) return;
 
+  /** Ancho máximo donde la bottom bar actúa como tabs de app (debe coincidir con CSS). */
+  const MOBILE_NAV_MAX_WIDTH = 640;
+  const MOBILE_TAB_TARGET_KEY = "comfort_mobile_tab_target";
+  const MOBILE_MOVES_SUB_KEY = "comfort_mobile_moves_sub";
   const MOBILE_NAV_MODE_KEY = "comfort_mobile_nav_mode";
+
+  const movesSubnav = document.getElementById("comfortMovesSubnav");
+  const movesSegButtons = movesSubnav
+    ? Array.from(movesSubnav.querySelectorAll(".comfort-moves-seg[data-moves-sub]"))
+    : [];
+
+  const mobileTabPanels = Array.from(document.querySelectorAll("[data-mobile-tab]"));
+
+  const prefersReducedMotion =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const motionOk = !prefersReducedMotion;
+
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+  let hidden = false;
+
+  const isMobileNavViewport = () => window.innerWidth <= MOBILE_NAV_MAX_WIDTH;
+
   const resolveNavMode = () => {
     try {
       const fromQuery = new URL(window.location.href).searchParams.get("nav");
@@ -4230,36 +4264,207 @@ function setupComfortMobileNav() {
     nav.setAttribute("data-compact", compact ? "1" : "0");
   };
 
+  const persistTabTarget = (targetId) => {
+    try {
+      localStorage.setItem(MOBILE_TAB_TARGET_KEY, targetId);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const persistMovesSub = (sub) => {
+    try {
+      localStorage.setItem(MOBILE_MOVES_SUB_KEY, sub);
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const readPersistedTabTarget = () => {
+    try {
+      const raw = localStorage.getItem(MOBILE_TAB_TARGET_KEY);
+      if (raw && buttons.some((b) => b.getAttribute("data-target") === raw)) return raw;
+    } catch {
+      /* ignore */
+    }
+    return null;
+  };
+
+  const readPersistedMovesSub = () => {
+    try {
+      const raw = localStorage.getItem(MOBILE_MOVES_SUB_KEY);
+      if (raw === "income" || raw === "expense") return raw;
+    } catch {
+      /* ignore */
+    }
+    return "income";
+  };
+
+  let movesSub = readPersistedMovesSub();
+
+  const targetToTab = (id) => {
+    if (id === "goalsPanel") return "goals";
+    if (id === "incomePanel") return "moves";
+    if (id === "debtPanel") return "debts";
+    if (id === "coachPanel") return "coach";
+    return "home";
+  };
+
+  const setMovesSub = (sub, opts = {}) => {
+    if (sub !== "income" && sub !== "expense") return;
+    movesSub = sub;
+    if (!opts.skipPersist) persistMovesSub(sub);
+    movesSegButtons.forEach((btn) => {
+      const on = btn.getAttribute("data-moves-sub") === sub;
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      btn.tabIndex = on ? 0 : -1;
+    });
+  };
+
+  const syncMovesSubnavVisibility = (targetId) => {
+    if (!movesSubnav) return;
+    const show =
+      isMobileNavViewport() && targetToTab(targetId) === "moves";
+    movesSubnav.hidden = !show;
+  };
+
   const setActive = (id) => {
     buttons.forEach((btn) => {
       const on = btn.getAttribute("data-target") === id;
       btn.setAttribute("aria-current", on ? "true" : "false");
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+      if (on) btn.tabIndex = 0;
+      else btn.tabIndex = -1;
     });
+    nav.setAttribute("data-active-tab", targetToTab(id));
+  };
+
+  const setInertHidden = (el, hide) => {
+    if (!el) return;
+    if (hide) {
+      el.setAttribute("aria-hidden", "true");
+      if ("inert" in el) el.inert = true;
+    } else {
+      el.removeAttribute("aria-hidden");
+      if ("inert" in el) el.inert = false;
+    }
+  };
+
+  const applyMobileTab = (targetId, opts = {}) => {
+    if (!mobileTabPanels.length) return;
+
+    if (!isMobileNavViewport()) {
+      mobileTabPanels.forEach((panel) => {
+        panel.removeAttribute("data-mobile-tab-anim");
+        panel.removeAttribute("data-mobile-tab-hidden");
+        setInertHidden(panel, false);
+      });
+      if (movesSubnav) {
+        movesSubnav.hidden = true;
+      }
+      document.body.classList.remove("comfort-mobile-tab-mode");
+      return;
+    }
+
+    document.body.classList.add("comfort-mobile-tab-mode");
+    const activeTab = targetToTab(targetId);
+
+    if (activeTab === "moves" && opts.movesSub) {
+      setMovesSub(opts.movesSub, { skipPersist: !!opts.skipMovesPersist });
+    }
+
+    syncMovesSubnavVisibility(targetId);
+
+    mobileTabPanels.forEach((panel) => {
+      const tab = String(panel.getAttribute("data-mobile-tab") || "");
+      const sub = String(panel.getAttribute("data-mobile-moves-sub") || "");
+      let visible = tab === activeTab;
+      if (visible && activeTab === "moves" && sub) {
+        visible = sub === movesSub;
+      }
+      const hide = !visible;
+      panel.setAttribute("data-mobile-tab-hidden", hide ? "1" : "0");
+      if (motionOk && !hide) {
+        panel.setAttribute("data-mobile-tab-anim", "enter");
+        window.setTimeout(() => panel.removeAttribute("data-mobile-tab-anim"), 220);
+      } else {
+        panel.removeAttribute("data-mobile-tab-anim");
+      }
+      setInertHidden(panel, hide);
+    });
+
+    nav.classList.remove("is-hidden");
+    hidden = false;
+    const topBehavior = motionOk ? "smooth" : "auto";
+    window.scrollTo({ top: 0, behavior: topBehavior });
   };
 
   const scrollToSectionSnap = (target) => {
     if (!target) return;
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
-    // Secondary alignment pass to produce a cleaner "snap" feel after momentum.
-    window.setTimeout(() => {
-      const top = target.getBoundingClientRect().top + window.scrollY - 6;
-      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-    }, 260);
+    const behavior = motionOk ? "smooth" : "instant";
+    target.scrollIntoView({ behavior, block: "start" });
+    if (motionOk) {
+      window.setTimeout(() => {
+        const top = target.getBoundingClientRect().top + window.scrollY - 6;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      }, 260);
+    }
   };
+
+  const activateTabByTargetId = (targetId, opts = {}) => {
+    const el = document.getElementById(targetId.replace(/^#/, ""));
+    if (!el) return;
+    setActive(targetId);
+    if (!opts.skipPersist) persistTabTarget(targetId);
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(6);
+    }
+    if (isMobileNavViewport()) {
+      applyMobileTab(targetId, opts);
+    } else {
+      scrollToSectionSnap(el);
+    }
+  };
+
+  movesSegButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const sub = String(btn.getAttribute("data-moves-sub") || "");
+      if (sub !== "income" && sub !== "expense") return;
+      setMovesSub(sub);
+      const activeMain = buttons.find((b) => b.getAttribute("aria-current") === "true");
+      const tid = activeMain ? String(activeMain.getAttribute("data-target") || "") : "incomePanel";
+      if (targetToTab(tid) !== "moves") {
+        activateTabByTargetId("incomePanel", { movesSub: sub, skipMovesPersist: true });
+      } else {
+        applyMobileTab(tid, { movesSub: sub, skipMovesPersist: true });
+      }
+    });
+  });
+
+  if (movesSubnav && movesSegButtons.length) {
+    movesSubnav.addEventListener("keydown", (ev) => {
+      if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+      const i = movesSegButtons.indexOf(document.activeElement);
+      if (i < 0) return;
+      ev.preventDefault();
+      const next =
+        ev.key === "ArrowRight"
+          ? (i + 1) % movesSegButtons.length
+          : (i - 1 + movesSegButtons.length) % movesSegButtons.length;
+      movesSegButtons[next].click();
+      movesSegButtons[next].focus();
+    });
+  }
 
   buttons.forEach((btn) => {
     btn.addEventListener("click", () => {
       const id = String(btn.getAttribute("data-target") || "");
-      const target = id ? document.getElementById(id) : null;
-      if (!target) return;
-      setActive(id);
-      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
-        navigator.vibrate(8);
-      }
-      scrollToSectionSnap(target);
+      if (!id) return;
+      activateTabByTargetId(id);
     });
 
     btn.addEventListener("pointerdown", (ev) => {
+      if (prefersReducedMotion) return;
       const ripple = document.createElement("span");
       ripple.className = "comfort-mobile-nav-ripple";
       const rect = btn.getBoundingClientRect();
@@ -4272,9 +4477,21 @@ function setupComfortMobileNav() {
     });
   });
 
+  nav.addEventListener("keydown", (ev) => {
+    if (ev.key !== "ArrowRight" && ev.key !== "ArrowLeft") return;
+    const i = buttons.indexOf(document.activeElement);
+    if (i < 0) return;
+    ev.preventDefault();
+    const next = ev.key === "ArrowRight" ? (i + 1) % buttons.length : (i - 1 + buttons.length) % buttons.length;
+    const id = String(buttons[next].getAttribute("data-target") || "");
+    if (id) activateTabByTargetId(id);
+    buttons[next].focus();
+  });
+
   if (typeof IntersectionObserver === "function") {
     const observer = new IntersectionObserver(
       (entries) => {
+        if (isMobileNavViewport()) return;
         let best = null;
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
@@ -4292,15 +4509,18 @@ function setupComfortMobileNav() {
         threshold: [0.15, 0.35, 0.6]
       }
     );
-    targets.forEach((item) => observer.observe(item.el));
+    const wireObserver = () => {
+      observer.disconnect();
+      if (!isMobileNavViewport()) {
+        targets.forEach((item) => observer.observe(item.el));
+      }
+    };
+    wireObserver();
+    window.addEventListener("resize", wireObserver, { passive: true });
   }
 
-  // Auto-hide/show nav based on scroll direction on mobile.
-  let lastY = window.scrollY || 0;
-  let ticking = false;
-  let hidden = false;
   const onScroll = () => {
-    if (window.innerWidth > 640) {
+    if (!isMobileNavViewport()) {
       nav.classList.remove("is-hidden");
       hidden = false;
       return;
@@ -4335,7 +4555,6 @@ function setupComfortMobileNav() {
     hidden = false;
   });
 
-  // Lightweight badges for actionable attention areas.
   const goalsBadge = nav.querySelector('[data-badge="goals"]');
   const coachBadge = nav.querySelector('[data-badge="coach"]');
   const goalsList = document.getElementById("goalsList");
@@ -4361,10 +4580,36 @@ function setupComfortMobileNav() {
     const coachObserver = new MutationObserver(updateBadges);
     coachObserver.observe(coachStatus, { childList: true, characterData: true, subtree: true });
   }
+
   updateBadges();
-  onScroll();
+  setMovesSub(movesSub, { skipPersist: true });
   applyCompactMode();
+
+  const persisted = readPersistedTabTarget();
+  const fallback = buttons.find((b) => b.getAttribute("aria-current") === "true") || buttons[0];
+  const initialBtn = persisted ? buttons.find((b) => b.getAttribute("data-target") === persisted) : null;
+  const start = initialBtn || fallback;
+  if (start) {
+    const id = String(start.getAttribute("data-target") || "");
+    if (id) {
+      setMovesSub(readPersistedMovesSub(), { skipPersist: true });
+      activateTabByTargetId(id, { skipPersist: true, movesSub: readPersistedMovesSub(), skipMovesPersist: true });
+    }
+  }
+
+  onScroll();
   window.addEventListener("resize", applyCompactMode, { passive: true });
+  window.addEventListener(
+    "resize",
+    () => {
+      const active = buttons.find((b) => b.getAttribute("aria-current") === "true") || buttons[0];
+      if (!active) return;
+      const id = String(active.getAttribute("data-target") || "");
+      if (id) applyMobileTab(id);
+      syncMovesSubnavVisibility(id);
+    },
+    { passive: true }
+  );
 
   nav.dataset.wired = "1";
 }
