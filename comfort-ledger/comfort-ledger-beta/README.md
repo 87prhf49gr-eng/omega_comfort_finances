@@ -17,6 +17,55 @@ npm start
 
 Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
 
+## Contrato API
+
+El contrato base de endpoints vive en `openapi.yaml` (OpenAPI 3.1). Incluye health, waitlist, checkout, webhook de LemonSqueezy, estado de suscripción y coach.
+
+Versionado:
+
+- rutas actuales (`/api/...`) siguen soportadas por compatibilidad.
+- rutas versionadas (`/v1/api/...`) disponibles para integración nueva.
+
+RBAC básico:
+
+- roles soportados en usuarios beta: `admin`, `support`, `user` (default).
+- endpoint administrativo inicial: `GET /api/admin/subscriptions` (también `/v1/api/admin/subscriptions`), acceso solo `admin/support`.
+
+## Diseño de datos (v1)
+
+Documentos de arquitectura para migrar de JSON a DB:
+
+- `docs/data-schema-v1.md` (tablas, índices, DDL)
+- `docs/migration-plan-v1.md` (estrategia de migración y rollback)
+
+La capa de acceso a datos actual vive en `data/repository.js` y centraliza operaciones de:
+
+- usuarios beta
+- sesiones
+- waitlist
+- suscripciones
+- push registrations
+
+## Runbook operativo
+
+- `docs/incident-runbook-v1.md` (respuesta a incidentes: login, pagos/webhooks, 5xx/latencia)
+
+## Gobernanza de API
+
+- `docs/api-compatibility-policy-v1.md` define compatibilidad, deprecaciones y proceso de breaking changes.
+- `docs/implementation-status-and-release-plan.md` resume estado por ticket y plan de release staging -> producción.
+- `docs/staging-to-production-playbook.md` playbook operativo de salida a staging/prod.
+
+## Predeploy checks
+
+Antes de desplegar, corre:
+
+```bash
+npm run predeploy:check
+```
+
+Valida secretos y configuración crítica (sesiones + Lemon cuando checkout está activo).
+
 ## Render
 
 - **Tipo:** `Web Service`
@@ -25,6 +74,7 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - Si `npm ci` falla por un lockfile desalineado, usa `cd comfort-ledger/comfort-ledger-beta && npm install`.
 - **Start command:** `cd comfort-ledger/comfort-ledger-beta && npm start`
 - **Health check opcional:** `/api/health`
+- **SLO snapshot opcional:** `/api/health/slo?windowMin=15`
 - **Variables mínimas:**
   - `OPENAI_API_KEY`
   - `COMFORT_SESSION_SECRET`
@@ -37,6 +87,9 @@ Abre `http://127.0.0.1:8787/` (o el `PORT` que definas).
   - `COMFORT_REQUIRE_BETA_LOGIN`
   - `COMFORT_DATA_DIR`
   - `COMFORT_SUPPORT_EMAIL` (se muestra cuando falla el acceso pagado o el portal)
+  - `COMFORT_RATE_CHECKOUT_MAX` (requests por IP / 15 min para `/api/checkout`)
+  - `COMFORT_RATE_PORTAL_MAX` (requests por IP / 15 min para `/api/customer-portal`)
+  - `COMFORT_RATE_SUBSCRIPTION_STATUS_MAX` (requests por IP / 15 min para `/api/subscription/status`)
 - **Persistencia:** `data/beta-sessions.json` no va en git. En un servicio con filesystem efímero, las sesiones se reinician al redeploy o reinicio salvo que montes disco persistente.
 - **Disk requerido para producción estable:** monta un disco en `/var/data` y define `COMFORT_DATA_DIR=/var/data`. Sin disco persistente se pierden en reinicios/redeploys: `beta-sessions.json` (usuarios salen de sesión), `subscriptions.json` (pagadores pueden quedar bloqueados hasta reentrar webhooks o soporte), `waitlist.json` y `push-subscriptions.json`. Si el disco arranca vacío, el servidor copia automáticamente `beta-users.json` versionado a ese directorio. En deploys posteriores, si el `beta-users.json` del repo cambia, el servidor lo resincroniza al disco persistente y vacía `beta-sessions.json` para forzar login con las credenciales nuevas.
 
@@ -104,7 +157,7 @@ Reinicia. En el log verás `LemonSqueezy: configured · Public purchase: ON`. Lo
 |---|---|---|
 | `/api/waitlist` | POST | Guarda email en `data/waitlist.json`. |
 | `/api/checkout` | POST/GET | Crea una URL de checkout (JSON con `{url}` o redirect 302 si es GET). |
-| `/api/webhooks/lemonsqueezy` | POST | Firma verificada con HMAC-SHA256; actualiza `data/subscriptions.json`. |
+| `/api/webhooks/lemonsqueezy` | POST | Firma verificada con HMAC-SHA256; dedupe idempotente por `eventKey`; actualiza `data/subscriptions.json` solo si el evento no fue procesado. |
 | `/api/subscription/status?email=…` | GET | Devuelve si la suscripción está activa. |
 | `/api/customer-portal?email=…` | GET | Redirige 302 al Customer Portal hosted. |
 
@@ -122,6 +175,37 @@ Después, en LemonSqueezy, usa *Send test* para verificar.
 Los archivos `data/subscriptions.json`, `data/waitlist.json` y `data/push-subscriptions.json` **deben persistir** entre deploys. Monta el disco persistente como ya haces con `beta-sessions.json` y apunta `COMFORT_DATA_DIR` al mismo path. Los tres están en `.gitignore` para no committear datos de clientes.
 
 En Render Blueprint, `render.yaml` ya declara un disco de 1 GB en `/var/data` y `COMFORT_DATA_DIR=/var/data`. Si creas el servicio manualmente, replica esa configuración antes de abrir ventas públicas.
+
+### 6. Reconciliación de suscripciones (operación)
+
+Para comparar y corregir estado local vs Lemon:
+
+```bash
+cd comfort-ledger/comfort-ledger-beta
+npm run reconcile:subscriptions            # dry-run
+npm run reconcile:subscriptions -- --apply # aplica cambios en subscriptions.json
+```
+
+Cada corrida genera un reporte en `logs/subscription-reconcile-<timestamp>.json`.
+
+### 7. Señales SLO y alerta mínima
+
+Chequeo rápido de SLO (5xx, webhook failures, p95):
+
+```bash
+cd comfort-ledger/comfort-ledger-beta
+npm run check:slo
+```
+
+Variables opcionales:
+
+- `COMFORT_SLO_BASE_URL` (default `http://127.0.0.1:8787`)
+- `COMFORT_SLO_WINDOW_MIN` (default `15`)
+- `COMFORT_SLO_MAX_5XX_RATE` (default `0.02`)
+- `COMFORT_SLO_MAX_WEBHOOK_FAILURE_RATE` (default `0.05`)
+- `COMFORT_SLO_MAX_P95_MS` (default `1200`)
+
+El script retorna exit code `1` si se excede un umbral (apto para cron/monitor).
 
 ## Web Push (notificaciones en segundo plano)
 

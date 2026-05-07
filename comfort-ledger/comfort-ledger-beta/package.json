@@ -7,7 +7,12 @@
   "scripts": {
     "start": "node server.js",
     "hash-password": "node scripts/hash-password.mjs",
-    "test": "node --test test/audit.test.cjs",
+    "test": "node --test test/*.test.cjs",
+    "predeploy:check": "node scripts/predeploy-check.mjs",
+    "migrate:json-to-db": "node scripts/migrate-json-to-db.mjs",
+    "reconcile:subscriptions": "node scripts/reconcile-subscriptions.mjs",
+    "check:slo": "node scripts/check-slo.mjs",
+    "smoke:postdeploy": "node scripts/smoke-postdeploy.mjs",
     "release-hash": "node -e \"console.log(process.env.RELEASE_HASH || process.env.GIT_COMMIT || String(Date.now()))\"",
     "patch-sw-cache": "node ../scripts/patch-sw-cache.cjs"
   },

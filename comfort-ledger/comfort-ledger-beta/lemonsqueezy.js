@@ -175,6 +175,40 @@ async function getCustomerPortalUrl(subscriptionId) {
 }
 
 /**
+ * Obtiene snapshot de una suscripción en LemonSqueezy para reconciliación.
+ */
+async function getSubscriptionSnapshot(subscriptionId) {
+  const cfg = getConfig();
+  if (!isConfigured()) return { error: "LemonSqueezy no está configurado." };
+  if (!subscriptionId) return { error: "subscriptionId requerido." };
+  try {
+    const response = await fetch(`${LS_API_BASE}/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+      method: "GET",
+      headers: lemonHeaders(cfg.apiKey)
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return { error: `LS subscription fetch failed (${response.status}): ${text.slice(0, 300)}` };
+    }
+    const json = await response.json();
+    const attrs = json?.data?.attributes || {};
+    const variantId = String(attrs.variant_id || attrs.first_subscription_item?.variant_id || "");
+    const status = String(attrs.status || "").trim().toLowerCase();
+    return {
+      ok: true,
+      subscriptionId: String(json?.data?.id || subscriptionId),
+      customerId: String(attrs.customer_id || ""),
+      variantId,
+      status,
+      renewsAt: attrs.renews_at || attrs.ends_at || null,
+      plan: planForVariantId(variantId, PLAN_MONTHLY)
+    };
+  } catch (err) {
+    return { error: err && err.message ? err.message : "Error llamando a LemonSqueezy." };
+  }
+}
+
+/**
  * Normaliza un payload de webhook en un registro de suscripción local.
  * Aceptamos los eventos más usuales: subscription_created, subscription_updated,
  * subscription_cancelled, subscription_resumed, subscription_expired,
@@ -232,6 +266,7 @@ module.exports = {
   verifyWebhookSignature,
   createCheckoutUrl,
   getCustomerPortalUrl,
+  getSubscriptionSnapshot,
   parseWebhookEvent,
   isActiveStatus
 };

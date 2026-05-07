@@ -38,8 +38,10 @@ const OpenAI = require("openai");
 const webpush = require("web-push");
 const lemon = require("./lemonsqueezy");
 const lockfile = require("proper-lockfile");
+const { createJsonRepository } = require("./data/repository");
 
 const PORT = Number(process.env.PORT || 8787);
+const HOST = String(process.env.COMFORT_HOST || "0.0.0.0").trim() || "0.0.0.0";
 /** Canonical site URL in static landing HTML (index.html); replaced per-request via publicOriginFromRequest(). */
 const DEFAULT_PUBLIC_SITE_ORIGIN = "https://comfortledger.app";
 const __ROOT = path.resolve(__dirname, "..");
@@ -51,6 +53,8 @@ const BETA_SESSIONS_FILE = path.join(DATA_DIR, "beta-sessions.json");
 const WAITLIST_FILE = path.join(DATA_DIR, "waitlist.json");
 const SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "subscriptions.json");
 const PUSH_SUBSCRIPTIONS_FILE = path.join(DATA_DIR, "push-subscriptions.json");
+const WEBHOOK_EVENTS_FILE = path.join(DATA_DIR, "webhook-events.json");
+const dataRepo = createJsonRepository({ dataDir: DATA_DIR });
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 if (IS_PRODUCTION && !process.env.COMFORT_SESSION_SECRET) {
   console.error("FATAL: COMFORT_SESSION_SECRET is required when NODE_ENV=production.");
@@ -94,6 +98,17 @@ const RATE_WAITLIST_WINDOW_MS = 60 * 60 * 1000;
 const RATE_WAITLIST_MAX = clampPositiveInt(process.env.COMFORT_RATE_WAITLIST_MAX, 1, 1, 200);
 const RATE_AI_COACH_HOURLY_WINDOW_MS = 60 * 60 * 1000;
 const RATE_AI_COACH_HOURLY_MAX = clampPositiveInt(process.env.COMFORT_RATE_AI_COACH_HOURLY_MAX, 5, 1, 500);
+const RATE_CHECKOUT_WINDOW_MS = 15 * 60 * 1000;
+const RATE_CHECKOUT_MAX = clampPositiveInt(process.env.COMFORT_RATE_CHECKOUT_MAX, 20, 1, 500);
+const RATE_PORTAL_WINDOW_MS = 15 * 60 * 1000;
+const RATE_PORTAL_MAX = clampPositiveInt(process.env.COMFORT_RATE_PORTAL_MAX, 20, 1, 500);
+const RATE_SUBSCRIPTION_STATUS_WINDOW_MS = 15 * 60 * 1000;
+const RATE_SUBSCRIPTION_STATUS_MAX = clampPositiveInt(
+  process.env.COMFORT_RATE_SUBSCRIPTION_STATUS_MAX,
+  60,
+  1,
+  1000
+);
 /** OpenAI SDK request timeout (streaming + non-streaming). */
 const OPENAI_TIMEOUT_MS = clampPositiveInt(process.env.OPENAI_TIMEOUT_MS, 30000, 5000, 120000);
 /** Cap on completion tokens for /api/ai-coach (stream + JSON). */
@@ -152,11 +167,17 @@ const MIME_TYPES = {
 const loginAttempts = new Map();
 const waitlistHourly = new Map();
 const aiCoachHourly = new Map();
+const checkoutWindow = new Map();
+const portalWindow = new Map();
+const subscriptionStatusWindow = new Map();
 let openaiClient = null;
 /** @type {Map<string, Array<{question:string,answer:string}>>} */
 const aiHistoryMemory = new Map();
 const pushConfig = initPushConfig();
 let pushDispatcherTimer = null;
+const requestMetrics = [];
+const REQUEST_METRICS_MAX = 5000;
+const REQUEST_METRICS_RETENTION_MS = 60 * 60 * 1000;
 
 ensureStorage();
 startPushDispatcher();
@@ -176,9 +197,15 @@ if (!process.env.COMFORT_SESSION_SECRET) {
 }
 
 async function handleComfortLedgerRequest(req, res) {
+  const requestId = createRequestId();
+  res.__requestId = requestId;
+  res.__requestStartedAt = Date.now();
   const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
   const pathname = decodeURIComponent(url.pathname);
+  const apiPathname = normalizeApiPath(pathname);
   const method = String(req.method || "GET").toUpperCase();
+  res.__requestMethod = method;
+  res.__requestPathname = apiPathname || pathname;
 
   // Landing locale: ?lang= (explicit), cookie, then Accept-Language.
   // Without this, English browsers hitting "Español" (/ → /?lang=es) would loop back to /en.
@@ -277,7 +304,7 @@ async function handleComfortLedgerRequest(req, res) {
   }
 
   try {
-    if (pathname === "/api/health" && (req.method === "GET" || req.method === "HEAD")) {
+    if (apiPathname === "/api/health" && (req.method === "GET" || req.method === "HEAD")) {
       const sessionOk = IS_PRODUCTION ? Boolean(process.env.COMFORT_SESSION_SECRET) : true;
       const lemonOk =
         !String(process.env.LEMONSQUEEZY_API_KEY || "").trim() ||
@@ -350,7 +377,19 @@ async function handleComfortLedgerRequest(req, res) {
       return sendJson(res, healthy ? 200 : 503, payload, {}, req.method === "HEAD");
     }
 
-    if (pathname === "/api/public-config" && req.method === "GET") {
+    if (apiPathname === "/api/health/slo" && (req.method === "GET" || req.method === "HEAD")) {
+      const windowMin = clampPositiveInt(url.searchParams.get("windowMin"), 15, 1, 240);
+      const slo = buildSloSnapshot(windowMin);
+      const body = {
+        ok: true,
+        service: "comfort-ledger-beta",
+        windowMin,
+        ...slo
+      };
+      return sendJson(res, 200, body, {}, req.method === "HEAD");
+    }
+
+    if (apiPathname === "/api/public-config" && req.method === "GET") {
       const users = readBetaUsers();
       const betaEnabled = users.length > 0;
       const accessMode = resolveAccessMode(betaEnabled);
@@ -381,7 +420,7 @@ async function handleComfortLedgerRequest(req, res) {
       });
     }
 
-    if (pathname === "/api/beta/session" && req.method === "GET") {
+    if (apiPathname === "/api/beta/session" && req.method === "GET") {
       const auth = await authenticateBetaRequestAsync(req);
       if (!auth) {
         return sendJson(res, 200, {
@@ -398,20 +437,23 @@ async function handleComfortLedgerRequest(req, res) {
       });
     }
 
-    if (pathname === "/api/beta/login" && req.method === "POST") {
+    if (apiPathname === "/api/beta/login" && req.method === "POST") {
       const rateLimit = evaluateLoginRateLimit(req);
       if (!rateLimit.allowed) {
-        return sendJson(
-          res,
-          429,
-          { ok: false, error: "Demasiados intentos. Espera unos minutos." },
-          { "Retry-After": String(rateLimit.retryAfterSeconds) }
-        );
+        return sendApiError(res, 429, {
+          code: "AUTH_RATE_LIMITED",
+          message: "Demasiados intentos. Espera unos minutos.",
+          details: { retryAfterSec: rateLimit.retryAfterSeconds },
+          extraHeaders: { "Retry-After": String(rateLimit.retryAfterSeconds) }
+        });
       }
 
       const users = readBetaUsers();
       if (!users.length) {
-        return sendJson(res, 503, { ok: false, error: "Beta no configurada (sin usuarios)." });
+        return sendApiError(res, 503, {
+          code: "BETA_NOT_CONFIGURED",
+          message: "Beta no configurada (sin usuarios)."
+        });
       }
 
       const body = await readJsonBody(req);
@@ -421,7 +463,10 @@ async function handleComfortLedgerRequest(req, res) {
 
       if (!username || !password || !user || !verifyPassword(password, user)) {
         registerFailedLogin(req);
-        return sendJson(res, 401, { ok: false, error: "Usuario o contraseña incorrectos." });
+        return sendApiError(res, 401, {
+          code: "INVALID_CREDENTIALS",
+          message: "Usuario o contraseña incorrectos."
+        });
       }
 
       clearFailedLogins(req);
@@ -437,14 +482,14 @@ async function handleComfortLedgerRequest(req, res) {
       );
     }
 
-    if (pathname === "/api/beta/logout" && req.method === "POST") {
+    if (apiPathname === "/api/beta/logout" && req.method === "POST") {
       const cookies = parseCookies(req.headers.cookie || "");
       await destroyBetaSessionAsync(cookies[SESSION_COOKIE_NAME]);
       await readJsonBody(req).catch(() => ({}));
       return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
     }
 
-    if (pathname === "/api/onboarding/session" && req.method === "GET") {
+    if (apiPathname === "/api/onboarding/session" && req.method === "GET") {
       const auth = await authenticateOnboardingRequestAsync(req);
       if (!auth) {
         return sendJson(res, 200, {
@@ -460,21 +505,24 @@ async function handleComfortLedgerRequest(req, res) {
       });
     }
 
-    if (pathname === "/api/onboarding/start" && req.method === "POST") {
+    if (apiPathname === "/api/onboarding/start" && req.method === "POST") {
       const body = await readJsonBody(req);
       const profile = normalizeOnboardingProfile(body?.profile || body);
       const gated = onboardingRequiresPaidSubscription();
       const validationError = validateOnboardingProfile(profile, { requirePaidEmail: gated });
       if (validationError) {
-        return sendJson(res, 400, { ok: false, error: validationError });
+        return sendApiError(res, 400, {
+          code: "ONBOARDING_VALIDATION_ERROR",
+          message: validationError
+        });
       }
       if (gated) {
         const email = normalizeEmail(profile.email || "");
         const record = findSubscription(email);
         if (!record || !lemon.isActiveStatus(record.status)) {
-          return sendJson(res, 403, {
-            ok: false,
-            error:
+          return sendApiError(res, 403, {
+            code: "SUBSCRIPTION_REQUIRED",
+            message:
               `No encontramos una suscripción activa para este correo. Usa el mismo email con el que pagaste. Si acabas de comprar, espera un minuto y vuelve a intentar; si sigue fallando, escribe a ${SUPPORT_EMAIL}.`
           });
         }
@@ -491,14 +539,14 @@ async function handleComfortLedgerRequest(req, res) {
       );
     }
 
-    if (pathname === "/api/onboarding/logout" && req.method === "POST") {
+    if (apiPathname === "/api/onboarding/logout" && req.method === "POST") {
       const cookies = parseCookies(req.headers.cookie || "");
       await destroyBetaSessionAsync(cookies[SESSION_COOKIE_NAME]);
       await readJsonBody(req).catch(() => ({}));
       return sendJson(res, 200, { ok: true }, { "Set-Cookie": clearSessionCookie() });
     }
 
-    if (pathname === "/api/ai-coach" && req.method === "POST") {
+    if (apiPathname === "/api/ai-coach" && req.method === "POST") {
       const body = await readJsonBody(req);
       const accessMode = resolveAccessMode(readBetaUsers().length > 0);
       const auth = await authenticateComfortSessionAsync(req);
@@ -509,15 +557,24 @@ async function handleComfortLedgerRequest(req, res) {
             : accessMode === "beta"
               ? "Inicia sesión para usar el coach."
               : "Completa tu onboarding para usar el coach.";
-        return sendJson(res, 401, { ok: false, error: msg });
+        return sendApiError(res, 401, {
+          code: "UNAUTHENTICATED",
+          message: msg
+        });
       }
       if (!openaiClient) {
-        return sendJson(res, 503, { ok: false, error: "Coach no configurado (falta OPENAI_API_KEY en el servidor)." });
+        return sendApiError(res, 503, {
+          code: "COACH_NOT_CONFIGURED",
+          message: "Coach no configurado (falta OPENAI_API_KEY en el servidor)."
+        });
       }
 
       const question = sanitizeSensitiveText(String(body?.question || "").trim());
       if (!question) {
-        return sendJson(res, 400, { ok: false, error: "Escribe una pregunta." });
+        return sendApiError(res, 400, {
+          code: "QUESTION_REQUIRED",
+          message: "Escribe una pregunta."
+        });
       }
 
       const userId =
@@ -525,10 +582,10 @@ async function handleComfortLedgerRequest(req, res) {
       const monthKey = currentMonthKey();
       const queriesThisMonth = countMonthlyQueries(userId, monthKey);
       if (queriesThisMonth >= AI_MONTHLY_LIMIT) {
-        return sendJson(res, 429, {
-          ok: false,
-          error: "Límite mensual de consultas alcanzado.",
-          remainingQueries: 0
+        return sendApiError(res, 429, {
+          code: "COACH_MONTHLY_LIMIT_REACHED",
+          message: "Límite mensual de consultas alcanzado.",
+          details: { remainingQueries: 0 }
         });
       }
 
@@ -540,16 +597,12 @@ async function handleComfortLedgerRequest(req, res) {
         RATE_AI_COACH_HOURLY_WINDOW_MS
       );
       if (coachRetry !== null) {
-        return sendJson(
-          res,
-          429,
-          {
-            ok: false,
-            error: "Demasiadas consultas al coach en la última hora. Prueba más tarde.",
-            retryAfterSec: coachRetry
-          },
-          { "Retry-After": String(coachRetry) }
-        );
+        return sendApiError(res, 429, {
+          code: "COACH_HOURLY_RATE_LIMITED",
+          message: "Demasiadas consultas al coach en la última hora. Prueba más tarde.",
+          details: { retryAfterSec: coachRetry },
+          extraHeaders: { "Retry-After": String(coachRetry) }
+        });
       }
 
       const history = getRecentAiHistory(userId, AI_HISTORY_LIMIT);
@@ -595,7 +648,10 @@ async function handleComfortLedgerRequest(req, res) {
         answer = await generateComfortCoachAnswer(prompt, body);
       } catch (err) {
         const msg = err && typeof err.message === "string" ? err.message : "Coach error";
-        return sendJson(res, 502, { ok: false, error: msg });
+        return sendApiError(res, 502, {
+          code: "COACH_UPSTREAM_ERROR",
+          message: msg
+        });
       }
       const sanitizedAnswer = sanitizeSensitiveText(answer);
       saveAiInteraction(userId, monthKey, question, sanitizedAnswer);
@@ -607,7 +663,7 @@ async function handleComfortLedgerRequest(req, res) {
       });
     }
 
-    if (pathname === "/api/waitlist" && req.method === "POST") {
+    if (apiPathname === "/api/waitlist" && req.method === "POST") {
       const wlRetry = rateLimitConsume(
         waitlistHourly,
         clientIp(req),
@@ -615,46 +671,70 @@ async function handleComfortLedgerRequest(req, res) {
         RATE_WAITLIST_WINDOW_MS
       );
       if (wlRetry !== null) {
-        return sendJson(
-          res,
-          429,
-          {
-            ok: false,
-            error: "Solo una inscripción por hora desde esta red. Vuelve a intentar más tarde.",
-            retryAfterSec: wlRetry
-          },
-          { "Retry-After": String(wlRetry) }
-        );
+        return sendApiError(res, 429, {
+          code: "WAITLIST_RATE_LIMITED",
+          message: "Solo una inscripción por hora desde esta red. Vuelve a intentar más tarde.",
+          details: { retryAfterSec: wlRetry },
+          extraHeaders: { "Retry-After": String(wlRetry) }
+        });
       }
       const body = await readJsonBody(req);
       const email = normalizeEmail(body?.email);
       if (!email) {
-        return sendJson(res, 400, { ok: false, error: "Correo inválido." });
+        return sendApiError(res, 400, {
+          code: "INVALID_EMAIL",
+          message: "Correo inválido."
+        });
       }
       await addToWaitlist(email, body?.source || "landing");
       return sendJson(res, 200, { ok: true });
     }
 
-    if (pathname === "/api/checkout" && (req.method === "POST" || req.method === "GET")) {
+    if (apiPathname === "/api/checkout" && (req.method === "POST" || req.method === "GET")) {
+      const checkoutRetry = rateLimitConsume(
+        checkoutWindow,
+        clientIp(req),
+        RATE_CHECKOUT_MAX,
+        RATE_CHECKOUT_WINDOW_MS
+      );
+      if (checkoutRetry !== null) {
+        return sendApiError(res, 429, {
+          code: "CHECKOUT_RATE_LIMITED",
+          message: "Demasiadas solicitudes de checkout. Intenta más tarde.",
+          details: { retryAfterSec: checkoutRetry },
+          extraHeaders: { "Retry-After": String(checkoutRetry) }
+        });
+      }
       const body = req.method === "POST" ? await readJsonBody(req).catch(() => ({})) : {};
       const plan =
         body?.plan === "annual" || url.searchParams.get("plan") === "annual"
           ? lemon.PLAN_ANNUAL
           : lemon.PLAN_MONTHLY;
-      const email = normalizeEmail(body?.email || url.searchParams.get("email") || "");
+      const rawEmail = String(body?.email || url.searchParams.get("email") || "").trim();
+      const email = normalizeEmail(rawEmail);
       const discount = String(body?.discount || url.searchParams.get("discount") || "").trim() || undefined;
 
+      if (rawEmail && !email) {
+        return sendApiError(res, 400, {
+          code: "INVALID_EMAIL",
+          message: "Correo inválido."
+        });
+      }
+
       if (!lemon.isConfigured()) {
-        return sendJson(res, 503, {
-          ok: false,
-          error: "Compra no disponible todavía. Déjanos tu email para avisarte al abrir."
+        return sendApiError(res, 503, {
+          code: "CHECKOUT_UNAVAILABLE",
+          message: "Compra no disponible todavía. Déjanos tu email para avisarte al abrir."
         });
       }
 
       const result = await lemon.createCheckoutUrl({ plan, email, discountCode: discount });
       if (result.error) {
         console.error("Checkout error:", result.error);
-        return sendJson(res, 502, { ok: false, error: "No pudimos iniciar el checkout. Intenta de nuevo." });
+        return sendApiError(res, 502, {
+          code: "CHECKOUT_CREATE_FAILED",
+          message: "No pudimos iniciar el checkout. Intenta de nuevo."
+        });
       }
 
       if (req.method === "GET") {
@@ -664,17 +744,23 @@ async function handleComfortLedgerRequest(req, res) {
       return sendJson(res, 200, { ok: true, url: result.url });
     }
 
-    if (pathname === "/api/webhooks/lemonsqueezy" && req.method === "POST") {
+    if (apiPathname === "/api/webhooks/lemonsqueezy" && req.method === "POST") {
       const raw = await readRawBody(req);
       const signature = req.headers["x-signature"] || req.headers["X-Signature"];
       if (!lemon.verifyWebhookSignature(raw, signature)) {
-        return sendJson(res, 401, { ok: false, error: "Firma inválida." });
+        return sendApiError(res, 401, {
+          code: "INVALID_WEBHOOK_SIGNATURE",
+          message: "Firma inválida."
+        });
       }
       let payload;
       try {
         payload = JSON.parse(raw.toString("utf8"));
       } catch {
-        return sendJson(res, 400, { ok: false, error: "JSON inválido." });
+        return sendApiError(res, 400, {
+          code: "INVALID_JSON",
+          message: "JSON inválido."
+        });
       }
       const event = lemon.parseWebhookEvent(payload);
       if (!event) {
@@ -685,14 +771,45 @@ async function handleComfortLedgerRequest(req, res) {
         });
         return sendJson(res, 202, { ok: true, ignored: true });
       }
+      const webhookKey = buildWebhookEventKey(payload, event, raw);
+      const registration = await registerWebhookEventIfNew(webhookKey, event, payload);
+      if (!registration.accepted) {
+        logEvent("lemon.webhook.duplicate", {
+          eventKey: webhookKey,
+          eventName: event.eventName,
+          subscriptionId: String(event.subscriptionId || "").slice(0, 80)
+        });
+        return sendJson(res, 200, {
+          ok: true,
+          duplicate: true,
+          event: event.eventName
+        });
+      }
       await applySubscriptionEvent(event);
       return sendJson(res, 200, { ok: true, event: event.eventName });
     }
 
-    if (pathname === "/api/subscription/status" && req.method === "GET") {
+    if (apiPathname === "/api/subscription/status" && req.method === "GET") {
+      const statusRetry = rateLimitConsume(
+        subscriptionStatusWindow,
+        clientIp(req),
+        RATE_SUBSCRIPTION_STATUS_MAX,
+        RATE_SUBSCRIPTION_STATUS_WINDOW_MS
+      );
+      if (statusRetry !== null) {
+        return sendApiError(res, 429, {
+          code: "SUBSCRIPTION_STATUS_RATE_LIMITED",
+          message: "Demasiadas consultas de estado de suscripción. Intenta más tarde.",
+          details: { retryAfterSec: statusRetry },
+          extraHeaders: { "Retry-After": String(statusRetry) }
+        });
+      }
       const email = normalizeEmail(url.searchParams.get("email") || "");
       if (!email) {
-        return sendJson(res, 400, { ok: false, error: "Falta email." });
+        return sendApiError(res, 400, {
+          code: "EMAIL_REQUIRED",
+          message: "Falta email."
+        });
       }
       const record = findSubscription(email);
       return sendJson(res, 200, {
@@ -704,38 +821,102 @@ async function handleComfortLedgerRequest(req, res) {
       });
     }
 
-    if (pathname === "/api/customer-portal" && req.method === "GET") {
+    if (apiPathname === "/api/customer-portal" && req.method === "GET") {
+      const portalRetry = rateLimitConsume(
+        portalWindow,
+        clientIp(req),
+        RATE_PORTAL_MAX,
+        RATE_PORTAL_WINDOW_MS
+      );
+      if (portalRetry !== null) {
+        return sendApiError(res, 429, {
+          code: "CUSTOMER_PORTAL_RATE_LIMITED",
+          message: "Demasiadas solicitudes al portal de cliente. Intenta más tarde.",
+          details: { retryAfterSec: portalRetry },
+          extraHeaders: { "Retry-After": String(portalRetry) }
+        });
+      }
       const email = normalizeEmail(url.searchParams.get("email") || "");
       if (!email) {
-        return sendJson(res, 400, { ok: false, error: "Falta email." });
+        return sendApiError(res, 400, {
+          code: "EMAIL_REQUIRED",
+          message: "Falta email."
+        });
       }
       const record = findSubscription(email);
       if (!record || !record.subscriptionId) {
-        return sendJson(res, 404, {
-          ok: false,
-          error: `No encontramos una suscripción para este email. Si pagaste con otro correo, prueba ese; si necesitas ayuda, escribe a ${SUPPORT_EMAIL}.`
+        return sendApiError(res, 404, {
+          code: "SUBSCRIPTION_NOT_FOUND",
+          message: `No encontramos una suscripción para este email. Si pagaste con otro correo, prueba ese; si necesitas ayuda, escribe a ${SUPPORT_EMAIL}.`
         });
       }
       const result = await lemon.getCustomerPortalUrl(record.subscriptionId);
       if (result.error) {
-        return sendJson(res, 502, { ok: false, error: "No pudimos abrir el portal. Intenta luego." });
+        return sendApiError(res, 502, {
+          code: "PORTAL_UNAVAILABLE",
+          message: "No pudimos abrir el portal. Intenta luego."
+        });
       }
       res.writeHead(302, { Location: result.url });
       return res.end();
     }
 
-    if (pathname === "/api/push/register" && req.method === "POST") {
+    if (apiPathname === "/api/admin/subscriptions" && req.method === "GET") {
+      const betaAuth = await authenticateBetaRequestAsync(req);
+      if (!betaAuth) {
+        return sendApiError(res, 401, {
+          code: "UNAUTHENTICATED",
+          message: "Sesión requerida."
+        });
+      }
+      if (!canAccessAdminArea(betaAuth)) {
+        return sendApiError(res, 403, {
+          code: "FORBIDDEN",
+          message: "No tienes permisos para este recurso."
+        });
+      }
+
+      const q = normalizeEmail(url.searchParams.get("email") || "");
+      const limit = clampPositiveInt(url.searchParams.get("limit"), 50, 1, 200);
+      const rows = readSubscriptions();
+      const filtered = q ? rows.filter((row) => row && row.email === q) : rows;
+      const list = filtered.slice(0, limit).map((row) => ({
+        email: row.email || "",
+        status: row.status || "unknown",
+        plan: row.plan || null,
+        renewsAt: row.renewsAt || null,
+        subscriptionId: row.subscriptionId || "",
+        updatedAt: row.updatedAt || null
+      }));
+
+      return sendJson(res, 200, {
+        ok: true,
+        count: list.length,
+        items: list
+      });
+    }
+
+    if (apiPathname === "/api/push/register" && req.method === "POST") {
       if (!pushConfig.configured) {
-        return sendJson(res, 503, { ok: false, error: "Push no configurado en servidor." });
+        return sendApiError(res, 503, {
+          code: "PUSH_NOT_CONFIGURED",
+          message: "Push no configurado en servidor."
+        });
       }
       const owner = await resolvePushOwnerContextAsync(req);
       if (!owner) {
-        return sendJson(res, 401, { ok: false, error: "Sesión requerida." });
+        return sendApiError(res, 401, {
+          code: "UNAUTHENTICATED",
+          message: "Sesión requerida."
+        });
       }
       const body = await readJsonBody(req);
       const subscription = normalizePushSubscription(body?.subscription);
       if (!subscription) {
-        return sendJson(res, 400, { ok: false, error: "Suscripción inválida." });
+        return sendApiError(res, 400, {
+          code: "INVALID_PUSH_SUBSCRIPTION",
+          message: "Suscripción inválida."
+        });
       }
       const reminders = normalizePushReminders(body?.reminders);
       const userAgent = String(req.headers["user-agent"] || "").slice(0, 300);
@@ -743,10 +924,13 @@ async function handleComfortLedgerRequest(req, res) {
       return sendJson(res, 200, { ok: true, scheduled: reminders.length });
     }
 
-    if (pathname === "/api/push/unregister" && req.method === "POST") {
+    if (apiPathname === "/api/push/unregister" && req.method === "POST") {
       const owner = await resolvePushOwnerContextAsync(req);
       if (!owner) {
-        return sendJson(res, 401, { ok: false, error: "Sesión requerida." });
+        return sendApiError(res, 401, {
+          code: "UNAUTHENTICATED",
+          message: "Sesión requerida."
+        });
       }
       const body = await readJsonBody(req).catch(() => ({}));
       const endpoint = String(body?.endpoint || "").trim();
@@ -755,14 +939,25 @@ async function handleComfortLedgerRequest(req, res) {
     }
 
     if (req.method !== "GET" && req.method !== "HEAD") {
-      return sendJson(res, 405, { ok: false, error: "Method not allowed" });
+      return sendApiError(res, 405, {
+        code: "METHOD_NOT_ALLOWED",
+        message: "Method not allowed"
+      });
     }
 
     serveComfortStatic(pathname, res, req.method === "HEAD", req);
   } catch (error) {
-    console.error(error);
+    logStructured("error", "request_failed", {
+      requestId,
+      method,
+      endpoint: pathname,
+      message: error && error.message ? error.message : String(error)
+    });
     const message = error && typeof error.message === "string" ? error.message : "Server error";
-    sendJson(res, 500, { ok: false, error: message });
+    sendApiError(res, 500, {
+      code: "INTERNAL_SERVER_ERROR",
+      message
+    });
   }
 }
 
@@ -784,16 +979,25 @@ fastify.all("/*", async (request, reply) => {
     request.raw.__comfortRawBody = request.body;
     await handleComfortLedgerRequest(request.raw, reply.raw);
   } catch (error) {
-    console.error(error);
+    const requestId = reply.raw && reply.raw.__requestId ? reply.raw.__requestId : createRequestId();
+    logStructured("error", "fastify_bridge_failed", {
+      requestId,
+      method: request.raw && request.raw.method ? request.raw.method : "UNKNOWN",
+      endpoint: request.raw && request.raw.url ? request.raw.url : "UNKNOWN",
+      message: error && error.message ? error.message : String(error)
+    });
     const res = reply.raw;
     if (!res.writableEnded && !res.headersSent) {
       const message = error && typeof error.message === "string" ? error.message : "Server error";
-      sendJson(res, 500, { ok: false, error: message });
+      sendApiError(res, 500, {
+        code: "INTERNAL_SERVER_ERROR",
+        message
+      });
     }
   }
 });
 
-fastify.listen({ port: PORT, host: "0.0.0.0" }, (err, address) => {
+fastify.listen({ port: PORT, host: HOST }, (err, address) => {
   if (err) {
     console.error(err);
     process.exit(1);
@@ -824,7 +1028,14 @@ function ensureStorage() {
   if (!fs.existsSync(PUSH_SUBSCRIPTIONS_FILE)) {
     fs.writeFileSync(PUSH_SUBSCRIPTIONS_FILE, "[]\n", "utf8");
   }
-  if (BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE && fs.existsSync(BUNDLED_BETA_USERS_FILE)) {
+  if (!fs.existsSync(WEBHOOK_EVENTS_FILE)) {
+    fs.writeFileSync(WEBHOOK_EVENTS_FILE, "[]\n", "utf8");
+  }
+  if (
+    process.env.NODE_ENV !== "test" &&
+    BETA_USERS_FILE !== BUNDLED_BETA_USERS_FILE &&
+    fs.existsSync(BUNDLED_BETA_USERS_FILE)
+  ) {
     const bundledUsers = readJsonFile(BUNDLED_BETA_USERS_FILE, null);
     const storedUsers = readJsonFile(BETA_USERS_FILE, null);
     if (Array.isArray(bundledUsers) && JSON.stringify(bundledUsers) !== JSON.stringify(storedUsers)) {
@@ -895,30 +1106,12 @@ function runExclusiveFileTask(filePath, task) {
 }
 
 function readBetaUsers() {
-  const parsed = readJsonFile(BETA_USERS_FILE, []);
-  return Array.isArray(parsed)
-    ? parsed.filter((user) => user && typeof user === "object" && user.active !== false && user.username)
-    : [];
+  return dataRepo.listBetaUsers();
 }
 
 /** Read-modify-write beta-sessions.json under a single-file queue (#15). */
 async function withBetaSessions(mutator) {
-  return runExclusiveFileTask(BETA_SESSIONS_FILE, async () => {
-    const parsed = readJsonFile(BETA_SESSIONS_FILE, []);
-    const sessions = Array.isArray(parsed)
-      ? parsed.filter((session) => session && typeof session === "object")
-      : [];
-    const now = Date.now();
-    const active = sessions.filter((session) => {
-      const expiresAt = new Date(session.expiresAt || 0).getTime();
-      return Number.isFinite(expiresAt) && expiresAt > now;
-    });
-    sessions.length = 0;
-    sessions.push(...active);
-    const result = await mutator(sessions);
-    writeJsonFile(BETA_SESSIONS_FILE, sessions);
-    return result;
-  });
+  return dataRepo.withSessions(mutator);
 }
 
 function normalizeUsername(value) {
@@ -1070,12 +1263,25 @@ async function authenticateComfortSessionAsync(req) {
   return null;
 }
 
+function resolveUserRole(roleValue) {
+  const role = String(roleValue || "").trim().toLowerCase();
+  if (role === "admin" || role === "support") return role;
+  return "user";
+}
+
+function canAccessAdminArea(betaAuth) {
+  if (!betaAuth || !betaAuth.user) return false;
+  const role = resolveUserRole(betaAuth.user.role);
+  return role === "admin" || role === "support";
+}
+
 function publicBetaUser(user) {
   return {
     id: user.id,
     displayName: user.displayName || "Beta",
     slot: user.slot || null,
-    username: normalizeUsername(user.username)
+    username: normalizeUsername(user.username),
+    role: resolveUserRole(user.role)
   };
 }
 
@@ -1570,28 +1776,23 @@ function normalizeEmail(value) {
   return lemon.normalizeEmail(value);
 }
 
+function normalizeApiPath(pathname) {
+  const p = String(pathname || "");
+  if (p === "/v1" || p === "/v1/") return "";
+  if (p.startsWith("/v1/api/")) return p.slice(3);
+  return p;
+}
+
 function addToWaitlist(email, source) {
-  return runExclusiveFileTask(WAITLIST_FILE, () => {
-    const list = readJsonFile(WAITLIST_FILE, []);
-    const existing = Array.isArray(list) ? list : [];
-    if (!existing.some((entry) => entry.email === email)) {
-      existing.push({
-        email,
-        source: String(source || "landing"),
-        at: new Date().toISOString()
-      });
-      writeJsonFile(WAITLIST_FILE, existing);
-    }
-  });
+  return dataRepo.addWaitlist(email, source);
 }
 
 function readSubscriptions() {
-  const list = readJsonFile(SUBSCRIPTIONS_FILE, []);
-  return Array.isArray(list) ? list : [];
+  return dataRepo.listSubscriptions();
 }
 
 function writeSubscriptions(list) {
-  writeJsonFile(SUBSCRIPTIONS_FILE, list);
+  return dataRepo.writeSubscriptions(list);
 }
 
 function findSubscription(email) {
@@ -1600,7 +1801,7 @@ function findSubscription(email) {
 }
 
 function applySubscriptionEvent(event) {
-  return runExclusiveFileTask(SUBSCRIPTIONS_FILE, () => {
+  return dataRepo.withSubscriptions((list) => {
     if (!event || !event.email) {
       logEvent("lemon.webhook.ignored", {
         reason: "missing_email",
@@ -1609,7 +1810,6 @@ function applySubscriptionEvent(event) {
       });
       return;
     }
-    const list = readSubscriptions();
     const idx = list.findIndex((entry) => entry.email === event.email);
     const now = new Date().toISOString();
     const previous = idx >= 0 ? list[idx] : {};
@@ -1631,7 +1831,6 @@ function applySubscriptionEvent(event) {
     } else {
       list.push(next);
     }
-    writeSubscriptions(list);
     logEvent("lemon.webhook.applied", {
       eventName: event.eventName,
       emailHash: hashLogValue(event.email),
@@ -1648,9 +1847,13 @@ function hashLogValue(value) {
 }
 
 function logEvent(eventName, fields = {}) {
+  logStructured("info", eventName, fields);
+}
+
+function logStructured(level, message, fields = {}) {
   const payload = {
-    level: "info",
-    event: eventName,
+    level,
+    msg: message,
     time: new Date().toISOString(),
     ...fields
   };
@@ -1658,17 +1861,143 @@ function logEvent(eventName, fields = {}) {
 }
 
 function sendJson(res, status, payload, extraHeaders = {}, isHead = false) {
-  const body = `${JSON.stringify(payload)}\n`;
+  const requestId =
+    res && res.__requestId ? String(res.__requestId) : undefined;
+  let responsePayload = payload;
+  if (
+    requestId &&
+    responsePayload &&
+    typeof responsePayload === "object" &&
+    !Array.isArray(responsePayload) &&
+    !Object.prototype.hasOwnProperty.call(responsePayload, "requestId")
+  ) {
+    responsePayload = { ...responsePayload, requestId };
+  }
+  const body = `${JSON.stringify(responsePayload)}\n`;
   res.writeHead(status, {
     "Content-Type": "application/json; charset=utf-8",
     "Cache-Control": "no-store",
+    ...(requestId ? { "X-Request-Id": requestId } : {}),
     ...extraHeaders
   });
   if (isHead) {
+    logResponseEvent(res, status);
     res.end();
     return;
   }
   res.end(body);
+  logResponseEvent(res, status);
+}
+
+function logResponseEvent(res, status) {
+  if (!res || res.__responseLogged) return;
+  res.__responseLogged = true;
+  const startedAt = Number(res.__requestStartedAt || Date.now());
+  const latencyMs = Math.max(0, Date.now() - startedAt);
+  logStructured("info", "request_completed", {
+    requestId: res.__requestId ? String(res.__requestId) : undefined,
+    method: res.__requestMethod ? String(res.__requestMethod) : "UNKNOWN",
+    endpoint: res.__requestPathname ? String(res.__requestPathname) : "UNKNOWN",
+    status: Number(status),
+    latencyMs
+  });
+  trackRequestMetric({
+    endpoint: res.__requestPathname ? String(res.__requestPathname) : "UNKNOWN",
+    method: res.__requestMethod ? String(res.__requestMethod) : "UNKNOWN",
+    status: Number(status),
+    latencyMs
+  });
+}
+
+function trackRequestMetric(entry) {
+  requestMetrics.push({
+    at: Date.now(),
+    endpoint: entry.endpoint,
+    method: entry.method,
+    status: Number(entry.status),
+    latencyMs: Number(entry.latencyMs)
+  });
+  trimRequestMetrics();
+}
+
+function trimRequestMetrics() {
+  const now = Date.now();
+  while (requestMetrics.length > REQUEST_METRICS_MAX) {
+    requestMetrics.shift();
+  }
+  while (requestMetrics.length && now - requestMetrics[0].at > REQUEST_METRICS_RETENTION_MS) {
+    requestMetrics.shift();
+  }
+}
+
+function percentile(values, p) {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1));
+  return sorted[idx];
+}
+
+function buildSloSnapshot(windowMin) {
+  trimRequestMetrics();
+  const since = Date.now() - windowMin * 60 * 1000;
+  const windowRows = requestMetrics.filter((row) => row.at >= since);
+  const total = windowRows.length;
+  const serverErrors = windowRows.filter((row) => row.status >= 500).length;
+  const webhookRows = windowRows.filter((row) => row.endpoint === "/api/webhooks/lemonsqueezy");
+  const webhookFailures = webhookRows.filter((row) => row.status >= 500).length;
+  const latencies = windowRows.map((row) => Number(row.latencyMs) || 0);
+  return {
+    requests: {
+      total,
+      serverErrors,
+      serverErrorRate: total ? Number((serverErrors / total).toFixed(6)) : 0
+    },
+    webhook: {
+      total: webhookRows.length,
+      failures: webhookFailures,
+      failureRate: webhookRows.length ? Number((webhookFailures / webhookRows.length).toFixed(6)) : 0
+    },
+    latency: {
+      p95Ms: percentile(latencies, 95),
+      p99Ms: percentile(latencies, 99)
+    }
+  };
+}
+
+function buildApiErrorPayload(code, message, requestId, details) {
+  const payload = {
+    ok: false,
+    code,
+    message,
+    error: message
+  };
+  if (requestId) payload.requestId = requestId;
+  if (details !== undefined) payload.details = details;
+  return payload;
+}
+
+function sendApiError(res, status, options = {}) {
+  const code = String(options.code || "UNKNOWN_ERROR");
+  const message = String(options.message || "Unexpected error");
+  const requestId = options.requestId
+    ? String(options.requestId)
+    : res && res.__requestId
+      ? String(res.__requestId)
+      : undefined;
+  return sendJson(
+    res,
+    status,
+    buildApiErrorPayload(code, message, requestId, options.details),
+    options.extraHeaders || {},
+    options.isHead === true
+  );
+}
+
+function createRequestId() {
+  if (typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return crypto.randomBytes(16).toString("hex");
 }
 
 function comfortCsp(sameOriginEmbed = false) {
@@ -1726,7 +2055,8 @@ function isBlockedComfortPath(rel) {
     lower.includes("beta-users") ||
     lower.includes("beta-sessions") ||
     lower.includes("subscriptions.json") ||
-    lower.includes("waitlist.json")
+    lower.includes("waitlist.json") ||
+    lower.includes("webhook-events.json")
   ) {
     return true;
   }
@@ -1866,8 +2196,7 @@ async function resolvePushOwnerContextAsync(req) {
 }
 
 function readPushSubscriptions() {
-  const list = readJsonFile(PUSH_SUBSCRIPTIONS_FILE, []);
-  return Array.isArray(list) ? list.filter((x) => x && typeof x === "object") : [];
+  return dataRepo.listPushRegistrations();
 }
 
 function writePushSubscriptions(list) {
@@ -1917,8 +2246,7 @@ function normalizePushReminders(input) {
 }
 
 function upsertPushRegistration(owner, subscription, reminders, userAgent) {
-  return runExclusiveFileTask(PUSH_SUBSCRIPTIONS_FILE, () => {
-    const list = readPushSubscriptions();
+  return dataRepo.withPushRegistrations((list) => {
     const nowIso = new Date().toISOString();
     const idx = list.findIndex(
       (x) => x.ownerKey === owner.ownerKey && x.subscription?.endpoint === subscription.endpoint
@@ -1947,21 +2275,66 @@ function upsertPushRegistration(owner, subscription, reminders, userAgent) {
     };
     if (idx >= 0) list[idx] = next;
     else list.push(next);
-    writePushSubscriptions(list);
   });
 }
 
 function removePushRegistration(ownerKey, endpoint = "") {
-  return runExclusiveFileTask(PUSH_SUBSCRIPTIONS_FILE, () => {
-    const list = readPushSubscriptions();
+  return dataRepo.withPushRegistrations((list) => {
+    const before = list.length;
     const next = list.filter((row) => {
       if (row.ownerKey !== ownerKey) return true;
       if (!endpoint) return false;
       return row.subscription?.endpoint !== endpoint;
     });
     if (next.length === list.length) return 0;
-    writePushSubscriptions(next);
-    return list.length - next.length;
+    list.splice(0, list.length, ...next);
+    return before - next.length;
+  });
+}
+
+function buildWebhookEventKey(payload, event, rawBuffer) {
+  const candidates = [
+    payload?.meta?.event_id,
+    payload?.meta?.id,
+    payload?.data?.id && payload?.meta?.event_name
+      ? `${payload.data.id}:${payload.meta.event_name}`
+      : "",
+    payload?.data?.id,
+    event?.subscriptionId && event?.eventName
+      ? `${event.subscriptionId}:${event.eventName}:${event.renewsAt || ""}`
+      : ""
+  ]
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+  if (candidates.length) return candidates[0];
+  const hash = crypto
+    .createHash("sha256")
+    .update(rawBuffer || Buffer.from(""))
+    .digest("hex");
+  return `sha256:${hash}`;
+}
+
+async function registerWebhookEventIfNew(eventKey, event, payload) {
+  return dataRepo.withWebhookEvents((rows) => {
+    const key = String(eventKey || "").trim();
+    if (!key) return { accepted: false };
+    if (rows.some((row) => row && row.eventKey === key)) {
+      return { accepted: false };
+    }
+    rows.push({
+      id: `wh-${crypto.randomUUID()}`,
+      provider: "lemonsqueezy",
+      eventKey: key,
+      eventName: String(event?.eventName || "").slice(0, 120),
+      subscriptionId: String(event?.subscriptionId || "").slice(0, 120),
+      email: String(event?.email || "").slice(0, 180),
+      createdAt: new Date().toISOString(),
+      payload: payload && typeof payload === "object" ? payload : {}
+    });
+    if (rows.length > 5000) {
+      rows.splice(0, rows.length - 5000);
+    }
+    return { accepted: true };
   });
 }
 

@@ -21,9 +21,28 @@ let comfortTrialEnded = false;
 let comfortDemoInterval = null;
 let comfortSessionPoll = null;
 
+/**
+ * View Transitions API + native `<dialog showModal>` is unreliable on Safari / pure WebKit
+ * (flicker, duplicate opens, or “stuck” overlays — esp. iOS/macOS Safari). Chromium & Firefox OK.
+ */
+function comfortViewTransitionsEnabled() {
+  if (typeof document === "undefined" || typeof document.startViewTransition !== "function") {
+    return false;
+  }
+  try {
+    const ua = String(typeof navigator !== "undefined" ? navigator.userAgent || "" : "");
+    if (!ua) return true;
+    if (/Chrome|Chromium|Edg\/|OPR\/|CriOS|FxiOS|Firefox/i.test(ua)) return true;
+    if (/Safari/i.test(ua) && /AppleWebKit/i.test(ua)) return false;
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
 /** Same-document View Transitions for overlay gates/modals — auditoría #33; exposed for coach/onboarding. */
 function comfortRunViewTransition(update) {
-  if (typeof document !== "undefined" && typeof document.startViewTransition === "function") {
+  if (comfortViewTransitionsEnabled()) {
     document.startViewTransition(() => update());
   } else {
     update();
@@ -540,6 +559,12 @@ const UI_STRINGS = {
     page_title: "Comfort Ledger — Resumen y coach",
     meta_description: "Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.",
     lang_label: "Idioma",
+    mobile_nav_aria: "Navegación rápida",
+    mobile_nav_home: "Inicio",
+    mobile_nav_goals: "Metas",
+    mobile_nav_moves: "Movs",
+    mobile_nav_debts: "Deudas",
+    mobile_nav_coach: "Coach",
     theme_label: "Apariencia",
     theme_dark: "Oscuro",
     theme_light: "Claro",
@@ -929,6 +954,12 @@ const UI_STRINGS = {
     page_title: "Comfort Ledger — Summary & coach",
     meta_description: "Minimal finance snapshot: income, expenses, and debt with a local AI-style coach.",
     lang_label: "Language",
+    mobile_nav_aria: "Quick navigation",
+    mobile_nav_home: "Home",
+    mobile_nav_goals: "Goals",
+    mobile_nav_moves: "Flow",
+    mobile_nav_debts: "Debts",
+    mobile_nav_coach: "Coach",
     theme_label: "Appearance",
     theme_dark: "Dark",
     theme_light: "Light",
@@ -1314,6 +1345,12 @@ const UI_STRINGS = {
     page_title: "Comfort Ledger — 概览与顾问",
     meta_description: "简洁财务概览：收入、支出与债务，并配备本地规则型顾问。",
     lang_label: "语言",
+    mobile_nav_aria: "快捷导航",
+    mobile_nav_home: "首页",
+    mobile_nav_goals: "目标",
+    mobile_nav_moves: "流水",
+    mobile_nav_debts: "债务",
+    mobile_nav_coach: "顾问",
     theme_label: "外观",
     theme_dark: "深色",
     theme_light: "浅色",
@@ -4158,6 +4195,180 @@ function coerceParsedNumber(raw) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function setupComfortMobileNav() {
+  const nav = document.getElementById("comfortMobileNav");
+  if (!nav || nav.dataset.wired === "1") return;
+  const buttons = Array.from(nav.querySelectorAll(".comfort-mobile-nav-btn[data-target]"));
+  if (!buttons.length) return;
+
+  const targets = buttons
+    .map((btn) => ({ btn, id: String(btn.getAttribute("data-target") || ""), el: null }))
+    .filter((entry) => entry.id)
+    .map((entry) => ({ ...entry, el: document.getElementById(entry.id) }))
+    .filter((entry) => entry.el);
+  if (!targets.length) return;
+
+  const MOBILE_NAV_MODE_KEY = "comfort_mobile_nav_mode";
+  const resolveNavMode = () => {
+    try {
+      const fromQuery = new URL(window.location.href).searchParams.get("nav");
+      if (fromQuery === "compact" || fromQuery === "full" || fromQuery === "auto") {
+        localStorage.setItem(MOBILE_NAV_MODE_KEY, fromQuery);
+        return fromQuery;
+      }
+      const stored = localStorage.getItem(MOBILE_NAV_MODE_KEY);
+      if (stored === "compact" || stored === "full" || stored === "auto") return stored;
+    } catch {
+      /* ignore */
+    }
+    return "auto";
+  };
+
+  const applyCompactMode = () => {
+    const mode = resolveNavMode();
+    const compact = mode === "compact" || (mode === "auto" && window.innerWidth <= 390);
+    nav.setAttribute("data-compact", compact ? "1" : "0");
+  };
+
+  const setActive = (id) => {
+    buttons.forEach((btn) => {
+      const on = btn.getAttribute("data-target") === id;
+      btn.setAttribute("aria-current", on ? "true" : "false");
+    });
+  };
+
+  const scrollToSectionSnap = (target) => {
+    if (!target) return;
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Secondary alignment pass to produce a cleaner "snap" feel after momentum.
+    window.setTimeout(() => {
+      const top = target.getBoundingClientRect().top + window.scrollY - 6;
+      window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    }, 260);
+  };
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = String(btn.getAttribute("data-target") || "");
+      const target = id ? document.getElementById(id) : null;
+      if (!target) return;
+      setActive(id);
+      if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+        navigator.vibrate(8);
+      }
+      scrollToSectionSnap(target);
+    });
+
+    btn.addEventListener("pointerdown", (ev) => {
+      const ripple = document.createElement("span");
+      ripple.className = "comfort-mobile-nav-ripple";
+      const rect = btn.getBoundingClientRect();
+      const x = Number.isFinite(ev.clientX) ? ev.clientX - rect.left : rect.width / 2;
+      const y = Number.isFinite(ev.clientY) ? ev.clientY - rect.top : rect.height / 2;
+      ripple.style.left = `${x}px`;
+      ripple.style.top = `${y}px`;
+      btn.appendChild(ripple);
+      ripple.addEventListener("animationend", () => ripple.remove(), { once: true });
+    });
+  });
+
+  if (typeof IntersectionObserver === "function") {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let best = null;
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          if (!best || entry.intersectionRatio > best.intersectionRatio) {
+            best = entry;
+          }
+        }
+        if (!best) return;
+        const match = targets.find((item) => item.el === best.target);
+        if (match) setActive(match.id);
+      },
+      {
+        root: null,
+        rootMargin: "-25% 0px -55% 0px",
+        threshold: [0.15, 0.35, 0.6]
+      }
+    );
+    targets.forEach((item) => observer.observe(item.el));
+  }
+
+  // Auto-hide/show nav based on scroll direction on mobile.
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+  let hidden = false;
+  const onScroll = () => {
+    if (window.innerWidth > 640) {
+      nav.classList.remove("is-hidden");
+      hidden = false;
+      return;
+    }
+    const y = window.scrollY || 0;
+    const delta = y - lastY;
+    if (delta > 10 && y > 140 && !hidden) {
+      nav.classList.add("is-hidden");
+      hidden = true;
+    } else if (delta < -10 && hidden) {
+      nav.classList.remove("is-hidden");
+      hidden = false;
+    }
+    lastY = y;
+  };
+
+  window.addEventListener(
+    "scroll",
+    () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        onScroll();
+        ticking = false;
+      });
+    },
+    { passive: true }
+  );
+
+  nav.addEventListener("focusin", () => {
+    nav.classList.remove("is-hidden");
+    hidden = false;
+  });
+
+  // Lightweight badges for actionable attention areas.
+  const goalsBadge = nav.querySelector('[data-badge="goals"]');
+  const coachBadge = nav.querySelector('[data-badge="coach"]');
+  const goalsList = document.getElementById("goalsList");
+  const coachStatus = document.getElementById("coachStatus");
+
+  const updateBadges = () => {
+    if (goalsBadge && goalsList) {
+      const hasGoals = goalsList.childElementCount > 0;
+      goalsBadge.hidden = hasGoals;
+    }
+    if (coachBadge && coachStatus) {
+      const text = String(coachStatus.textContent || "").toLowerCase();
+      const needsAttention = /(error|fall|no se pudo|timeout|rate|failed|inválid|invalid)/i.test(text);
+      coachBadge.hidden = !needsAttention;
+    }
+  };
+
+  if (goalsList && typeof MutationObserver === "function") {
+    const goalsObserver = new MutationObserver(updateBadges);
+    goalsObserver.observe(goalsList, { childList: true, subtree: false });
+  }
+  if (coachStatus && typeof MutationObserver === "function") {
+    const coachObserver = new MutationObserver(updateBadges);
+    coachObserver.observe(coachStatus, { childList: true, characterData: true, subtree: true });
+  }
+  updateBadges();
+  onScroll();
+  applyCompactMode();
+  window.addEventListener("resize", applyCompactMode, { passive: true });
+
+  nav.dataset.wired = "1";
+}
+
 function bootComfortLedger() {
   if (window.__comfortBootLedgerRan) {
     return;
@@ -4177,6 +4388,7 @@ function bootComfortLedger() {
   applyHostedCoachCopy();
   comfortApplyTrustPills();
   comfortWirePostDashOnce();
+  setupComfortMobileNav();
 
   const coreOk =
     els.liquidSavings &&

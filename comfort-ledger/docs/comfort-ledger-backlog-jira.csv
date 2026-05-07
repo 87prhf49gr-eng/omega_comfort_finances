@@ -1,0 +1,132 @@
+Issue Type,Summary,Description,Priority,Labels,Epic Name,Epic Link,Story Points
+Epic,API Contract and FE-BE Consistency,"Standardize API contracts and request-response consistency between frontend and backend.",Highest,"backend api docs",API Contract and FE-BE Consistency,,
+Epic,CI and Release Safety,"Establish CI checks and pre-deploy safeguards to reduce release risk.",Highest,"devops ci release",CI and Release Safety,,
+Epic,Data Persistence Hardening,"Migrate from file-based persistence to database-backed storage with migration safety.",Highest,"data migration backend",Data Persistence Hardening,,
+Epic,Payments and Webhooks at Scale,"Harden payment flows and webhook processing for reliable paid access.",Highest,"payments security backend",Payments and Webhooks at Scale,,
+Epic,Testing Critical User Flows,"Implement integration and end-to-end coverage for highest-value user paths.",High,"qa testing e2e",Testing Critical User Flows,,
+Epic,Observability and Operations,"Improve runtime visibility and operational response readiness.",High,"observability ops runbook",Observability and Operations,,
+Epic,SaaS Readiness and Governance,"Introduce versioning, authorization governance, and API compatibility policy.",Medium,"api auth governance",SaaS Readiness and Governance,,
+Task,CL-001 Define OpenAPI v1 baseline,"Create `openapi.yaml` for critical endpoints: health, waitlist, checkout, subscription status, Lemon webhook, AI coach.
+
+Acceptance criteria:
+- `openapi.yaml` exists in repo
+- Critical endpoints include request/response schemas
+- Success and error examples are documented",Highest,"backend api docs",,API Contract and FE-BE Consistency,1
+Task,CL-002 Standardize API error format,"Implement a single error response shape: `{ code, message, details?, requestId }` across endpoints.
+
+Acceptance criteria:
+- All endpoints return the standard error shape
+- OpenAPI documents the shape
+- Frontend consumes `code` consistently",Highest,"backend api",,API Contract and FE-BE Consistency,1
+Task,CL-003 Add requestId propagation,"Generate a request identifier per HTTP request and propagate it in responses and logs.
+
+Acceptance criteria:
+- Every response includes `requestId`
+- Server logs include the same `requestId`
+- Request tracing works end-to-end",High,"backend observability",,API Contract and FE-BE Consistency,0.5
+Task,CL-004 Setup CI workflow,"Add `.github/workflows/ci.yml` to run tests and basic checks on pull requests and pushes.
+
+Acceptance criteria:
+- CI runs on push and pull request
+- `npm test` passes in `comfort-ledger-beta`
+- Failing checks block merge",Highest,"devops ci",,CI and Release Safety,0.5
+Task,CL-005 Add predeploy validation script,"Create `npm run predeploy:check` to validate critical env vars and release prerequisites.
+
+Acceptance criteria:
+- Script fails when critical secrets are missing
+- Checks include session secret and Lemon webhook secret when purchase mode is enabled
+- Release checklist references script",Highest,"devops release",,CI and Release Safety,0.5
+Task,CL-006 Design data schema v1,"Define relational schema for users, sessions, waitlist, subscriptions, and webhook events.
+
+Acceptance criteria:
+- Schema document exists
+- Tables and key indexes are defined
+- Migration approach is documented",Highest,"backend data architecture",,Data Persistence Hardening,0.5
+Task,CL-007 Implement data access layer,"Replace direct JSON file access with repository/data-access layer backed by database.
+
+Acceptance criteria:
+- Critical endpoints use repository layer
+- Migrated entities no longer rely on JSON writes
+- Integration smoke tests pass",Highest,"backend data",,Data Persistence Hardening,2
+Task,CL-008 Build JSON-to-DB migration script,"Create idempotent migration script for beta users, sessions, waitlist, and subscriptions.
+
+Acceptance criteria:
+- Script is idempotent
+- Migration report shows counts and failures
+- Dry-run mode is available",Highest,"backend data migration",,Data Persistence Hardening,1
+Task,CL-009 Document rollback procedure,"Write and validate rollback plan for failed data migration in staging.
+
+Acceptance criteria:
+- Rollback document exists
+- Staging rollback rehearsal completed
+- Backups are required before production migration",Highest,"devops data runbook",,Data Persistence Hardening,0.5
+Task,CL-010 Add webhook idempotency,"Store and deduplicate Lemon webhook event IDs to prevent double-processing.
+
+Acceptance criteria:
+- Duplicate events do not mutate state twice
+- Event processing states are tracked as processed, duplicate, or failed
+- Automated test covers replay",Highest,"backend payments security",,Payments and Webhooks at Scale,1
+Task,CL-011 Create subscription reconciliation job,"Implement periodic reconciliation between Lemon subscription state and local records.
+
+Acceptance criteria:
+- Manual or scheduled reconcile command exists
+- Mismatches are reported
+- Mismatches can be corrected safely",High,"backend payments ops",,Payments and Webhooks at Scale,1
+Task,CL-012 Harden payment-related endpoints,"Apply strict email validation, endpoint-specific rate limits, and safe error responses for checkout and portal paths.
+
+Acceptance criteria:
+- Rate limits are enforced on checkout and portal endpoints
+- Invalid emails are rejected consistently
+- Responses do not leak sensitive information",Highest,"backend payments security",,Payments and Webhooks at Scale,0.5
+Task,CL-013 Add critical API integration tests,"Create integration tests for login, waitlist, checkout creation, subscription status, and webhook flows.
+
+Acceptance criteria:
+- Integration suite runs in CI
+- Success and failure paths are covered
+- Security-sensitive behaviors are verified",Highest,"qa backend testing",,Testing Critical User Flows,1.5
+Task,CL-014 Add E2E paid-user flow,"Automate end-to-end scenario from landing to app access for paying users using staged webhook/payment mocks.
+
+Acceptance criteria:
+- E2E test validates onboarding to paid access
+- Test is deterministic in CI or pre-release environment",High,"qa e2e payments",,Testing Critical User Flows,1
+Task,CL-015 Add E2E beta-tester flow,"Automate end-to-end scenario for beta login, core app usage, session persistence, and logout.
+
+Acceptance criteria:
+- E2E test validates protected routes, session continuity, and logout behavior
+- Test runs in CI",High,"qa e2e auth",,Testing Critical User Flows,1
+Task,CL-016 Implement structured JSON logging,"Adopt structured logs with fields such as level, message, requestId, endpoint, and latency.
+
+Acceptance criteria:
+- Logs are emitted as JSON
+- Sensitive data is redacted
+- Request-linked debugging is possible in runtime logs",High,"observability backend",,Observability and Operations,0.5
+Task,CL-017 Add minimal alerting and SLO signals,"Set alerts for 5xx rate, webhook failures, and high latency p95 with actionable thresholds.
+
+Acceptance criteria:
+- Alert thresholds are defined and deployed
+- Alert simulation confirms delivery
+- Runbook references alert handling",High,"observability ops alerts",,Observability and Operations,1
+Task,CL-018 Write incident runbook v1,"Document response procedures for login outages, webhook failures, and payment access incidents.
+
+Acceptance criteria:
+- Runbook exists in repo
+- Includes detection, mitigation, communication, and recovery steps
+- On-call checklist is included",High,"ops runbook sre",,Observability and Operations,0.5
+Task,CL-019 Version public API under /v1,"Introduce API version prefix and migrate current routes to `/v1` while preserving behavior.
+
+Acceptance criteria:
+- Public routes are available under `/v1`
+- Docs are updated
+- Compatibility checks confirm no regressions",High,"backend api versioning",,SaaS Readiness and Governance,0.5
+Task,CL-020 Implement basic RBAC roles,"Add base roles `admin`, `support`, and `user` and restrict administrative endpoints by role.
+
+Acceptance criteria:
+- Role model is persisted and enforced
+- Protected endpoints require expected role
+- Authorization tests pass",High,"backend auth rbac",,SaaS Readiness and Governance,1
+Task,CL-021 Define API compatibility policy,"Create policy for backward compatibility, deprecation windows, and breaking-change process.
+
+Acceptance criteria:
+- Policy document is in repo
+- Pull request template references the policy
+- Breaking-change checklist is enforceable",Medium,"api governance docs",,SaaS Readiness and Governance,0.5
