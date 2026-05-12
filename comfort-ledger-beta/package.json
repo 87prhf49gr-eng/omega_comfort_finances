@@ -1,0 +1,29 @@
+{
+  "name": "comfort-ledger-beta",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Comfort Ledger beta host: static app + login + OpenAI coach",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "hash-password": "node scripts/hash-password.mjs",
+    "test": "node --test test/*.test.cjs",
+    "predeploy:check": "node scripts/predeploy-check.mjs",
+    "migrate:json-to-db": "node scripts/migrate-json-to-db.mjs",
+    "reconcile:subscriptions": "node scripts/reconcile-subscriptions.mjs",
+    "check:slo": "node scripts/check-slo.mjs",
+    "smoke:postdeploy": "node scripts/smoke-postdeploy.mjs",
+    "release-hash": "node -e \"console.log(process.env.RELEASE_HASH || process.env.GIT_COMMIT || String(Date.now()))\"",
+    "patch-sw-cache": "node ../scripts/patch-sw-cache.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "abort-controller": "^3.0.0",
+    "fastify": "^5.8.5",
+    "openai": "^4.77.0",
+    "proper-lockfile": "^4.1.2",
+    "web-push": "^3.6.7"
+  }
+}

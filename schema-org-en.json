@@ -1,0 +1,1 @@
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Comfort Ledger","applicationCategory":"FinanceApplication","operatingSystem":"Web","description":"A clear view of income, expenses, and debt. Local and private.","url":"https://comfortledger.app/en","offers":{"@type":"Offer","price":"4.99","priceCurrency":"USD"}}

@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en" data-landing-locale="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Comfort Ledger: stop guessing if your month will work. A clear view of income, expenses, and debt — local, private, ready in seconds.">
+  <meta name="theme-color" content="#0c0d12">
+  <meta property="og:title" content="Comfort Ledger — Stop guessing if your month will work">
+  <meta property="og:description" content="A clear view of income, expenses, and debt. Local, private, ready in seconds. No bank connection required.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://comfortledger.app/branding/comfort-ledger-mark.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Comfort Ledger — Stop guessing if your month will work">
+  <meta name="twitter:description" content="Your numbers do not leave your device. They work in your browser.">
+  <meta name="twitter:image" content="https://comfortledger.app/branding/comfort-ledger-mark.png">
+  <link rel="canonical" href="https://comfortledger.app/en">
+  <link rel="alternate" hreflang="es" href="https://comfortledger.app/">
+  <link rel="alternate" hreflang="en" href="https://comfortledger.app/en">
+  <link rel="alternate" hreflang="x-default" href="https://comfortledger.app/">
+  <script type="application/ld+json" src="./schema-org-en.json"></script>
+  <link rel="manifest" href="./comfort-ledger.webmanifest">
+  <link rel="icon" href="./branding/comfort-ledger-nav-icon.png" type="image/png" sizes="256x256">
+  <link rel="apple-touch-icon" href="./pwa-icons/icon-192.png">
+  <title>Comfort Ledger — Your month, with clarity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --void: #0c0d12;
+      --void-2: #10121a;
+      --surface: rgba(255, 255, 255, 0.028);
+      --surface-2: rgba(255, 255, 255, 0.045);
+      --text: #eef0f4;
+      --text-soft: #8f95a3;
+      --line: rgba(255, 255, 255, 0.065);
+      --accent: #3d6cff;
+      --accent-muted: rgba(61, 108, 255, 0.22);
+      --positive: #3ecf8e;
+      --negative: #f4729a;
+      --radius: 12px;
+      --max: 1080px;
+      --font-sans: "Inter", system-ui, sans-serif;
+      --font-display: "DM Sans", "Inter", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: var(--font-sans);
+      font-weight: 400;
+      color: var(--text);
+      background: var(--void);
+      background-image:
+        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(61, 108, 255, 0.09), transparent 55%),
+        linear-gradient(180deg, #0a0b10 0%, var(--void) 38%, #0a0b10 100%);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 1;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.022) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.022) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(ellipse 85% 70% at 50% 35%, #000 20%, transparent 75%);
+      -webkit-mask-image: radial-gradient(ellipse 85% 70% at 50% 35%, #000 20%, transparent 75%);
+    }
+
+    a { color: inherit; text-decoration: none; }
+    img { max-width: 100%; height: auto; display: block; }
+
+    .wrap {
+      position: relative;
+      z-index: 1;
+      width: min(calc(100% - 48px), var(--max));
+      margin-inline: auto;
+    }
+
+    .skip-link {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .skip-link:focus {
+      position: fixed;
+      left: 12px;
+      top: max(12px, env(safe-area-inset-top));
+      z-index: 100;
+      width: auto;
+      height: auto;
+      margin: 0;
+      padding: 10px 14px;
+      clip: auto;
+      overflow: visible;
+      white-space: normal;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      padding-top: env(safe-area-inset-top);
+      background: rgba(10, 11, 16, 0.78);
+      backdrop-filter: blur(20px) saturate(140%);
+      -webkit-backdrop-filter: blur(20px) saturate(140%);
+      border-bottom: 1px solid var(--line);
+    }
+    .top-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 16px 0;
+      flex-wrap: wrap;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+    }
+    .logo-img {
+      width: auto;
+      height: 40px;
+      max-width: 48px;
+      aspect-ratio: 221 / 188;
+      object-fit: contain;
+      object-position: left center;
+      flex-shrink: 0;
+    }
+    .nav-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 22px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-soft);
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 20px;
+      border-radius: 9px;
+      font-family: var(--font-sans);
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: -0.01em;
+      border: none;
+      cursor: pointer;
+      transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12) inset;
+    }
+    .btn-primary:hover {
+      background: #4f7aff;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+    .btn-ghost:hover {
+      border-color: rgba(255, 255, 255, 0.14);
+      background: var(--surface);
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      padding: clamp(40px, 6vw, 72px) 0 clamp(48px, 8vw, 96px);
+      text-align: center;
+    }
+
+    .hero-logo-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: clamp(24px, 4vw, 36px);
+    }
+    .hero-glass-logo {
+      width: min(200px, 46vw);
+      height: auto;
+      max-height: 200px;
+      aspect-ratio: 166 / 171;
+      object-fit: contain;
+      filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
+      opacity: 0.97;
+    }
+
+    .hero-brand {
+      font-family: var(--font-display);
+      font-size: clamp(2.5rem, 8.5vw, 3.75rem);
+      font-weight: 600;
+      letter-spacing: -0.035em;
+      line-height: 1.05;
+      margin: 0 0 14px;
+      color: var(--text);
+    }
+    .hero-brand-sub {
+      font-weight: 600;
+      color: rgba(238, 240, 244, 0.72);
+    }
+
+    .hero-tagline {
+      font-family: var(--font-display);
+      font-size: clamp(1.05rem, 2.6vw, 1.35rem);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin: 0 0 clamp(24px, 4vw, 32px);
+      color: rgba(238, 240, 244, 0.78);
+    }
+    .hero-tagline-accent {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .trust-strip {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 28px;
+    }
+    .pill {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-soft);
+      border: 1px solid var(--line);
+    }
+    .pill-muted {
+      border-color: rgba(61, 108, 255, 0.35);
+      color: rgba(196, 208, 255, 0.92);
+      background: rgba(61, 108, 255, 0.06);
+    }
+
+    .hero-lede {
+      font-size: clamp(0.98rem, 2vw, 1.08rem);
+      color: var(--text-soft);
+      max-width: 36rem;
+      margin: 0 auto 28px;
+      line-height: 1.7;
+      font-weight: 400;
+    }
+    .hero-lede strong { color: var(--text); font-weight: 600; }
+
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: clamp(40px, 6vw, 56px);
+    }
+
+    .micro-trust {
+      font-size: 0.84rem;
+      color: var(--text-soft);
+      max-width: 32rem;
+      margin: 0 auto 44px;
+      line-height: 1.65;
+    }
+    .micro-trust svg {
+      display: inline-block;
+      vertical-align: -3px;
+      margin-right: 7px;
+      opacity: 0.55;
+      color: var(--accent);
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: clamp(28px, 5vw, 40px) 0 0;
+      border-top: 1px solid var(--line);
+    }
+    @media (max-width: 720px) {
+      .feature-row {
+        grid-template-columns: 1fr;
+        border-top: none;
+      }
+      .feature-col {
+        border-right: none !important;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 28px !important;
+      }
+      .feature-col:last-child { border-bottom: none; }
+    }
+    .feature-col {
+      padding: 24px clamp(18px, 3vw, 32px);
+      border-right: 1px solid var(--line);
+      text-align: center;
+    }
+    .feature-col:last-child { border-right: none; }
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 16px;
+      color: var(--accent);
+      opacity: 0.88;
+    }
+    .feature-col h3 {
+      margin: 0 0 8px;
+      font-family: var(--font-display);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    .feature-col p {
+      margin: 0;
+      font-size: 0.8125rem;
+      color: var(--text-soft);
+      line-height: 1.55;
+    }
+
+    .hero-card-wrap {
+      max-width: 600px;
+      margin: clamp(36px, 5vw, 52px) auto 0;
+    }
+    .hero-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(24px, 3vw, 30px);
+      text-align: left;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    }
+    .hero-card h3 {
+      font-family: var(--font-display);
+      font-size: 1.0625rem;
+      font-weight: 600;
+      margin: 0 0 16px;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .hero-card ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.875rem;
+      line-height: 1.65;
+      color: var(--text-soft);
+    }
+    .hero-card li {
+      padding-left: 20px;
+      position: relative;
+      margin-bottom: 11px;
+    }
+    .hero-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.58em;
+      width: 5px;
+      height: 5px;
+      border-radius: 1px;
+      background: var(--accent);
+    }
+
+    section { padding: clamp(56px, 8vw, 96px) 0; }
+    .section-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-soft);
+      margin: 0 0 12px;
+    }
+    h2.section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.5rem, 2.8vw, 2.05rem);
+      font-weight: 600;
+      margin: 0 0 16px;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+    }
+    .section-intro {
+      color: var(--text-soft);
+      font-size: 1rem;
+      max-width: 38rem;
+      margin: 0 0 36px;
+      line-height: 1.65;
+    }
+
+    .band-elevated {
+      background: var(--void-2);
+      border-block: 1px solid var(--line);
+    }
+
+    .problem-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+    @media (max-width: 720px) {
+      .problem-grid { grid-template-columns: 1fr; }
+    }
+    .problem-card, .solution-card {
+      padding: 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: var(--surface);
+    }
+    .problem-card {
+      border-color: rgba(244, 114, 154, 0.22);
+      background: rgba(244, 114, 154, 0.045);
+    }
+    .problem-card h3 { color: var(--negative); margin: 0 0 10px; font-size: 1rem; font-weight: 600; }
+    .solution-card {
+      border-color: rgba(62, 207, 142, 0.22);
+      background: rgba(62, 207, 142, 0.045);
+    }
+    .solution-card h3 { color: var(--positive); margin: 0 0 10px; font-size: 1rem; font-weight: 600; }
+    .problem-card p, .solution-card p {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    .bento {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .bento { grid-template-columns: 1fr; }
+    }
+    .bento-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    @media (hover: hover) and (prefers-reduced-motion: no-preference) {
+      .bento-card:hover {
+        transform: translateY(-3px);
+        border-color: rgba(61, 108, 255, 0.28);
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+      }
+    }
+    .bento-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      font-family: var(--font-display);
+      letter-spacing: -0.02em;
+    }
+    .bento-card p {
+      margin: 0;
+      color: var(--text-soft);
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+    .bento-wide { grid-column: span 2; }
+    @media (max-width: 900px) {
+      .bento-wide { grid-column: span 1; }
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    @media (max-width: 800px) {
+      .steps { grid-template-columns: 1fr; }
+    }
+    .step {
+      position: relative;
+      padding: 22px 20px 20px 58px;
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 18px;
+      top: 20px;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background: var(--accent-muted);
+      border: 1px solid rgba(61, 108, 255, 0.35);
+      color: #dbe4ff;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.8125rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .steps { counter-reset: step; }
+    .step h3 { margin: 0 0 8px; font-size: 0.98rem; font-weight: 600; font-family: var(--font-display); letter-spacing: -0.02em; }
+    .step p { margin: 0; color: var(--text-soft); font-size: 0.875rem; line-height: 1.6; }
+
+    .trust-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: clamp(28px, 4vw, 44px);
+      text-align: center;
+    }
+    .trust-panel blockquote {
+      margin: 0 auto 18px;
+      max-width: 34rem;
+      font-family: var(--font-display);
+      font-size: clamp(1.05rem, 2vw, 1.28rem);
+      font-style: italic;
+      font-weight: 400;
+      color: rgba(238, 240, 244, 0.92);
+      line-height: 1.5;
+    }
+    .trust-panel cite {
+      font-style: normal;
+      font-size: 0.8125rem;
+      color: var(--text-soft);
+    }
+
+    .faq { max-width: 720px; margin: 0 auto; }
+    details {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      margin-bottom: 8px;
+    }
+    details summary {
+      font-weight: 600;
+      font-size: 0.9375rem;
+      cursor: pointer;
+      list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details[open] summary { margin-bottom: 10px; color: rgba(196, 208, 255, 0.95); }
+    details p { margin: 0; color: var(--text-soft); font-size: 0.9rem; line-height: 1.6; }
+
+    .cta-final {
+      text-align: center;
+      padding: clamp(64px, 9vw, 104px) 0;
+    }
+
+    .landing-demo-band {
+      padding: clamp(56px, 8vw, 96px) 0;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.022) 50%, transparent 100%);
+    }
+
+    .landing-demo-frame {
+      margin-top: 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      overflow: hidden;
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+      background: var(--void-2);
+      min-height: 480px;
+    }
+
+    .landing-demo-frame iframe {
+      width: 100%;
+      height: min(720px, 85vh);
+      border: 0;
+      display: block;
+      vertical-align: top;
+    }
+
+    .testimonial-grid {
+      list-style: none;
+      margin: 28px 0 0;
+      padding: 0;
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .testimonial-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin: 0;
+    }
+
+    .testimonial-card blockquote {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      line-height: 1.55;
+      color: var(--text);
+    }
+
+    .testimonial-card cite {
+      font-style: normal;
+      font-size: 0.875rem;
+      color: var(--text-soft);
+      font-weight: 500;
+    }
+    .cta-final h2 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 2.8vw, 2.15rem);
+      font-weight: 600;
+      margin: 0 0 14px;
+      letter-spacing: -0.03em;
+    }
+    .cta-final p {
+      color: var(--text-soft);
+      margin: 0 auto 26px;
+      max-width: 26rem;
+      font-size: 1rem;
+    }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      padding: 32px 0 48px;
+      font-size: 0.8125rem;
+      color: var(--text-soft);
+      border-top: 1px solid var(--line);
+      text-align: center;
+    }
+    footer a { color: rgba(196, 208, 255, 0.85); font-weight: 500; }
+    footer a:hover { color: var(--text); }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    code {
+      font-size: 0.86em;
+      font-family: ui-monospace, monospace;
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid var(--line);
+    }
+
+    /* Hero eyebrow (brand lockup) */
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(196, 208, 255, 0.92);
+      margin: 0 0 18px;
+    }
+    .hero-eyebrow::before {
+      content: "";
+      width: 24px;
+      height: 1px;
+      background: rgba(196, 208, 255, 0.5);
+    }
+
+    /* Waitlist form */
+    .waitlist-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      max-width: 460px;
+      margin: 0 auto 14px;
+    }
+    .waitlist-form input[type="email"] {
+      flex: 1 1 240px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 9px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+    .waitlist-form input[type="email"]::placeholder { color: var(--text-soft); }
+    .waitlist-form input[type="email"]:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface-2);
+    }
+    .waitlist-note {
+      font-size: 0.82rem;
+      color: var(--text-soft);
+      margin: 0 0 22px;
+    }
+    .waitlist-ok {
+      font-size: 0.92rem;
+      color: var(--positive);
+      margin: 8px 0 18px;
+      font-weight: 500;
+    }
+    .beta-link {
+      font-size: 0.88rem;
+      color: var(--text-soft);
+      margin: 0 0 clamp(40px, 6vw, 56px);
+    }
+    .beta-link a {
+      color: rgba(196, 208, 255, 0.92);
+      font-weight: 500;
+      border-bottom: 1px solid rgba(196, 208, 255, 0.25);
+    }
+    .beta-link a:hover { color: var(--text); border-bottom-color: var(--text); }
+
+    /* Product mockup (fake screenshot via CSS) */
+    .preview {
+      max-width: 960px;
+      margin: clamp(40px, 6vw, 64px) auto 0;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01));
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.04) inset,
+        0 30px 80px -20px rgba(0, 0, 0, 0.6),
+        0 0 0 1px rgba(61, 108, 255, 0.06);
+      padding: 14px;
+      overflow: hidden;
+    }
+    .preview-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 6px 10px;
+    }
+    .preview-bar span {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.12);
+    }
+    .preview-bar span:first-child { background: rgba(244, 114, 154, 0.55); }
+    .preview-bar span:nth-child(2) { background: rgba(247, 201, 72, 0.55); }
+    .preview-bar span:nth-child(3) { background: rgba(62, 207, 142, 0.55); }
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 10px;
+    }
+    @media (max-width: 720px) {
+      .preview-grid { grid-template-columns: 1fr; }
+    }
+    .preview-panel {
+      background: var(--void-2);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+    }
+    .preview-panel h4 {
+      margin: 0 0 4px;
+      font-family: var(--font-display);
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-soft);
+    }
+    .preview-kpi {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin: 6px 0 4px;
+    }
+    .preview-kpi.positive { color: var(--positive); }
+    .preview-kpi small { font-size: 0.8rem; color: var(--text-soft); font-weight: 500; margin-left: 6px; }
+    .preview-bar-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-top: 1px solid var(--line);
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+    .preview-bar-row:first-of-type { border-top: none; }
+    .preview-bar-row strong { color: var(--text); font-weight: 500; }
+    .preview-bar-track {
+      flex: 0 0 110px;
+      height: 5px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .preview-bar-fill {
+      display: block;
+      height: 100%;
+      background: var(--accent);
+      border-radius: 999px;
+    }
+    .preview-bar-fill.warn { background: var(--negative); }
+    .preview-bar-fill.ok { background: var(--positive); }
+    .preview-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      height: 90px;
+      margin-top: 12px;
+    }
+    .preview-chart i {
+      flex: 1;
+      background: linear-gradient(180deg, rgba(61, 108, 255, 0.55), rgba(61, 108, 255, 0.1));
+      border-radius: 3px 3px 0 0;
+      display: block;
+    }
+    .preview-caption {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      margin: 14px 0 0;
+      font-style: italic;
+    }
+
+    /* Transparency card (replaces fake testimonial) */
+    .creator-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: clamp(28px, 4vw, 40px);
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+    }
+    .creator-card p {
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.7;
+      color: rgba(238, 240, 244, 0.85);
+    }
+    .creator-card .creator-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-soft);
+    }
+
+    /* Pricing */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    @media (max-width: 640px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+    }
+    .price-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      text-align: left;
+      position: relative;
+    }
+    .price-card.featured {
+      border-color: rgba(61, 108, 255, 0.4);
+      background: rgba(61, 108, 255, 0.05);
+    }
+    .price-badge {
+      position: absolute;
+      top: -10px;
+      right: 16px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .price-card h3 {
+      margin: 0 0 8px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-soft);
+      font-family: var(--font-display);
+    }
+    .price-amount {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 600;
+      letter-spacing: -0.03em;
+      margin: 0 0 2px;
+      color: var(--text);
+    }
+    .price-amount small {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-soft);
+      margin-left: 4px;
+    }
+    .price-sub {
+      margin: 0 0 14px;
+      font-size: 0.82rem;
+      color: var(--text-soft);
+    }
+    .price-card ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.88rem;
+      color: var(--text-soft);
+      line-height: 1.6;
+    }
+    .price-card li {
+      padding-left: 18px;
+      position: relative;
+      margin-bottom: 6px;
+    }
+    .price-card li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.58em;
+      width: 5px;
+      height: 5px;
+      border-radius: 1px;
+      background: var(--accent);
+    }
+    .price-card li strong { color: var(--text); font-weight: 500; }
+    .pricing-note {
+      text-align: center;
+      margin: 22px auto 0;
+      max-width: 34rem;
+      font-size: 0.88rem;
+      color: var(--text-soft);
+      line-height: 1.65;
+    }
+    .pricing-note strong { color: var(--text); }
+    .price-cta {
+      display: inline-flex;
+      margin-top: 18px;
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+
+    .nav-app-cta {
+      flex-shrink: 0;
+      padding: 0 16px;
+      min-height: 40px;
+      font-size: 0.875rem;
+    }
+    @media (max-width: 900px) {
+      .nav-links a[href="#waitlistForm"] { display: none; }
+    }
+
+    .metric-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      max-width: 820px;
+      margin: 0 auto 28px;
+      text-align: center;
+    }
+    @media (max-width: 720px) {
+      .metric-strip { grid-template-columns: 1fr; max-width: 22rem; }
+    }
+    .metric-item {
+      padding: 18px 14px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    }
+    .metric-value {
+      display: block;
+      font-family: var(--font-display);
+      font-size: clamp(1.35rem, 3.2vw, 1.75rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1.15;
+      margin-bottom: 6px;
+    }
+    .metric-label {
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    .hero-cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+
+    .compare-scroll {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -8px;
+      padding: 4px 8px 12px;
+    }
+    .compare-table {
+      width: 100%;
+      min-width: 640px;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 0.875rem;
+    }
+    .compare-table th,
+    .compare-table td {
+      padding: 14px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      color: var(--text-soft);
+    }
+    .compare-table thead th {
+      font-family: var(--font-display);
+      font-weight: 600;
+      color: var(--text);
+      font-size: 0.8125rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--line);
+    }
+    .compare-table thead th:first-child {
+      border-radius: var(--radius) 0 0 0;
+    }
+    .compare-table thead th:last-child {
+      border-radius: 0 var(--radius) 0 0;
+    }
+    .compare-table tbody th {
+      font-weight: 600;
+      color: var(--text);
+      width: 22%;
+      min-width: 7.5rem;
+    }
+    .compare-table tbody tr:last-child th,
+    .compare-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+    .compare-table td:first-of-type {
+      color: rgba(238, 240, 244, 0.88);
+    }
+    .compare-highlight {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .hero-animate .hero-logo-wrap,
+      .hero-animate .hero-eyebrow,
+      .hero-animate .hero-brand,
+      .hero-animate .hero-tagline,
+      .hero-animate .trust-strip,
+      .hero-animate .metric-strip,
+      .hero-animate .hero-lede,
+      .hero-animate .hero-cta-row,
+      .hero-animate .waitlist-form {
+        animation: fade-rise 0.7s ease both;
+      }
+      .hero-animate .hero-eyebrow { animation-delay: 0.05s; }
+      .hero-animate .hero-brand { animation-delay: 0.1s; }
+      .hero-animate .hero-tagline { animation-delay: 0.14s; }
+      .hero-animate .trust-strip { animation-delay: 0.18s; }
+      .hero-animate .metric-strip { animation-delay: 0.22s; }
+      .hero-animate .hero-lede { animation-delay: 0.26s; }
+      .hero-animate .hero-cta-row { animation-delay: 0.3s; }
+      .hero-animate .waitlist-form { animation-delay: 0.34s; }
+    }
+    @keyframes fade-rise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    a:focus-visible,
+    button:focus-visible,
+    summary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    /* Footer legal */
+    .foot-links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 18px;
+      margin-top: 10px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="top">
+    <div class="wrap top-inner">
+      <a class="logo" href="#top">
+        <picture>
+          <source type="image/webp" srcset="./branding/comfort-ledger-nav-icon.webp" />
+          <img class="logo-img" src="./branding/comfort-ledger-nav-icon.png" width="221" height="188" alt="" aria-hidden="true" />
+        </picture>
+        <span>Comfort Ledger</span>
+      </a>
+      <nav class="nav-links" aria-label="Sections">
+        <a href="#comparar">Vs others</a>
+        <a href="#problema">Problem</a>
+        <a href="#beneficios">Features</a>
+        <a href="#precio">Pricing</a>
+        <a href="#faq">FAQ</a>
+        <a href="#waitlistForm">Waitlist</a>
+        <a href="/?lang=es" aria-label="Switch to Spanish">ES</a>
+      </nav>
+      <a class="btn btn-primary nav-app-cta" href="/app">Open app</a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="wrap hero-animate">
+        <div class="hero-logo-wrap">
+          <picture>
+            <source type="image/webp" srcset="./branding/comfort-ledger-mark.webp" />
+            <img
+              class="hero-glass-logo"
+              src="./branding/comfort-ledger-mark.png"
+              width="166"
+              height="171"
+              alt=""
+              decoding="async"
+              aria-hidden="true"
+            />
+          </picture>
+        </div>
+        <p class="hero-eyebrow">Comfort Ledger</p>
+        <h1 class="hero-brand">Stop guessing<br>if your month will work.</h1>
+        <p class="hero-tagline">
+          A clear view of income, expenses, and debt. <span class="hero-tagline-accent">Local and private.</span>
+        </p>
+
+        <div class="trust-strip">
+          <span class="pill">100% on your device</span>
+          <span class="pill pill-muted">No bank connection</span>
+          <span class="pill">Ready in seconds</span>
+        </div>
+
+        <div class="metric-strip" aria-label="Value in numbers">
+          <div class="metric-item">
+            <span class="metric-value">0</span>
+            <span class="metric-label">required bank connections</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-value">&lt;60s</span>
+            <span class="metric-label">to your first monthly snapshot</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-value">100%</span>
+            <span class="metric-label">of data stays on your device</span>
+          </div>
+        </div>
+
+        <p class="hero-lede">
+          Income, monthly-normalized expenses, debt, goals, household bills, and subscriptions — with reminders and an executive summary. <strong>Your numbers do not leave your device:</strong> they work in your browser.
+        </p>
+
+        <div class="hero-cta-row">
+          <a class="btn btn-primary" href="#waitlistForm">Join the waitlist</a>
+          <a class="btn btn-ghost" href="#como-funciona">See how it works</a>
+        </div>
+
+        <form id="waitlistForm" class="waitlist-form" novalidate>
+          <label class="sr-only" for="waitlistEmail">Email address</label>
+          <input
+            id="waitlistEmail"
+            type="email"
+            name="email"
+            inputmode="email"
+            autocomplete="email"
+            required
+            placeholder="you@email.com"
+          />
+          <button class="btn btn-primary" type="submit">Notify me at launch</button>
+        </form>
+        <p id="waitlistMsg" class="waitlist-note">
+          I will only email you when we launch publicly. 30% lifetime discount. No spam.
+        </p>
+
+        <p class="beta-link">
+          Already have beta access? <a href="/app">Open the app -></a>
+        </p>
+
+        <div class="feature-row">
+          <div class="feature-col">
+            <svg class="feature-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <circle cx="24" cy="22" r="14" stroke="currentColor" stroke-width="1.5" opacity="0.9"/>
+              <circle cx="18" cy="20" r="5" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="30" cy="20" r="5" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M24 26 L20 32 L28 32 Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+            </svg>
+            <h3>Unified tracking</h3>
+            <p>Income, expenses, debt, goals, and bills in one screen. Fewer jumps, more clarity.</p>
+          </div>
+          <div class="feature-col">
+            <svg class="feature-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <path d="M14 20h20v14H14z" stroke="currentColor" stroke-width="1.5" rx="2"/>
+              <path d="M18 16v-4h12v4" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="32" cy="26" r="6" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M30 26l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h3>Local-first privacy</h3>
+            <p>Your data stays on your device. No bank tokens and no mandatory cloud.</p>
+          </div>
+          <div class="feature-col">
+            <svg class="feature-icon" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+              <path d="M12 32V18l6-4 6 4 6-4 6 4v14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M18 28v-8h6v8M26 24h6v4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M32 18l4-3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h3>Actionable analysis</h3>
+            <p>Health summary and executive report to decide in minutes, not hours.</p>
+          </div>
+        </div>
+
+        <div class="hero-card-wrap">
+          <div class="hero-card" aria-labelledby="hero-card-title">
+            <h3 id="hero-card-title">What you stop struggling with</h3>
+            <ul>
+              <li>“How much is left after everything?” — see it in one screen.</li>
+              <li>Rent, utilities, insurance, and subscriptions — organized with reminders.</li>
+              <li>Coach with your numbers: clear rules, no cloud dependency.</li>
+              <li>Boardroom-style report to decide in minutes, not hours.</li>
+            </ul>
+          </div>
+        </div>
+
+        <figure class="preview" aria-label="Preview of the main Comfort Ledger dashboard">
+          <div class="preview-bar" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="preview-grid">
+            <div class="preview-panel">
+              <h4>Health summary · April</h4>
+              <div class="preview-kpi positive">+ $412 <small>free after everything</small></div>
+              <div class="preview-bar-row">
+                <strong>Fixed expenses</strong>
+                <span class="preview-bar-track"><span class="preview-bar-fill" style="width: 58%"></span></span>
+                <span>58 %</span>
+              </div>
+              <div class="preview-bar-row">
+                <strong>Debt this month</strong>
+                <span class="preview-bar-track"><span class="preview-bar-fill warn" style="width: 22%"></span></span>
+                <span>22 %</span>
+              </div>
+              <div class="preview-bar-row">
+                <strong>Remaining cushion</strong>
+                <span class="preview-bar-track"><span class="preview-bar-fill ok" style="width: 20%"></span></span>
+                <span>20 %</span>
+              </div>
+            </div>
+            <div class="preview-panel">
+              <h4>Monthly flow</h4>
+              <div class="preview-chart" aria-hidden="true">
+                <i style="height: 45%"></i>
+                <i style="height: 62%"></i>
+                <i style="height: 38%"></i>
+                <i style="height: 78%"></i>
+                <i style="height: 55%"></i>
+                <i style="height: 70%"></i>
+                <i style="height: 48%"></i>
+              </div>
+              <div class="preview-bar-row" style="margin-top: 14px">
+                <strong>Subscriptions</strong>
+                <span>Netflix, Spotify · $18</span>
+              </div>
+              <div class="preview-bar-row">
+                <strong>Next reminder</strong>
+                <span>Electricity · in 3 days</span>
+              </div>
+            </div>
+          </div>
+          <figcaption class="preview-caption">Illustrative view. Sample data.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="band-elevated" id="problema">
+      <section>
+        <div class="wrap">
+          <p class="section-label">Problem -> solution</p>
+          <h2 class="section-title">The fear is not spending. It is not knowing where you stand.</h2>
+          <p class="section-intro">
+            Most of the month is not lost to unusual purchases: it is lost to forgotten charges, unused subscriptions, and debt nobody reminds you about. Comfort Ledger puts all of that in one screen.
+          </p>
+          <div class="problem-grid">
+            <div class="problem-card">
+              <h3>The pain</h3>
+              <p>Notes on your phone, half-finished spreadsheets, apps asking for your bank and filling you with ads. In the end you do not know if you are comfortable or close to going negative.</p>
+            </div>
+            <div class="solution-card">
+              <h3>The promise</h3>
+              <p>One canvas: monthly income, monthly-normalized expenses, debt, goals, household bills, and subscriptions — with reminders and links to pay or cancel. <strong>Clarity first, without giving away your data.</strong></p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="band-elevated" id="comparar">
+      <section>
+        <div class="wrap">
+          <p class="section-label">In the market</p>
+          <h2 class="section-title">Clarity without giving up control of your data</h2>
+          <p class="section-intro">
+            Many tools ask for your bank or bury you in endless spreadsheets. Comfort Ledger blends an <strong>executive dashboard</strong> with the calm of a <strong>local-first</strong> product — the pattern teams use when privacy and speed matter.
+          </p>
+          <div class="compare-scroll" role="region" aria-label="Comparison with alternatives" tabindex="0">
+            <table class="compare-table">
+              <thead>
+                <tr>
+                  <th scope="col"></th>
+                  <th scope="col"><span class="compare-highlight">Comfort Ledger</span></th>
+                  <th scope="col">Spreadsheet</th>
+                  <th scope="col">“Connect your bank” apps</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Privacy by design</th>
+                  <td>Data in your browser; no bank tokens.</td>
+                  <td>Depends where the file lives.</td>
+                  <td>Sync and permissions on the vendor’s servers.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Time to a useful answer</th>
+                  <td>Minutes: one monthly health canvas.</td>
+                  <td>Hours wiring formulas and formats.</td>
+                  <td>Variable: linking, categorization, alerts.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Reminders & subscriptions</th>
+                  <td>Alerts + links to pay or cancel.</td>
+                  <td>Manual; easy to miss dates.</td>
+                  <td>Sometimes; often with upsells.</td>
+                </tr>
+                <tr>
+                  <th scope="row">Coach with your month’s context</th>
+                  <td>Local mode + optional cloud (your choice).</td>
+                  <td>Not included.</td>
+                  <td>Varies; sometimes generic.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section id="beneficios">
+      <div class="wrap">
+        <p class="section-label">What you get</p>
+        <h2 class="section-title">Built to decide fast and sleep better</h2>
+        <p class="section-intro">Every block answers a real question. This is what the app already does.</p>
+        <div class="bento">
+          <div class="bento-card bento-wide">
+            <h3>Health summary + executive report</h3>
+            <p>Same information in two readings: a human one (“am I in a safe zone?”) and a compact dashboard view — monthly income percentages and visual priorities.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Home & utilities</h3>
+            <p>Rent, water, electricity, gas, insurance, phone... with amount, date, and reminder day. Optional URL to pay in one tap.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Subscriptions</h3>
+            <p>Netflix, Disney+, Spotify, and others, with cadence and a button that opens the official cancellation page — no long links pasted in notes.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Reminders that matter</h3>
+            <p>Browser permission: reminder 3 days before and on due day. Install the PWA for a better mobile experience.</p>
+          </div>
+          <div class="bento-card">
+            <h3>Coach that understands your month</h3>
+            <p>By default it is 100% local: rules + your numbers, never leaving your browser. If you enable cloud mode, the request goes to OpenAI — you decide when.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="band-elevated" id="como-funciona">
+      <section>
+        <div class="wrap">
+          <p class="section-label">How it works</p>
+          <h2 class="section-title">Three steps. No friction.</h2>
+          <p class="section-intro">No forced sync, no contract, no 15-step onboarding.</p>
+          <div class="steps">
+            <div class="step">
+              <h3>Open the app</h3>
+              <p>Sign in with your beta user and password, so public links do not expose financial sections to anyone.</p>
+            </div>
+            <div class="step">
+              <h3>Enter your numbers</h3>
+              <p>Monthly income, cadence-based expenses, debt, goals, bills, and subscriptions. Everything stays saved on your device.</p>
+            </div>
+            <div class="step">
+              <h3>Act with clarity</h3>
+              <p>Read the summary, adjust one number, cancel a subscription, or mark a rent payment. Small decisions, big effect.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section id="demo-app" class="landing-demo-band" aria-labelledby="demo-app-title">
+      <div class="wrap">
+        <p class="section-label">Live preview</p>
+        <h2 class="section-title" id="demo-app-title">Try Comfort Ledger right here</h2>
+        <p class="section-intro">
+          Demo mode with sample numbers. In the embedded view, changes are not persisted long-term.
+        </p>
+        <div class="landing-demo-frame" role="region" aria-label="Embedded Comfort Ledger demo">
+          <iframe
+            title="Comfort Ledger — interactive demo"
+            src="./COMFORT-LEDGER-abrir-aqui.html?comfort_demo=1&amp;embed=1"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+          ></iframe>
+        </div>
+      </div>
+    </section>
+
+    <section id="testimonials" aria-labelledby="testimonials-title">
+      <div class="wrap">
+        <p class="section-label">Closed beta</p>
+        <h2 class="section-title" id="testimonials-title">Early voices</h2>
+        <p class="section-intro">
+          Short quotes from people who tested the private beta. Names may be abbreviated to protect privacy.
+        </p>
+        <ul class="testimonial-grid">
+          <li class="testimonial-card">
+            <blockquote>
+              Finally I had income, spending, and debt on one screen. The weekly check-in makes me review without guilt.
+            </blockquote>
+            <cite>— Carla M., freelance</cite>
+          </li>
+          <li class="testimonial-card">
+            <blockquote>
+              I do not want to link my bank. This respects that and still gives clarity every month.
+            </blockquote>
+            <cite>— George R., payroll</cite>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="confianza">
+      <div class="wrap">
+        <p class="section-label">Transparency</p>
+        <h2 class="section-title">Why you can trust it today</h2>
+        <p class="section-intro">
+          Comfort Ledger is <strong>local-first</strong>: it does not replace your bank and it is not investment advice. It gives you an honest picture from what you enter. Above are early voices from the beta — if anything feels off for you, please email me directly.
+        </p>
+        <div class="creator-card">
+          <span class="creator-label">Founder note</span>
+          <p>
+            I am building Comfort Ledger because I got tired of apps that request bank access, fill the UI with ads, or lock basic features behind a paywall. The version you see is the one I use every month. It is in private beta so I can polish the experience with real users before public launch.
+          </p>
+          <p>
+            If something does not fit your situation, email me directly rather than assuming the app works the same for everyone.
+          </p>
+        </div>
+        <p class="section-intro" style="margin-top: 28px; margin-bottom: 0;">
+          <strong>Technical checklist:</strong> no bank account linking · browser <code>IndexedDB</code> / <code>localStorage</code> · installable PWA · JSON export/import whenever you want · auditable code (plain HTML on your machine).
+        </p>
+      </div>
+    </section>
+
+    <section id="precio">
+      <div class="wrap">
+        <p class="section-label">Pricing</p>
+        <h2 class="section-title">Simple. No fine print.</h2>
+        <p class="section-intro">
+          Comfort Ledger is a living product: each month I ship improvements and tune the coach based on real usage. The subscription funds that maintenance; in return, every new update is included.
+        </p>
+        <div class="pricing-grid">
+          <div class="price-card">
+            <h3>Monthly</h3>
+            <p class="price-amount">$4.99 <small>/ month</small></p>
+            <p class="price-sub">Cancel anytime.</p>
+            <ul>
+              <li><strong>All app features</strong></li>
+              <li>Updates included</li>
+              <li>14-day trial, no card</li>
+            </ul>
+            <a class="btn btn-ghost price-cta" href="#waitlistForm" data-plan="monthly">Join waitlist</a>
+          </div>
+          <div class="price-card featured">
+            <span class="price-badge">Save 35%</span>
+            <h3>Annual</h3>
+            <p class="price-amount">$39 <small>/ year</small></p>
+            <p class="price-sub">≈ $3.25 per month. About one coffee.</p>
+            <ul>
+              <li>Everything in the monthly plan</li>
+              <li><strong>Price lock</strong> while your subscription stays active</li>
+              <li>Early access to new features</li>
+            </ul>
+            <a class="btn btn-primary price-cta" href="#waitlistForm" data-plan="annual">Join waitlist</a>
+          </div>
+        </div>
+        <p class="pricing-note">
+          <strong>Waitlist:</strong> anyone joining from this page gets a <strong>30% lifetime discount</strong> when public launch opens. Beta is free until then. Your data remains yours even if you cancel — truly local-first.
+        </p>
+      </div>
+    </section>
+
+    <div class="band-elevated" id="faq">
+      <section>
+        <div class="wrap">
+          <p class="section-label">FAQ</p>
+          <h2 class="section-title">What people ask most</h2>
+          <p class="section-intro">If your question is not here, email me and I will add it.</p>
+          <div class="faq">
+            <details>
+              <summary>How much does it cost?</summary>
+              <p>Beta is free. At public launch: <strong>$4.99/month</strong> or <strong>$39/year</strong> (about $3.25/month when billed yearly). You get a <strong>14-day trial with no card</strong>, and you can cancel anytime — your data still stays on your device.</p>
+              <p>Anyone joining this waitlist gets a <strong>30% lifetime discount</strong> on either plan.</p>
+              <p>It is a subscription because the product keeps evolving (new categories, coach improvements, encrypted sync on the roadmap). You fund maintenance, not just a one-time app.</p>
+            </details>
+            <details>
+              <summary>Is it secure? What about my data?</summary>
+              <p>I do not ask for bank credentials or tokens. Everything you enter is saved in your browser <code>localStorage</code> on that device. You can export it to JSON anytime and wipe everything with one click.</p>
+            </details>
+            <details>
+              <summary>Does the AI coach send my data to the cloud?</summary>
+              <p>By default the coach is <strong>local</strong>: rules + your numbers run in the browser and nothing leaves your device. There is an optional cloud mode that sends your request (plus an anonymous summary) to OpenAI for richer responses. You choose when to enable it, and the rest of the app works without it.</p>
+            </details>
+            <details>
+              <summary>Does it work on mobile?</summary>
+              <p>Yes. The app is a PWA: install it from Safari or Chrome and use it like any app, including system reminders for rent, bills, and subscriptions.</p>
+            </details>
+            <details>
+              <summary>Does it sync across devices?</summary>
+              <p>Not yet, and I am explicit about it: each device is independent today. You can move data with Export/Import. End-to-end encrypted sync is on the roadmap.</p>
+            </details>
+            <details>
+              <summary>Does it replace financial advice?</summary>
+              <p>No. It is a clarity and habit tool. For legal, tax, or investment decisions, consult a professional.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="cta-final">
+      <div class="wrap">
+        <h2>Your month will not organize itself.</h2>
+        <p>Join now to be among the first at launch: <strong>30% lifetime discount</strong> and a 14-day no-card trial.</p>
+        <form class="waitlist-form" id="waitlistFormBottom" novalidate>
+          <label class="sr-only" for="waitlistEmailBottom">Email address</label>
+          <input
+            id="waitlistEmailBottom"
+            type="email"
+            name="email"
+            inputmode="email"
+            autocomplete="email"
+            required
+            placeholder="you@email.com"
+          />
+          <button class="btn btn-primary" type="submit">Notify me at launch</button>
+        </form>
+        <p id="waitlistMsgBottom" class="waitlist-note">No spam. Cancel anytime.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <div>Comfort Ledger · local-first · © 2026</div>
+      <div class="foot-links">
+        <a href="/app">Beta app</a>
+        <a href="/?lang=es" aria-label="Switch to Spanish">Español</a>
+        <a href="#faq">FAQ</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/refund-policy">Refunds</a>
+        <a href="mailto:hola@comfortledger.app">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="./landing-interactions.js" defer></script>
+</body>
+</html>
