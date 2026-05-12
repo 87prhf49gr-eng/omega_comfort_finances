@@ -731,7 +731,7 @@ body.lang-zh .dash-tactical-title {
   }
 
   .app {
-    padding-top: 22px;
+    padding-top: max(16px, env(safe-area-inset-top));
     padding-bottom: calc(92px + env(safe-area-inset-bottom));
   }
 
@@ -742,7 +742,7 @@ body.lang-zh .dash-tactical-title {
     bottom: calc(10px + env(safe-area-inset-bottom));
     z-index: 980;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 4px;
     padding: 7px 7px 8px;
     border-radius: 20px;
@@ -2761,6 +2761,107 @@ dialog.comfort-beta-overlay-shell:not([open]) {
 }
 body.comfort--hosted .app {
   padding-top: 1.65rem;
+}
+
+/* ── Mobile masthead: compact, safe-area, hide desktop-only controls ── */
+@media (max-width: 640px) {
+  /* Safe-area + compact padding for the masthead card */
+  .masthead {
+    padding: 12px 14px 14px;
+    margin-bottom: 14px;
+  }
+
+  /* Hide controls that move to Coach settings or are irrelevant on mobile */
+  .masthead .theme-switch { display: none; }
+  .masthead .backup-toolbar { display: none; }
+  .masthead #comfortBackupStatus { display: none; }
+
+  /* Compact brand: strip eyebrow + tagline — keep logo + h1 only */
+  .brand-eyebrow { display: none; }
+  .tagline { display: none; }
+  .brand { gap: 10px; }
+  .brand-mark-img {
+    height: 36px;
+    max-width: 42px;
+  }
+  .brand h1 { font-size: 1.42rem; }
+
+  /* Trust pills — single row, compact */
+  .trust-row { margin-bottom: 4px; gap: 6px; }
+  .pill-trust { font-size: 0.62rem; padding: 4px 10px; }
+
+  /* Masthead aside: left-align, smaller gap */
+  .masthead-aside { gap: 8px; }
+
+  /* Lang switch: keep but smaller */
+  .lang-switch-label { font-size: 0.6rem; }
+  .lang-btn { min-height: 38px; font-size: 0.76rem; padding: 0 10px; }
+}
+
+/* ── 6-item mobile nav: always compact (only active shows label) ── */
+@media (max-width: 640px) {
+  .comfort-mobile-nav .comfort-mobile-nav-label {
+    opacity: 0;
+    transform: translateY(2px);
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.18s ease, transform 0.18s ease, max-height 0.18s ease;
+  }
+  .comfort-mobile-nav .comfort-mobile-nav-btn[aria-current="true"] .comfort-mobile-nav-label {
+    opacity: 1;
+    max-height: 14px;
+    transform: translateY(0);
+  }
+  .comfort-mobile-nav .comfort-mobile-nav-btn {
+    padding-top: 9px;
+    padding-bottom: 7px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .comfort-mobile-nav .comfort-mobile-nav-label {
+      transition: none;
+    }
+  }
+}
+
+/* ── Coach settings: appearance section ── */
+.coach-settings-appearance {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.35);
+}
+:root[data-theme="light"] .coach-settings-appearance {
+  background: rgba(15, 23, 42, 0.04);
+}
+.coach-settings-section-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  margin: 0 0 10px;
+}
+.coach-settings-theme-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.coach-settings-theme-row .lang-btn {
+  min-height: 38px;
+}
+
+/* ── Privacy footer — small, non-intrusive, bottom of home section ── */
+.comfort-privacy-footer {
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--text-soft);
+  opacity: 0.5;
+  margin: 20px 0 4px;
+  letter-spacing: 0.03em;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /*

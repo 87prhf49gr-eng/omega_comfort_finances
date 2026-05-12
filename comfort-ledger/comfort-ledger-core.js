@@ -564,7 +564,9 @@ const UI_STRINGS = {
     mobile_nav_goals: "Metas",
     mobile_nav_moves: "Movs",
     mobile_nav_debts: "Deudas",
+    mobile_nav_budgets: "Presup.",
     mobile_nav_coach: "Coach",
+    privacy_footer: "Datos guardados en este dispositivo",
     moves_subnav_aria: "Ingresos y gastos",
     moves_tab_income: "Ingresos",
     moves_tab_expense: "Gastos",
@@ -604,8 +606,8 @@ const UI_STRINGS = {
     chart_card_sub_html:
       "Suma solo filas marcadas como <strong>Tarjeta</strong>; comparado a tu ingreso mensual total",
     card_debt_aria: "Deuda en tarjetas frente al ingreso",
-    coach_title: "Coach IA",
-    coach_badge: "Asesor local",
+    coach_title: "Coach",
+    coach_badge: "Coach local",
     coach_intro_html:
       "Pregunta por tu mes, deudas o zona de confort. Este coach es <strong>local</strong> (reglas + tus números): no conecta con BlackLedger Omega ni con internet.",
     coach_input_label: "Mensaje al coach",
@@ -667,11 +669,11 @@ const UI_STRINGS = {
     coach_example_mode_ai: "✨ OpenAI",
     coach_example_local_text: "Tu gasto (85% del ingreso) supera la zona de confort. Recomiendo revisar suscripciones y mover el remanente a tu meta de ahorro.",
     coach_example_ai_text: "Veo que este mes gastas MXN 12,400 vs. MXN 14,600 de ingreso — te quedan ~MXN 2,200 libres. ¿Quieres que proyecte cuántos meses tardarías en alcanzar tu meta de vacaciones apartando ese remanente?",
-    coach_badge_cloud: "OpenAI",
+    coach_badge_cloud: "Coach vía servidor (IA)",
     coach_intro_cloud_html:
       "Pregunta por tu mes, deudas o zona de confort. Este coach usa <strong>OpenAI</strong> en el servidor: se envía un <strong>resumen numérico</strong> de tu vista (no números de cuenta bancaria).",
     coach_status_cloud:
-      "Coach OpenAI (servidor). Respuestas con IA; no guardamos datos de tarjetas ni claves.",
+      "Coach vía servidor (IA). Respuestas con IA; no guardamos datos de tarjetas ni claves.",
     coach_status_direct:
       "Coach OpenAI (tu API key). Tu pregunta y un resumen anónimo van a OpenAI desde este navegador.",
     coach_loading: "Pensando…",
@@ -681,9 +683,9 @@ const UI_STRINGS = {
     coach_settings_intro:
       "Elige cómo responde el coach. Tu elección se guarda solo en este dispositivo.",
     coach_settings_mode_legend: "Modo del coach",
-    coach_mode_local_title: "Local — rápido y privado",
+    coach_mode_local_title: "Coach local — rápido y privado",
     coach_mode_local_desc: "Reglas + tus cifras. Cero datos salen del navegador.",
-    coach_mode_openai_title: "OpenAI — respuestas más ricas",
+    coach_mode_openai_title: "Coach vía servidor (IA) — respuestas más ricas",
     coach_mode_openai_desc:
       "Usa tu propia API key. Tu pregunta + un resumen anónimo van a OpenAI. Respuestas más conversacionales.",
     coach_openai_key_label: "Tu API key de OpenAI",
@@ -962,7 +964,9 @@ const UI_STRINGS = {
     mobile_nav_goals: "Goals",
     mobile_nav_moves: "Flow",
     mobile_nav_debts: "Debts",
+    mobile_nav_budgets: "Budget",
     mobile_nav_coach: "Coach",
+    privacy_footer: "Data saved on this device",
     moves_subnav_aria: "Income and expenses",
     moves_tab_income: "Income",
     moves_tab_expense: "Expenses",
@@ -1001,8 +1005,8 @@ const UI_STRINGS = {
     chart_card_title: "Card debt vs income",
     chart_card_sub_html: "Only rows marked <strong>Card</strong>; compared to your total monthly income",
     card_debt_aria: "Credit card debt vs income",
-    coach_title: "AI coach",
-    coach_badge: "Local advisor",
+    coach_title: "Coach",
+    coach_badge: "Local coach",
     coach_intro_html:
       "Ask about your month, debt, or comfort zone. This coach is <strong>local</strong> (rules + your numbers): it does not connect to BlackLedger Omega or the internet.",
     coach_input_label: "Message to coach",
@@ -1064,11 +1068,11 @@ const UI_STRINGS = {
     coach_example_mode_ai: "✨ OpenAI",
     coach_example_local_text: "Your spending (85% of income) exceeds comfort zone. I recommend reviewing subscriptions and allocating the remainder to your savings goal.",
     coach_example_ai_text: "I see your spending this month is MXN 12,400 vs. MXN 14,600 income — leaving ~MXN 2,200 free. Would you like me to project how many months it'd take to reach your vacation goal if you set that aside?",
-    coach_badge_cloud: "OpenAI",
+    coach_badge_cloud: "Server coach (AI)",
     coach_intro_cloud_html:
       "Ask about your month, debt, or comfort zone. This coach uses <strong>OpenAI</strong> on the server: we send a <strong>numeric summary</strong> of your view (not bank account numbers).",
     coach_status_cloud:
-      "OpenAI coach (server). AI answers; we do not store card numbers or passwords.",
+      "Server coach (AI). AI answers; we do not store card numbers or passwords.",
     coach_status_direct:
       "OpenAI coach (your API key). Your question and an anonymous snapshot go to OpenAI from this browser.",
     coach_loading: "Thinking…",
@@ -1078,9 +1082,9 @@ const UI_STRINGS = {
     coach_settings_intro:
       "Choose how the coach replies. Your choice stays only on this device.",
     coach_settings_mode_legend: "Coach mode",
-    coach_mode_local_title: "Local — fast and private",
+    coach_mode_local_title: "Local coach — fast and private",
     coach_mode_local_desc: "Rules + your numbers. Nothing leaves the browser.",
-    coach_mode_openai_title: "OpenAI — richer answers",
+    coach_mode_openai_title: "Server coach (AI) — richer answers",
     coach_mode_openai_desc:
       "Use your own API key. Your question + an anonymous snapshot go to OpenAI. More conversational replies.",
     coach_openai_key_label: "Your OpenAI API key",
@@ -1356,7 +1360,9 @@ const UI_STRINGS = {
     mobile_nav_goals: "目标",
     mobile_nav_moves: "流水",
     mobile_nav_debts: "债务",
+    mobile_nav_budgets: "预算",
     mobile_nav_coach: "顾问",
+    privacy_footer: "数据保存在本设备",
     moves_subnav_aria: "收入与支出",
     moves_tab_income: "收入",
     moves_tab_expense: "支出",
@@ -1394,7 +1400,7 @@ const UI_STRINGS = {
     chart_card_title: "信用卡债务 vs 收入",
     chart_card_sub_html: "仅统计标记为<strong>信用卡</strong>的行；与当月总收入对比",
     card_debt_aria: "信用卡债务与收入",
-    coach_title: "智能顾问",
+    coach_title: "顾问",
     coach_badge: "本地顾问",
     coach_intro_html:
       "可询问当月、债务或安全感。本顾问<strong>完全本地</strong>（规则+你的数据）：不连接 BlackLedger Omega，也不联网。",
@@ -1457,10 +1463,10 @@ const UI_STRINGS = {
     coach_example_mode_ai: "✨ OpenAI",
     coach_example_local_text: "你的支出（占收入的 85%）超出舒适区。建议检查订阅项目，并将结余划入储蓄目标。",
     coach_example_ai_text: "我看到本月支出 12,400 元，收入 14,600 元，剩余约 2,200 元。如果把这笔结余存起来，要多少个月才能达到你的假期目标——要我帮你估算一下吗？",
-    coach_badge_cloud: "OpenAI",
+    coach_badge_cloud: "服务器顾问（AI）",
     coach_intro_cloud_html:
       "可询问当月、债务或安全感。本顾问在服务器使用 <strong>OpenAI</strong>：仅发送你界面上的<strong>数字摘要</strong>（不含银行账户）。",
-    coach_status_cloud: "OpenAI 顾问（服务器）。由 AI 回答；不保存卡号或密码。",
+    coach_status_cloud: "服务器顾问（AI）。由 AI 回答；不保存卡号或密码。",
     coach_status_direct: "OpenAI 顾问（你的 API key）。你的问题与匿名摘要直接从此浏览器发送给 OpenAI。",
     coach_loading: "思考中…",
     coach_error_generic: "无法获取顾问回复。",
@@ -1468,9 +1474,9 @@ const UI_STRINGS = {
     coach_settings_title: "顾问设置",
     coach_settings_intro: "选择顾问的回答方式。选项仅保存在此设备。",
     coach_settings_mode_legend: "顾问模式",
-    coach_mode_local_title: "本地 — 快速且私密",
+    coach_mode_local_title: "本地顾问 — 快速且私密",
     coach_mode_local_desc: "规则 + 你的数据。不向外发送任何信息。",
-    coach_mode_openai_title: "OpenAI — 更丰富的回答",
+    coach_mode_openai_title: "服务器顾问（AI）— 更丰富的回答",
     coach_mode_openai_desc: "使用你自己的 API key。问题与匿名摘要会发往 OpenAI，回答更自然。",
     coach_openai_key_label: "你的 OpenAI API key",
     coach_openai_key_placeholder: "sk-...",
@@ -4260,7 +4266,8 @@ function setupComfortMobileNav() {
 
   const applyCompactMode = () => {
     const mode = resolveNavMode();
-    const compact = mode === "compact" || (mode === "auto" && window.innerWidth <= 390);
+    /* 6-item nav: compact by default on all mobile viewports (≤640px) */
+    const compact = mode === "compact" || (mode === "auto" && window.innerWidth <= 640);
     nav.setAttribute("data-compact", compact ? "1" : "0");
   };
 
@@ -4307,6 +4314,7 @@ function setupComfortMobileNav() {
     if (id === "incomePanel") return "moves";
     if (id === "debtPanel") return "debts";
     if (id === "coachPanel") return "coach";
+    if (id === "budgetsPanel") return "budgets";
     return "home";
   };
 

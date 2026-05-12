@@ -241,6 +241,17 @@
           </p>
         </div>
 
+        <!-- Appearance (moved from masthead — only visible from Coach settings on mobile) -->
+        <div class="coach-settings-appearance">
+          <span class="coach-settings-section-label" data-i18n="theme_label">Apariencia</span>
+          <div class="coach-settings-theme-row" role="radiogroup" aria-labelledby="coachThemeGroupLabel">
+            <span id="coachThemeGroupLabel" class="sr-only" data-i18n="theme_label">Apariencia</span>
+            <button type="button" class="lang-btn" data-theme-value="dark" aria-pressed="false" data-i18n="theme_dark">Oscuro</button>
+            <button type="button" class="lang-btn" data-theme-value="light" aria-pressed="false" data-i18n="theme_light">Claro</button>
+            <button type="button" class="lang-btn" data-theme-value="auto" aria-pressed="false" data-i18n="theme_auto">Sistema</button>
+          </div>
+        </div>
+
         <p id="coachSettingsErr" class="comfort-beta-err" hidden></p>
         <div class="comfort-beta-actions">
           <button type="submit" class="btn-coach" data-i18n="coach_settings_save">Guardar</button>
@@ -416,8 +427,8 @@
       <aside class="coach-column" id="comfortCoachColumn" data-mobile-tab="coach">
         <section class="panel coach" id="coachPanel" aria-labelledby="coachTitle">
           <div class="coach-head">
-            <h2 id="coachTitle" data-i18n="coach_title">Coach IA</h2>
-            <span class="coach-badge" data-i18n="coach_badge">Asesor local</span>
+            <h2 id="coachTitle" data-i18n="coach_title">Coach</h2>
+            <span class="coach-badge" data-i18n="coach_badge">Coach local</span>
             <button
               type="button"
               class="coach-settings-btn"
@@ -548,7 +559,9 @@
       <div class="dash-grid" id="dashTacticalGrid"></div>
     </section>
 
-    <div class="post-dash-wrap" data-mobile-tab="home">
+    <p class="comfort-privacy-footer" data-mobile-tab="home" data-i18n="privacy_footer">Datos guardados en este dispositivo</p>
+
+    <div class="post-dash-wrap" data-mobile-tab="budgets">
       <div class="post-dash-weekly" id="postDashWeekly" hidden aria-live="polite"></div>
       <div class="post-dash-today" id="postDashToday" hidden aria-live="polite"></div>
       <div class="post-dash-global-toolbar">
@@ -683,6 +696,24 @@
           </svg>
         </span>
         <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_debts">Deudas</span>
+      </button>
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabBudgets"
+        aria-selected="false"
+        aria-controls="budgetsPanel"
+        data-target="budgetsPanel"
+      >
+        <span class="comfort-mobile-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <path d="M16 13a1 1 0 1 0 2 0 1 1 0 0 0-2 0"/>
+            <path d="M2 10h20"/>
+          </svg>
+        </span>
+        <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_budgets">Presup.</span>
       </button>
       <button
         type="button"
