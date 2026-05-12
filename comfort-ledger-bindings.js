@@ -138,6 +138,31 @@ function bind() {
     else if (kind === "debt") addDebtRow();
   });
 
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest?.("[data-onboarding-goto]");
+    if (!btn) return;
+    const kind = btn.getAttribute("data-onboarding-goto");
+    const map = {
+      income: { panel: "incomePanel", nav: "incomePanel", sub: "income", focus: "addIncomeBtn" },
+      expenses: { panel: "expensePanel", nav: "incomePanel", sub: "expense", focus: "addExpenseBtn" },
+      debts: { panel: "debtPanel", nav: "debtPanel", focus: "addDebtBtn" }
+    };
+    const target = map[kind];
+    if (!target) return;
+
+    document.querySelector(`.comfort-mobile-nav-btn[data-target="${target.nav}"]`)?.click();
+    if (target.sub) {
+      window.setTimeout(() => {
+        document.querySelector(`.comfort-moves-seg[data-moves-sub="${target.sub}"]`)?.click();
+      }, 20);
+    }
+    window.setTimeout(() => {
+      const panel = document.getElementById(target.panel);
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(target.focus)?.focus({ preventScroll: true });
+    }, 80);
+  });
+
   if (!state.savingsGoals) state.savingsGoals = [];
   els.addGoalBtn?.addEventListener("click", () => {
     const arr = state.savingsGoals;
@@ -491,4 +516,3 @@ function setupCoachFab() {
     }
   });
 }
-

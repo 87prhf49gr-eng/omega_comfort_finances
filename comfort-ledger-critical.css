@@ -2663,6 +2663,67 @@ dialog.comfort-beta-overlay-shell:not([open]) {
 }
 .kpi-hero-status strong { color: var(--text); }
 
+.kpi-onboarding {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.kpi-onboarding p {
+  margin: 0 0 2px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.kpi-onboarding ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.kpi-onboarding-step {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.kpi-onboarding-step span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  font-weight: 800;
+}
+
+.kpi-onboarding-step strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+
+.kpi-onboarding-step:hover,
+.kpi-onboarding-step:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+}
+
 /* Mobile polish */
 @media (max-width: 720px) {
   .coach-clocks { display: none; }

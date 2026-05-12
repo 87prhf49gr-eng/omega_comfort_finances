@@ -766,6 +766,10 @@ const UI_STRINGS = {
     saved_label: "Guardado",
     kpi_empty_title: "Añade tu primer ingreso",
     kpi_empty_sub: "Así podemos calcular si te alcanza el mes.",
+    kpi_onboarding_title: "Empieza con 3 pasos",
+    kpi_onboarding_income: "Agrega tu ingreso mensual",
+    kpi_onboarding_expenses: "Registra tus gastos fijos",
+    kpi_onboarding_debts: "Anota tus deudas (opcional)",
     kpi_free_label: "Libres después de todo este mes",
     kpi_warn: "Cuidado: gastos + deuda ≥ ingreso",
     kpi_neg: "Estás en rojo este mes",
@@ -1164,6 +1168,10 @@ const UI_STRINGS = {
     saved_label: "Saved",
     kpi_empty_title: "Add your first income",
     kpi_empty_sub: "So we can see if the month adds up.",
+    kpi_onboarding_title: "Start with 3 steps",
+    kpi_onboarding_income: "Add your monthly income",
+    kpi_onboarding_expenses: "Record your fixed expenses",
+    kpi_onboarding_debts: "Add debts (optional)",
     kpi_free_label: "Free after everything this month",
     kpi_warn: "Heads up: expenses + debt ≥ income",
     kpi_neg: "You're in the red this month",
@@ -1554,6 +1562,10 @@ const UI_STRINGS = {
     saved_label: "已保存",
     kpi_empty_title: "添加你的第一笔收入",
     kpi_empty_sub: "让我们看看这个月是否够用。",
+    kpi_onboarding_title: "从 3 步开始",
+    kpi_onboarding_income: "添加每月收入",
+    kpi_onboarding_expenses: "记录固定支出",
+    kpi_onboarding_debts: "填写债务（可选）",
     kpi_free_label: "本月扣除所有后可自由支配",
     kpi_warn: "注意：支出加债务 ≥ 收入",
     kpi_neg: "本月已赤字",
@@ -3340,9 +3352,13 @@ function renderKpiHero(snap) {
     if (label) label.textContent = t("kpi_empty_title");
     value.textContent = "—";
     status.textContent = t("kpi_empty_sub");
+    renderKpiOnboarding(host, !(state.expenses || []).length && !(state.debts || []).length);
+    const nwRow = document.getElementById("comfortNetWorthRow");
+    if (nwRow) nwRow.hidden = true;
     return;
   }
 
+  renderKpiOnboarding(host, false);
   if (label) label.textContent = t("kpi_free_label");
   value.textContent = fmtMoney(free);
 
@@ -3369,6 +3385,43 @@ function renderKpiHero(snap) {
     const lbl = UI_LOCALE === "en" ? "Net worth" : UI_LOCALE === "zh" ? "净资产" : "Patrimonio neto";
     nwRow.innerHTML = `<span class="nw-label">${escapeHtml(lbl)}</span><span class="nw-sep"> · </span><span class="nw-value ${cls}">${escapeHtml(fmtMoney(nw))}</span>`;
     nwRow.hidden = false;
+  }
+}
+
+function renderKpiOnboarding(host, show) {
+  const existing = host.querySelector(".kpi-onboarding");
+  if (!show) {
+    existing?.remove();
+    return;
+  }
+
+  const html = `
+    <div class="kpi-onboarding">
+      <p>${escapeHtml(t("kpi_onboarding_title"))}</p>
+      <ol>
+        <li>
+          <button type="button" class="kpi-onboarding-step" data-onboarding-goto="income">
+            <span>1</span><strong>${escapeHtml(t("kpi_onboarding_income"))}</strong>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="kpi-onboarding-step" data-onboarding-goto="expenses">
+            <span>2</span><strong>${escapeHtml(t("kpi_onboarding_expenses"))}</strong>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="kpi-onboarding-step" data-onboarding-goto="debts">
+            <span>3</span><strong>${escapeHtml(t("kpi_onboarding_debts"))}</strong>
+          </button>
+        </li>
+      </ol>
+    </div>
+  `;
+
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    host.insertAdjacentHTML("beforeend", html);
   }
 }
 
