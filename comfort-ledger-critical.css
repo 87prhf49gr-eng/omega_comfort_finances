@@ -3011,6 +3011,15 @@ body.coach-drawer-open .coach-drawer-backdrop {
   font-weight: 700;
 }
 
+.health-goal-projections {
+  display: grid;
+  gap: 6px;
+}
+
+.health-goal-projections p {
+  margin: 0;
+}
+
 /* ── Net worth row (kpi-hero) ────────────────────────────── */
 .kpi-hero-nw {
   margin: 6px 0 0;

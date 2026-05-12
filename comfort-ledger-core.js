@@ -791,6 +791,7 @@ const UI_STRINGS = {
     remove_goal_aria: "Quitar meta",
     health_goal_monthly: "Apartado a metas (cada mes)",
     health_free_after_goals: "Libre tras gastos, mínimos y metas",
+    health_goal_proj_item: "🎯 Meta “{label}”: lista en {months} meses",
     health_income: "Ingreso cobrado",
     health_expenses: "Gastos (mensualizado)",
     health_debt_min: "Mínimos deuda",
@@ -1188,6 +1189,7 @@ const UI_STRINGS = {
     remove_goal_aria: "Remove goal",
     health_goal_monthly: "Set aside for goals (each month)",
     health_free_after_goals: "Free after expenses, minimums & goals",
+    health_goal_proj_item: "🎯 Goal “{label}”: ready in {months} months",
     health_income: "Income received",
     health_expenses: "Expenses (monthly)",
     health_debt_min: "Debt minimums",
@@ -1577,6 +1579,7 @@ const UI_STRINGS = {
     remove_goal_aria: "删除目标",
     health_goal_monthly: "目标每月预留",
     health_free_after_goals: "扣除支出、最低还款与目标后结余",
+    health_goal_proj_item: "🎯 目标“{label}”：约 {months} 个月完成",
     health_income: "已到账收入",
     health_expenses: "支出（月化）",
     health_debt_min: "债务最低还款",
@@ -3369,6 +3372,33 @@ function renderKpiHero(snap) {
   }
 }
 
+function renderGoalProjection(snap) {
+  const host = document.getElementById("healthGoalProjections");
+  if (!host) return;
+  const savings = Math.max(0, Number(snap?.savings) || 0);
+  const monthlyFree = Math.max(Number(snap?.freeAfterGoals) || 0, 1);
+  const goals = (state.savingsGoals || [])
+    .filter((g) => {
+      const target = Math.max(0, Number(g?.targetAmount) || 0);
+      return target > 0 && savings < target;
+    })
+    .map((g) => {
+      const label = String(g.label || t("default_goal_name")).trim() || t("default_goal_name");
+      const target = Math.max(0, Number(g.targetAmount) || 0);
+      const months = Math.max(1, Math.ceil((target - savings) / monthlyFree));
+      return `<p>${escapeHtml(tFill("health_goal_proj_item", { label, months }))}</p>`;
+    });
+
+  if (!goals.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+
+  host.innerHTML = goals.join("");
+  host.hidden = false;
+}
+
 function renderHealth(snap) {
   renderKpiHero(snap);
   els.healthRing.className = `health-ring ${snap.tone}`;
@@ -3416,6 +3446,7 @@ function renderHealth(snap) {
       projEl.hidden = true;
     }
   }
+  renderGoalProjection(snap);
 }
 
 function renderTacticalDash(snap) {
