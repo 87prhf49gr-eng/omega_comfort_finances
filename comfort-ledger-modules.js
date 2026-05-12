@@ -339,6 +339,7 @@ function renderMonthlySparklines() {
 
   const nwValues = history.map((h) => Number(h.netWorth) || 0);
   const freeValues = history.map((h) => Number(h.freeAfter) || 0);
+  const expValues = history.map((h) => Number(h.expenses) || 0);
   const months = history.map((h) => h.month.slice(5)); // MM
 
   const nwLast = nwValues[nwValues.length - 1];
@@ -348,6 +349,8 @@ function renderMonthlySparklines() {
   const nwColor = nwDelta >= 0 ? "#2dd4bf" : "#f87171";
   const freeLast = freeValues[freeValues.length - 1];
   const freeColor = "#60a5fa";
+  const expLast = expValues[expValues.length - 1];
+  const expColor = "#f97316";
 
   const title =
     UI_LOCALE === "en" ? "Monthly trend" : UI_LOCALE === "zh" ? "月度趋势" : "Tendencia mensual";
@@ -355,6 +358,8 @@ function renderMonthlySparklines() {
     UI_LOCALE === "en" ? "Net worth" : UI_LOCALE === "zh" ? "净资产" : "Patrimonio neto";
   const freeLabel =
     UI_LOCALE === "en" ? "Free cash" : UI_LOCALE === "zh" ? "自由现金" : "Efectivo libre";
+  const expLabel =
+    UI_LOCALE === "en" ? "Monthly expenses" : UI_LOCALE === "zh" ? "月度支出" : "Gastos mensuales";
   const rangeLabel = `${months[0]} → ${months[months.length - 1]}`;
 
   host.innerHTML = `
@@ -369,6 +374,11 @@ function renderMonthlySparklines() {
         <span class="sparkline-label">${escapeHtml(freeLabel)}</span>
         ${buildSparklineSvg(freeValues, freeColor)}
         <span class="sparkline-delta">${escapeHtml(fmtMoney(freeLast))}</span>
+      </div>
+      <div class="sparkline-item">
+        <span class="sparkline-label">${escapeHtml(expLabel)}</span>
+        ${buildSparklineSvg(expValues, expColor)}
+        <span class="sparkline-delta">${escapeHtml(fmtMoney(expLast))}</span>
       </div>
     </div>
     <p class="sparklines-range">${escapeHtml(rangeLabel)}</p>
