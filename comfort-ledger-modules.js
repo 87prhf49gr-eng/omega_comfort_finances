@@ -276,6 +276,105 @@ function saveWeeklyDismiss(obj) {
   }
 }
 
+/* ── Monthly history + sparklines (Hito D phase 4) ──────── */
+
+function currentMonthKey(now = new Date()) {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function saveMonthlySnapshot(now = new Date()) {
+  if (!Array.isArray(state.monthlyHistory)) state.monthlyHistory = [];
+  const monthKey = currentMonthKey(now);
+  const snap = compute(state);
+  const entry = {
+    month: monthKey,
+    income: snap.income,
+    expenses: snap.monthlyExpenses,
+    debt: snap.totalDebt,
+    savings: snap.savings,
+    netWorth: snap.netWorth,
+    freeAfter: snap.freeAfter
+  };
+  const idx = state.monthlyHistory.findIndex((h) => h.month === monthKey);
+  if (idx >= 0) {
+    state.monthlyHistory[idx] = entry;
+  } else {
+    state.monthlyHistory.push(entry);
+  }
+  state.monthlyHistory.sort((a, b) => a.month.localeCompare(b.month));
+  if (state.monthlyHistory.length > 13) {
+    state.monthlyHistory = state.monthlyHistory.slice(-13);
+  }
+  saveState(state);
+}
+
+function buildSparklineSvg(values, color) {
+  if (!values || values.length < 2) return `<svg width="80" height="28" viewBox="0 0 80 28" xmlns="http://www.w3.org/2000/svg"></svg>`;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const w = 80, h = 28, pad = 3;
+  const pts = values
+    .map((v, i) => {
+      const x = pad + (i / (values.length - 1)) * (w - 2 * pad);
+      const y = (h - pad) - ((v - min) / range) * (h - 2 * pad);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return `<svg width="80" height="28" viewBox="0 0 80 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderMonthlySparklines() {
+  const host = document.getElementById("monthlySparklinesPanel");
+  if (!host) return;
+  if (!Array.isArray(state.monthlyHistory)) state.monthlyHistory = [];
+  const history = state.monthlyHistory.slice(-6);
+  if (history.length < 2) {
+    host.hidden = true;
+    return;
+  }
+  host.hidden = false;
+
+  const nwValues = history.map((h) => Number(h.netWorth) || 0);
+  const freeValues = history.map((h) => Number(h.freeAfter) || 0);
+  const months = history.map((h) => h.month.slice(5)); // MM
+
+  const nwLast = nwValues[nwValues.length - 1];
+  const nwFirst = nwValues[0];
+  const nwDelta = nwLast - nwFirst;
+  const nwDeltaSign = nwDelta >= 0 ? "+" : "";
+  const nwColor = nwDelta >= 0 ? "#2dd4bf" : "#f87171";
+  const freeLast = freeValues[freeValues.length - 1];
+  const freeColor = "#60a5fa";
+
+  const title =
+    UI_LOCALE === "en" ? "Monthly trend" : UI_LOCALE === "zh" ? "月度趋势" : "Tendencia mensual";
+  const nwLabel =
+    UI_LOCALE === "en" ? "Net worth" : UI_LOCALE === "zh" ? "净资产" : "Patrimonio neto";
+  const freeLabel =
+    UI_LOCALE === "en" ? "Free cash" : UI_LOCALE === "zh" ? "自由现金" : "Efectivo libre";
+  const rangeLabel = `${months[0]} → ${months[months.length - 1]}`;
+
+  host.innerHTML = `
+    <h3 class="sparklines-title">${escapeHtml(title)}</h3>
+    <div class="sparklines-grid">
+      <div class="sparkline-item">
+        <span class="sparkline-label">${escapeHtml(nwLabel)}</span>
+        ${buildSparklineSvg(nwValues, nwColor)}
+        <span class="sparkline-delta ${nwDelta >= 0 ? "sp-pos" : "sp-neg"}">${nwDeltaSign}${escapeHtml(fmtMoney(nwDelta))}</span>
+      </div>
+      <div class="sparkline-item">
+        <span class="sparkline-label">${escapeHtml(freeLabel)}</span>
+        ${buildSparklineSvg(freeValues, freeColor)}
+        <span class="sparkline-delta">${escapeHtml(fmtMoney(freeLast))}</span>
+      </div>
+    </div>
+    <p class="sparklines-range">${escapeHtml(rangeLabel)}</p>
+  `;
+}
+
 function renderWeeklyCheckIn(now = new Date()) {
   const host = els.postDashWeekly;
   if (!host) return;

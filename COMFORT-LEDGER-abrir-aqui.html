@@ -362,6 +362,7 @@
       <p class="kpi-hero-label" id="comfortKpiLabel" data-i18n="kpi_free_label">Libres después de todo este mes</p>
       <p class="kpi-hero-value" id="comfortKpiValue">—</p>
       <p class="kpi-hero-status" id="comfortKpiStatus"></p>
+      <p class="kpi-hero-nw" id="comfortNetWorthRow" hidden></p>
     </section>
 
     <section class="panel health" id="healthPanel" aria-labelledby="healthTitle" data-mobile-tab="home">
@@ -374,7 +375,10 @@
         </div>
       </div>
       <ul class="health-metrics" id="healthMetrics"></ul>
+      <div class="health-projection" id="healthProjection" hidden></div>
     </section>
+
+    <div class="panel sparklines-panel" id="monthlySparklinesPanel" data-mobile-tab="home" hidden></div>
 
     <section class="panel goals-panel" id="goalsPanel" aria-labelledby="goalsTitle" data-mobile-tab="goals">
       <div class="section-head">
@@ -442,6 +446,15 @@
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
               </svg>
             </button>
+            <button
+              type="button"
+              class="coach-drawer-close"
+              id="coachDrawerClose"
+              aria-label="Cerrar Coach"
+              title="Cerrar"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
           <p class="coach-intro" data-i18n-html="coach_intro_html">Pregunta por tu mes, deudas o zona de confort. Este coach es <strong>local</strong> (reglas + tus números): no conecta con BlackLedger Omega ni con internet.</p>
           <div class="coach-thread" id="coachThread" aria-live="polite"></div>
@@ -452,29 +465,6 @@
           </form>
           <p class="coach-status" id="coachStatus" role="status"></p>
         </section>
-        <div
-          class="coach-clocks"
-          role="group"
-          data-i18n-attr="aria-label|twin_clocks_title"
-          aria-label="Chicago y Nueva York"
-        >
-          <article class="neo-clock" aria-labelledby="neoClockChiLbl">
-            <div class="neo-clock-ring" aria-hidden="true"></div>
-            <div class="neo-clock-face">
-              <span class="neo-clock-city" id="neoClockChiLbl" data-i18n="world_chicago">Chicago</span>
-              <span class="neo-clock-time" id="clockChicagoTime">--:--</span>
-              <span class="neo-clock-date" id="clockChicagoDate">—</span>
-            </div>
-          </article>
-          <article class="neo-clock" aria-labelledby="neoClockNyLbl">
-            <div class="neo-clock-ring" aria-hidden="true"></div>
-            <div class="neo-clock-face">
-              <span class="neo-clock-city" id="neoClockNyLbl" data-i18n="world_newyork">Nueva York</span>
-              <span class="neo-clock-time" id="clockNYTime">--:--</span>
-              <span class="neo-clock-date" id="clockNYDate">—</span>
-            </div>
-          </article>
-        </div>
       </aside>
     </div>
 
@@ -617,6 +607,13 @@
         </section>
       </div>
     </div>
+
+    <!-- Coach floating action button – desktop only, hidden on mobile via CSS -->
+    <button type="button" id="coachFabBtn" class="coach-fab" aria-label="Abrir Coach" title="Coach">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span data-i18n="coach_title">Coach</span>
+    </button>
+    <div id="coachDrawerBackdrop" class="coach-drawer-backdrop"></div>
 
     <nav
       class="comfort-mobile-nav"

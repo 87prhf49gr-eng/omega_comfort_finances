@@ -1750,10 +1750,9 @@ body.lang-zh .dash-tactical-title {
 
 .grid-main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  grid-template-columns: 1fr;
   gap: 14px;
   margin-bottom: 14px;
-  /* Alinea por arriba: la columna del coach + relojes no se estira hasta el fondo de los gráficos */
   align-items: start;
 }
 
@@ -2884,3 +2883,209 @@ body.comfort--hosted .app {
   }
 }
 
+
+/* ── Coach Drawer & FAB (desktop ≥641px) ─────────────────────── */
+
+/* FAB hidden by default; shown only on desktop */
+.coach-fab {
+  display: none;
+}
+
+/* Backdrop hidden by default */
+.coach-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 299;
+  background: rgba(5, 7, 13, 0.65);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+}
+
+body.coach-drawer-open .coach-drawer-backdrop {
+  display: block;
+}
+
+@media (min-width: 641px) {
+  /* Full-width chart grid – coach is no longer a grid column */
+  .coach-column {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 380px;
+    max-width: calc(100vw - 24px);
+    height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 300;
+    padding: 20px 16px 32px;
+    background: var(--bg, #05070d);
+    border-left: 1px solid var(--neon-border-strong);
+    box-shadow: -8px 0 48px rgba(45, 212, 191, 0.13);
+    transition: right 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  body.coach-drawer-open .coach-column {
+    right: 0;
+  }
+
+  /* Close button – only meaningful inside drawer */
+  .coach-drawer-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 8px;
+    background: transparent;
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+    color: var(--text-muted, #9ca3af);
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .coach-drawer-close:hover {
+    color: var(--text, #e2e8f0);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  /* FAB: teal pill, bottom-right, fades out when drawer is open */
+  .coach-fab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 290;
+    padding: 11px 22px;
+    border-radius: 40px;
+    background: var(--accent, #2dd4bf);
+    color: #05070d;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: none;
+    cursor: pointer;
+    box-shadow:
+      0 4px 24px rgba(45, 212, 191, 0.38),
+      0 2px 8px rgba(0, 0, 0, 0.45);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s ease;
+  }
+
+  .coach-fab:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 6px 32px rgba(45, 212, 191, 0.55),
+      0 2px 8px rgba(0, 0, 0, 0.45);
+  }
+
+  .coach-fab:active {
+    transform: translateY(0);
+  }
+
+  body.coach-drawer-open .coach-fab {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+/* ── Debt-free projection banner (health panel) ─────────── */
+.health-projection {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(20,184,166,0.12) 0%, rgba(15,118,110,0.18) 100%);
+  border: 1px solid rgba(45,212,191,0.25);
+  font-size: 0.85rem;
+  color: var(--c-text, #e2e8f0);
+  text-align: center;
+  line-height: 1.5;
+}
+.health-projection strong {
+  color: var(--c-teal, #2dd4bf);
+  font-weight: 700;
+}
+
+/* ── Net worth row (kpi-hero) ────────────────────────────── */
+.kpi-hero-nw {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.01em;
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-wrap: wrap;
+}
+.kpi-hero-nw .nw-label {
+  color: var(--c-text-muted, #9ca3af);
+  font-weight: 500;
+}
+.kpi-hero-nw .nw-sep {
+  color: var(--c-text-muted, #9ca3af);
+}
+.kpi-hero-nw .nw-value {
+  font-weight: 700;
+}
+.kpi-hero-nw .nw-pos {
+  color: var(--c-teal, #2dd4bf);
+}
+.kpi-hero-nw .nw-neg {
+  color: var(--c-danger, #f87171);
+}
+
+/* ── Monthly sparklines panel ────────────────────────────── */
+.sparklines-panel {
+  padding: 14px 16px 12px;
+}
+.sparklines-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-text-muted, #9ca3af);
+  margin: 0 0 10px;
+}
+.sparklines-grid {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.sparkline-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 88px;
+}
+.sparkline-label {
+  font-size: 0.72rem;
+  color: var(--c-text-muted, #9ca3af);
+  font-weight: 500;
+}
+.sparkline-item svg {
+  display: block;
+}
+.sparkline-delta {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--c-text, #e2e8f0);
+}
+.sparkline-delta.sp-pos {
+  color: var(--c-teal, #2dd4bf);
+}
+.sparkline-delta.sp-neg {
+  color: var(--c-danger, #f87171);
+}
+.sparklines-range {
+  margin: 8px 0 0;
+  font-size: 0.7rem;
+  color: var(--c-text-muted, #9ca3af);
+  opacity: 0.7;
+}

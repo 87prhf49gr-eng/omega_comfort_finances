@@ -2056,7 +2056,8 @@ const defaultState = () => ({
   savingsGoals: [],
   utilityBills: [],
   subscriptions: [],
-  budgets: []
+  budgets: [],
+  monthlyHistory: []
 });
 
 function parseNum(raw) {
@@ -3022,6 +3023,14 @@ function compute(state) {
       .sort((a, b) => b.monthly - a.monthly);
   })();
 
+  // Net worth and debt-free projection
+  const netWorth = savings - totalDebt;
+  let debtFreeMonths = null;
+  if (totalDebt > 0) {
+    const cap = monthlyDebtPay + Math.max(0, freeAfter);
+    if (cap > 0) debtFreeMonths = Math.ceil(totalDebt / cap);
+  }
+
   return {
     income,
     incomeMonthLabel,
@@ -3034,6 +3043,8 @@ function compute(state) {
     freeAfterGoals,
     savingsGoalsMonthly,
     debtVsSavings,
+    netWorth,
+    debtFreeMonths,
     tone,
     label,
     narrative,
@@ -3344,6 +3355,16 @@ function renderKpiHero(snap) {
   }
   host.dataset.tone = tone;
   status.textContent = statusText;
+
+  // Net worth row
+  const nwRow = document.getElementById("comfortNetWorthRow");
+  if (nwRow) {
+    const nw = Number(snap.netWorth) || 0;
+    const cls = nw >= 0 ? "nw-pos" : "nw-neg";
+    const lbl = UI_LOCALE === "en" ? "Net worth" : UI_LOCALE === "zh" ? "净资产" : "Patrimonio neto";
+    nwRow.innerHTML = `<span class="nw-label">${escapeHtml(lbl)}</span><span class="nw-sep"> · </span><span class="nw-value ${cls}">${escapeHtml(fmtMoney(nw))}</span>`;
+    nwRow.hidden = false;
+  }
 }
 
 function renderHealth(snap) {
@@ -3366,6 +3387,33 @@ function renderHealth(snap) {
     <li><strong>${fmtMoney(snap.savings)}</strong>${t("health_savings")}</li>
     <li><strong>${fmtMoney(snap.totalDebt)}</strong>${t("health_debt_total")}</li>
   `;
+
+  // Debt-free projection banner
+  const projEl = document.getElementById("healthProjection");
+  if (projEl) {
+    const dfm = snap.debtFreeMonths;
+    if (dfm !== null && dfm !== undefined && snap.totalDebt > 0) {
+      const yrs = Math.floor(dfm / 12);
+      const mos = dfm % 12;
+      let timeStr;
+      if (UI_LOCALE === "en") {
+        timeStr = yrs > 0 ? `${yrs}y ${mos}m` : `${mos}mo`;
+      } else if (UI_LOCALE === "zh") {
+        timeStr = yrs > 0 ? `${yrs}年${mos}个月` : `${mos}个月`;
+      } else {
+        timeStr = yrs > 0 ? `${yrs}a ${mos}m` : `${mos} meses`;
+      }
+      const lbl = UI_LOCALE === "en"
+        ? `🎯 Debt-free in <strong>${escapeHtml(timeStr)}</strong> at this pace`
+        : UI_LOCALE === "zh"
+          ? `🎯 按此速度 <strong>${escapeHtml(timeStr)}</strong> 后还清债务`
+          : `🎯 Sin deudas en <strong>${escapeHtml(timeStr)}</strong> a este ritmo`;
+      projEl.innerHTML = lbl;
+      projEl.hidden = false;
+    } else {
+      projEl.hidden = true;
+    }
+  }
 }
 
 function renderTacticalDash(snap) {
@@ -4116,6 +4164,7 @@ function patchCoachClocksI18n(root) {
 }
 
 function ensureCoachClocksDom() {
+  return; // world clocks removed
   if (document.getElementById("clockChicagoTime") && document.getElementById("clockNYTime")) return true;
   const inner = coachClocksInnerHtml();
   const existing = document.querySelector(".coach-clocks");
@@ -4136,6 +4185,7 @@ function ensureCoachClocksDom() {
 }
 
 function renderWorldClocks() {
+  return; // world clocks removed
   ensureCoachClocksDom();
   const tChi = document.getElementById("clockChicagoTime");
   const dChi = document.getElementById("clockChicagoDate");

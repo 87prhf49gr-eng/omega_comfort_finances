@@ -460,5 +460,35 @@ function bind() {
     reader.onerror = () => comfortSetBackupStatus(t("backup_import_err_read"), "err");
     reader.readAsText(file, "utf-8");
   });
+  setupCoachFab();
+  // Save current month's snapshot on every session start (idempotent)
+  if (typeof saveMonthlySnapshot === "function") {
+    try { saveMonthlySnapshot(); } catch { /* ignore */ }
+  }
+}
+
+function setupCoachFab() {
+  const fab = document.getElementById("coachFabBtn");
+  const backdrop = document.getElementById("coachDrawerBackdrop");
+  const closeBtn = document.getElementById("coachDrawerClose");
+  if (!fab) return;
+
+  function openDrawer() {
+    document.body.classList.add("coach-drawer-open");
+    fab.setAttribute("aria-expanded", "true");
+  }
+  function closeDrawer() {
+    document.body.classList.remove("coach-drawer-open");
+    fab.setAttribute("aria-expanded", "false");
+  }
+
+  fab.addEventListener("click", openDrawer);
+  if (backdrop) backdrop.addEventListener("click", closeDrawer);
+  if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function coachDrawerEsc(e) {
+    if (e.key === "Escape" && document.body.classList.contains("coach-drawer-open")) {
+      closeDrawer();
+    }
+  });
 }
 
