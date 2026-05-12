@@ -2485,6 +2485,7 @@ function hydrateComfortStateFromRaw(data) {
       ? data.subscriptions.map(normalizeSubscription)
       : base.subscriptions.slice();
     const budgets = Array.isArray(data.budgets) ? data.budgets.map(normalizeBudget) : base.budgets.slice();
+    const monthlyHistory = Array.isArray(data.monthlyHistory) ? data.monthlyHistory : [];
     const lsParsed = parseNum(data.liquidSavings);
     const liquidSavings = Number.isFinite(lsParsed) ? lsParsed : base.liquidSavings;
     const profile = normalizeProfile(data.profile) || base.profile;
@@ -2498,7 +2499,8 @@ function hydrateComfortStateFromRaw(data) {
       savingsGoals,
       utilityBills,
       subscriptions,
-      budgets
+      budgets,
+      monthlyHistory
     };
   } catch {
     return null;
