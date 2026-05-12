@@ -1764,6 +1764,45 @@ body.lang-zh .dash-tactical-title {
   font-variant-numeric: tabular-nums;
 }
 
+.health-budget-mini {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid rgba(249, 115, 22, 0.26);
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.08);
+}
+
+.health-budget-mini h3 {
+  margin: 0 0 8px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--text);
+}
+
+.health-budget-mini ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.health-budget-mini li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.84rem;
+  color: var(--text-soft);
+}
+
+.health-budget-mini strong {
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
 .grid-main {
   display: grid;
   grid-template-columns: 1fr;

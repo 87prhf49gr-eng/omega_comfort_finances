@@ -803,6 +803,8 @@ const UI_STRINGS = {
     health_free_after: "Libre post gastos + mínimos",
     health_savings: "Ahorros líquidos",
     health_debt_total: "Deuda total",
+    health_budget_mini_title: "Presupuestos cerca del límite",
+    health_budget_mini_item: "{spent} de {budget} ({pct}%)",
     dash_dyn_title: "Dinámica del mes",
     dash_dyn_hint: "% del ingreso cobrado",
     dash_dyn_pct_title: "% del ingreso del mes",
@@ -1206,6 +1208,8 @@ const UI_STRINGS = {
     health_free_after: "Free after expenses + minimums",
     health_savings: "Liquid savings",
     health_debt_total: "Total debt",
+    health_budget_mini_title: "Budgets near limit",
+    health_budget_mini_item: "{spent} of {budget} ({pct}%)",
     dash_dyn_title: "Month dynamics",
     dash_dyn_hint: "% of income received",
     dash_dyn_pct_title: "% of this month’s income",
@@ -1601,6 +1605,8 @@ const UI_STRINGS = {
     health_free_after: "扣除支出与最低还款后结余",
     health_savings: "活期储蓄",
     health_debt_total: "债务合计",
+    health_budget_mini_title: "接近上限的预算",
+    health_budget_mini_item: "{spent} / {budget}（{pct}%）",
     dash_dyn_title: "当月结构",
     dash_dyn_hint: "占已收收入比例",
     dash_dyn_pct_title: "占当月收入%",
@@ -3456,6 +3462,59 @@ function renderGoalProjection(snap) {
   host.hidden = false;
 }
 
+function renderHealthBudgetMini(snap) {
+  const host = document.getElementById("healthBudgetMini");
+  if (!host) return;
+  const budgets = Array.isArray(state.budgets) ? state.budgets.map(normalizeBudget) : [];
+  if (!budgets.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+
+  const byCat = new Map((snap.expensesByCategory || []).map((row) => [row.category, Number(row.monthly) || 0]));
+  const rows = budgets
+    .map((b) => {
+      const budget = Math.max(0, Number(b.monthly) || 0);
+      const spent = Math.max(0, Number(byCat.get(b.category) || 0));
+      const ratio = budget > 0 ? spent / budget : 0;
+      return { category: b.category, budget, spent, ratio };
+    })
+    .filter((row) => row.budget > 0 && row.ratio >= 0.7)
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 3);
+
+  if (!rows.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+
+  host.innerHTML = `
+    <h3>${escapeHtml(t("health_budget_mini_title"))}</h3>
+    <ul>
+      ${rows
+        .map((row) => {
+          const pct = Math.round(row.ratio * 100);
+          return `
+            <li>
+              <span>${escapeHtml(categoryLabel(row.category))}</span>
+              <strong>${escapeHtml(
+                tFill("health_budget_mini_item", {
+                  spent: fmtMoney(row.spent),
+                  budget: fmtMoney(row.budget),
+                  pct: String(pct)
+                })
+              )}</strong>
+            </li>
+          `;
+        })
+        .join("")}
+    </ul>
+  `;
+  host.hidden = false;
+}
+
 function renderHealth(snap) {
   renderKpiHero(snap);
   els.healthRing.className = `health-ring ${snap.tone}`;
@@ -3476,6 +3535,7 @@ function renderHealth(snap) {
     <li><strong>${fmtMoney(snap.savings)}</strong>${t("health_savings")}</li>
     <li><strong>${fmtMoney(snap.totalDebt)}</strong>${t("health_debt_total")}</li>
   `;
+  renderHealthBudgetMini(snap);
 
   // Debt-free projection banner
   const projEl = document.getElementById("healthProjection");
