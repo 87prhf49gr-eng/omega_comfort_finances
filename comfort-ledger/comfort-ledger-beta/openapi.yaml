@@ -1,0 +1,555 @@
+openapi: 3.1.0
+info:
+  title: Comfort Ledger Beta API
+  version: 1.0.0
+  description: API contract for hosted Comfort Ledger beta endpoints.
+servers:
+  - url: http://127.0.0.1:8787
+    description: Local development
+  - url: https://comfortledger.app
+    description: Production example
+tags:
+  - name: Health
+  - name: Public
+  - name: Billing
+  - name: Coach
+paths:
+  /api/health:
+    get:
+      tags: [Health]
+      summary: Service health status
+      parameters:
+        - in: query
+          name: deep
+          schema:
+            type: string
+            enum: ["1"]
+          required: false
+          description: Runs optional deep OpenAI probe when enabled.
+      responses:
+        "200":
+          description: Service healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service degraded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+  /api/health/slo:
+    get:
+      tags: [Health]
+      summary: Rolling SLO snapshot for alerts
+      parameters:
+        - in: query
+          name: windowMin
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 240
+            default: 15
+          required: false
+      responses:
+        "200":
+          description: SLO metrics snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SloSnapshotResponse"
+  /api/waitlist:
+    post:
+      tags: [Public]
+      summary: Register email in waitlist
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WaitlistRequest"
+      responses:
+        "200":
+          description: Waitlist registration accepted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OkResponse"
+        "400":
+          description: Invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/checkout:
+    get:
+      tags: [Billing]
+      summary: Create checkout URL and redirect
+      parameters:
+        - in: query
+          name: plan
+          schema:
+            type: string
+            enum: [monthly, annual]
+        - in: query
+          name: email
+          schema:
+            type: string
+            format: email
+        - in: query
+          name: discount
+          schema:
+            type: string
+      responses:
+        "302":
+          description: Redirects to LemonSqueezy checkout
+        "400":
+          description: Invalid email parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Checkout unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Upstream checkout failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+    post:
+      tags: [Billing]
+      summary: Create checkout URL and return JSON
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckoutRequest"
+      responses:
+        "200":
+          description: Checkout URL created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckoutResponse"
+        "400":
+          description: Invalid email payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Checkout unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Upstream checkout failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/webhooks/lemonsqueezy:
+    post:
+      tags: [Billing]
+      summary: Process LemonSqueezy webhook event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  event: { type: string }
+                required: [ok]
+        "202":
+          description: Webhook ignored as non-actionable
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  ignored: { type: boolean }
+                required: [ok]
+        "401":
+          description: Invalid signature
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/subscription/status:
+    get:
+      tags: [Billing]
+      summary: Read subscription status by email
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "200":
+          description: Subscription status response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionStatusResponse"
+        "400":
+          description: Missing or invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/customer-portal:
+    get:
+      tags: [Billing]
+      summary: Redirect to customer billing portal
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+      responses:
+        "302":
+          description: Redirects to hosted customer portal
+        "400":
+          description: Missing or invalid email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Subscription not found for email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Upstream customer portal unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/admin/subscriptions:
+    get:
+      tags: [Billing]
+      summary: List subscription records (admin/support only)
+      parameters:
+        - in: query
+          name: email
+          required: false
+          schema:
+            type: string
+            format: email
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: Subscription records list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  count: { type: integer }
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        email: { type: string }
+                        status: { type: string }
+                        plan: { type: [string, "null"] }
+                        renewsAt: { type: [string, "null"], format: date-time }
+                        subscriptionId: { type: string }
+                        updatedAt: { type: [string, "null"], format: date-time }
+                required: [ok, count, items]
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Forbidden for non-admin roles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /api/ai-coach:
+    post:
+      tags: [Coach]
+      summary: Generate AI coach answer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiCoachRequest"
+      responses:
+        "200":
+          description: Coach response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiCoachResponse"
+        "400":
+          description: Invalid request payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "429":
+          description: Rate limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "503":
+          description: Coach not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Upstream failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+components:
+  schemas:
+    OkResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          const: true
+      required: [ok]
+    ApiError:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          const: false
+        code:
+          type: string
+          description: Stable application error code.
+        message:
+          type: string
+          description: Human-readable error message.
+        error:
+          type: string
+          description: Backward-compatible alias of `message`.
+        requestId:
+          type: string
+          description: Optional request correlation identifier.
+        details:
+          oneOf:
+            - type: object
+              additionalProperties: true
+            - type: array
+            - type: string
+            - type: number
+            - type: boolean
+      required: [ok, code, message, error]
+    WaitlistRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        source:
+          type: string
+      required: [email]
+    CheckoutRequest:
+      type: object
+      properties:
+        plan:
+          type: string
+          enum: [monthly, annual]
+        email:
+          type: string
+          format: email
+        discount:
+          type: string
+    CheckoutResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          const: true
+        url:
+          type: string
+          format: uri
+      required: [ok, url]
+    SubscriptionStatusResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          const: true
+        active:
+          type: boolean
+        status:
+          type: string
+        plan:
+          type: [string, "null"]
+        renewsAt:
+          type: [string, "null"]
+          format: date-time
+      required: [ok, active, status, plan, renewsAt]
+    AiCoachRequest:
+      type: object
+      properties:
+        question:
+          type: string
+        language:
+          type: string
+        stream:
+          type: boolean
+      required: [question]
+      additionalProperties: true
+    AiCoachResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          const: true
+        answer:
+          type: string
+        remainingQueries:
+          type: integer
+          minimum: 0
+      required: [ok, answer, remainingQueries]
+    HealthResponse:
+      type: object
+      properties:
+        ok: { type: boolean }
+        service: { type: string }
+        betaUsers: { type: integer }
+        openai: { type: boolean }
+        sessionSecretConfigured: { type: boolean }
+        lemonsqueezyWebhookConfigured: { type: boolean }
+        dataDirWritable: { type: boolean }
+        dataDirReadable: { type: boolean }
+        uptimeSec: { type: integer }
+        node: { type: string }
+        timeIso:
+          type: string
+          format: date-time
+        openaiProbe:
+          type: object
+          additionalProperties: true
+      required:
+        - ok
+        - service
+        - betaUsers
+        - openai
+        - sessionSecretConfigured
+        - lemonsqueezyWebhookConfigured
+        - dataDirWritable
+        - dataDirReadable
+        - uptimeSec
+        - node
+        - timeIso
+    SloSnapshotResponse:
+      type: object
+      properties:
+        ok:
+          type: boolean
+          const: true
+        service:
+          type: string
+        windowMin:
+          type: integer
+        requests:
+          type: object
+          properties:
+            total: { type: integer }
+            serverErrors: { type: integer }
+            serverErrorRate: { type: number }
+          required: [total, serverErrors, serverErrorRate]
+        webhook:
+          type: object
+          properties:
+            total: { type: integer }
+            failures: { type: integer }
+            failureRate: { type: number }
+          required: [total, failures, failureRate]
+        latency:
+          type: object
+          properties:
+            p95Ms: { type: integer }
+            p99Ms: { type: integer }
+          required: [p95Ms, p99Ms]
+      required: [ok, service, windowMin, requests, webhook, latency]

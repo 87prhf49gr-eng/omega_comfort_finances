@@ -1,0 +1,125 @@
+ID,Title,Description,Priority,Estimate,Labels,Project,Cycle
+CL-001,Define OpenAPI v1 baseline,"Create `openapi.yaml` for critical endpoints: health, waitlist, checkout, subscription status, Lemon webhook, AI coach.
+
+Acceptance criteria:
+- `openapi.yaml` exists in repo
+- Critical endpoints include request/response schemas
+- Success and error examples are documented",1,"1",backend,Comfort Ledger SaaS Hardening,Sprint 1
+CL-002,Standardize API error format,"Implement a single error response shape: `{ code, message, details?, requestId }` across endpoints.
+
+Acceptance criteria:
+- All endpoints return the standard error shape
+- OpenAPI documents the shape
+- Frontend consumes `code` consistently",1,"1",backend,Comfort Ledger SaaS Hardening,Sprint 1
+CL-003,Add requestId propagation,"Generate a request identifier per HTTP request and propagate it in responses and logs.
+
+Acceptance criteria:
+- Every response includes `requestId`
+- Server logs include the same `requestId`
+- Request tracing works end-to-end",2,"0.5",backend,Comfort Ledger SaaS Hardening,Sprint 1
+CL-004,Setup CI workflow,"Add `.github/workflows/ci.yml` to run tests and basic checks on pull requests and pushes.
+
+Acceptance criteria:
+- CI runs on push and pull request
+- `npm test` passes in `comfort-ledger-beta`
+- Failing checks block merge",1,"0.5",devops,Comfort Ledger SaaS Hardening,Sprint 1
+CL-005,Add predeploy validation script,"Create `npm run predeploy:check` to validate critical env vars and release prerequisites.
+
+Acceptance criteria:
+- Script fails when critical secrets are missing
+- Checks include session secret and Lemon webhook secret when purchase mode is enabled
+- Release checklist references script",1,"0.5",devops,Comfort Ledger SaaS Hardening,Sprint 1
+CL-006,Design data schema v1,"Define relational schema for users, sessions, waitlist, subscriptions, and webhook events.
+
+Acceptance criteria:
+- Schema document exists
+- Tables and key indexes are defined
+- Migration approach is documented",1,"0.5",data,Comfort Ledger SaaS Hardening,Sprint 2
+CL-007,Implement data access layer,"Replace direct JSON file access with repository/data-access layer backed by database.
+
+Acceptance criteria:
+- Critical endpoints use repository layer
+- Migrated entities no longer rely on JSON writes
+- Integration smoke tests pass",1,"2",backend,Comfort Ledger SaaS Hardening,Sprint 2
+CL-008,Build JSON-to-DB migration script,"Create idempotent migration script for beta users, sessions, waitlist, and subscriptions.
+
+Acceptance criteria:
+- Script is idempotent
+- Migration report shows counts and failures
+- Dry-run mode is available",1,"1",migration,Comfort Ledger SaaS Hardening,Sprint 2
+CL-009,Document rollback procedure,"Write and validate rollback plan for failed data migration in staging.
+
+Acceptance criteria:
+- Rollback document exists
+- Staging rollback rehearsal completed
+- Backups are required before production migration",1,"0.5",runbook,Comfort Ledger SaaS Hardening,Sprint 2
+CL-010,Add webhook idempotency,"Store and deduplicate Lemon webhook event IDs to prevent double-processing.
+
+Acceptance criteria:
+- Duplicate events do not mutate state twice
+- Event processing states are tracked as processed, duplicate, or failed
+- Automated test covers replay",1,"1",payments,Comfort Ledger SaaS Hardening,Sprint 3
+CL-011,Create subscription reconciliation job,"Implement periodic reconciliation between Lemon subscription state and local records.
+
+Acceptance criteria:
+- Manual or scheduled reconcile command exists
+- Mismatches are reported
+- Mismatches can be corrected safely",2,"1",payments,Comfort Ledger SaaS Hardening,Sprint 3
+CL-012,Harden payment-related endpoints,"Apply strict email validation, endpoint-specific rate limits, and safe error responses for checkout and portal paths.
+
+Acceptance criteria:
+- Rate limits are enforced on checkout and portal endpoints
+- Invalid emails are rejected consistently
+- Responses do not leak sensitive information",1,"0.5",payments,Comfort Ledger SaaS Hardening,Sprint 3
+CL-013,Add critical API integration tests,"Create integration tests for login, waitlist, checkout creation, subscription status, and webhook flows.
+
+Acceptance criteria:
+- Integration suite runs in CI
+- Success and failure paths are covered
+- Security-sensitive behaviors are verified",1,"1.5",qa,Comfort Ledger SaaS Hardening,Sprint 3
+CL-014,Add E2E paid-user flow,"Automate end-to-end scenario from landing to app access for paying users using staged webhook/payment mocks.
+
+Acceptance criteria:
+- E2E test validates onboarding to paid access
+- Test is deterministic in CI or pre-release environment",2,"1",qa,Comfort Ledger SaaS Hardening,Sprint 3
+CL-015,Add E2E beta-tester flow,"Automate end-to-end scenario for beta login, core app usage, session persistence, and logout.
+
+Acceptance criteria:
+- E2E test validates protected routes, session continuity, and logout behavior
+- Test runs in CI",2,"1",qa,Comfort Ledger SaaS Hardening,Sprint 3
+CL-016,Implement structured JSON logging,"Adopt structured logs with fields such as level, message, requestId, endpoint, and latency.
+
+Acceptance criteria:
+- Logs are emitted as JSON
+- Sensitive data is redacted
+- Request-linked debugging is possible in runtime logs",2,"0.5",observability,Comfort Ledger SaaS Hardening,Sprint 4
+CL-017,Add minimal alerting and SLO signals,"Set alerts for 5xx rate, webhook failures, and high latency p95 with actionable thresholds.
+
+Acceptance criteria:
+- Alert thresholds are defined and deployed
+- Alert simulation confirms delivery
+- Runbook references alert handling",2,"1",observability,Comfort Ledger SaaS Hardening,Sprint 4
+CL-018,Write incident runbook v1,"Document response procedures for login outages, webhook failures, and payment access incidents.
+
+Acceptance criteria:
+- Runbook exists in repo
+- Includes detection, mitigation, communication, and recovery steps
+- On-call checklist is included",2,"0.5",runbook,Comfort Ledger SaaS Hardening,Sprint 4
+CL-019,Version public API under /v1,"Introduce API version prefix and migrate current routes to `/v1` while preserving behavior.
+
+Acceptance criteria:
+- Public routes are available under `/v1`
+- Docs are updated
+- Compatibility checks confirm no regressions",2,"0.5",api,Comfort Ledger SaaS Hardening,Sprint 4
+CL-020,Implement basic RBAC roles,"Add base roles `admin`, `support`, and `user` and restrict administrative endpoints by role.
+
+Acceptance criteria:
+- Role model is persisted and enforced
+- Protected endpoints require expected role
+- Authorization tests pass",2,"1",auth,Comfort Ledger SaaS Hardening,Sprint 4
+CL-021,Define API compatibility policy,"Create policy for backward compatibility, deprecation windows, and breaking-change process.
+
+Acceptance criteria:
+- Policy document is in repo
+- Pull request template references the policy
+- Breaking-change checklist is enforceable",3,"0.5",governance,Comfort Ledger SaaS Hardening,Sprint 4

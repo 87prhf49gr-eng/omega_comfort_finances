@@ -1,0 +1,39 @@
+# ── Dependencias ──────────────────────────────────────────────
+node_modules/
+
+# ── Variables de entorno (NUNCA subir) ────────────────────────
+.env
+.env.local
+.env.production
+comfort-ledger-beta/.env
+
+# ── Datos en tiempo de ejecución (sesiones, waitlist, suscripciones) ──
+comfort-ledger-beta/data/beta-sessions.json
+comfort-ledger-beta/data/waitlist.json
+comfort-ledger-beta/data/subscriptions.json
+comfort-ledger-beta/data/push-subscriptions.json
+# beta-users.json SÍ se versiona (hashes de contraseña, no texto plano)
+
+# ── Credenciales beta locales ──────────────────────────────────
+BETA-HANDOUT.local.txt
+comfort-ledger-beta/BETA-HANDOUT.local.txt
+
+# ── Lock files de persistencia ────────────────────────────────
+comfort-ledger-beta/data/*.lock
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── macOS ──────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+
+# ── Editor ────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Backups locales ───────────────────────────────────────────
+*.FULL-BACKUP.*

@@ -1,0 +1,7 @@
+node_modules/
+BETA-HANDOUT.local.txt
+data/beta-sessions.json
+data/subscriptions.json
+data/waitlist.json
+data/push-subscriptions.json
+.env

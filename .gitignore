@@ -1,39 +1,33 @@
-# ── Dependencias ──────────────────────────────────────────────
+.DS_Store
+blackledger-omega-beta-access.md
+blackledger-public-beta-url.txt
+
+# Secretos y datos locales (nunca subir)
+.env
+.env.*
+!.env.example
+# Nunca guardar usuarios beta en texto plano dentro del repo raíz.
+/beta-users.json
+beta-users.local.json
+comfort-ledger/comfort-ledger-beta/BETA-HANDOUT.local.txt
+comfort-ledger/comfort-ledger-beta/data/beta-sessions.json
 node_modules/
 
-# ── Variables de entorno (NUNCA subir) ────────────────────────
-.env
-.env.local
-.env.production
-comfort-ledger-beta/.env
+# Binarios / artefactos pesados del proyecto
+*.numbers
+*.zip
+blackledger_elite*.numbers
+blackledger_elite*.pdf
+chart_test.numbers
+pagina_final_proyecto_exito_export.pdf
+listing_assets/
 
-# ── Datos en tiempo de ejecución (sesiones, waitlist, suscripciones) ──
-comfort-ledger-beta/data/beta-sessions.json
-comfort-ledger-beta/data/waitlist.json
-comfort-ledger-beta/data/subscriptions.json
-comfort-ledger-beta/data/push-subscriptions.json
-# beta-users.json SÍ se versiona (hashes de contraseña, no texto plano)
+# Otros productos (muy pesados; no hacen falta para Comfort en Render)
+blackledger-elite-app/
+blackledger-omega-beta-deploy/
 
-# ── Credenciales beta locales ──────────────────────────────────
-BETA-HANDOUT.local.txt
-comfort-ledger-beta/BETA-HANDOUT.local.txt
-
-# ── Lock files de persistencia ────────────────────────────────
-comfort-ledger-beta/data/*.lock
-
-# ── Logs ──────────────────────────────────────────────────────
-*.log
-logs/
-
-# ── macOS ──────────────────────────────────────────────────────
-.DS_Store
-**/.DS_Store
-
-# ── Editor ────────────────────────────────────────────────────
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# ── Backups locales ───────────────────────────────────────────
-*.FULL-BACKUP.*
+# Comfort Ledger — regenerable / generado localmente
+comfort-ledger/.venv-*/
+comfort-ledger/marketing-ads/
+comfort-ledger/tmp_reel_*/
+comfort-ledger/output/

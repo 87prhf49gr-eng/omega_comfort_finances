@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Resumen financiero minimalista: ingresos, gastos y deuda con coach IA.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.openai.com; worker-src 'self'; manifest-src 'self'">
+  <title>Comfort Ledger — Resumen y coach</title>
+  <meta name="theme-color" content="#121212">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Comfort Ledger">
+  <link rel="manifest" href="comfort-ledger.webmanifest">
+  <link rel="icon" href="branding/comfort-ledger-nav-icon.png" type="image/png" sizes="256x256">
+  <!-- apple-touch + manifest: icono PWA al instalar -->
+  <link rel="apple-touch-icon" href="pwa-icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&family=Outfit:wght@500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <!-- critical path first; charts + animations load after critical.css (no inline handlers — CSP script-src). -->
+  <link rel="stylesheet" href="comfort-ledger-critical.css">
+  <link rel="stylesheet" href="comfort-ledger-charts.css">
+  <noscript><link rel="stylesheet" href="comfort-ledger-charts.css"></noscript>
+  <link rel="stylesheet" href="comfort-ledger-animations.css">
+  <noscript><link rel="stylesheet" href="comfort-ledger-animations.css"></noscript>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-i18n="skip_to_main">Ir al contenido principal</a>
+  <dialog id="comfortOnboardingGate" class="comfort-beta-overlay-shell" aria-labelledby="comfortOnboardingTitle">
+    <div class="comfort-beta-card">
+      <h2 id="comfortOnboardingTitle" data-i18n="onboarding_title">Welcome to Comfort Ledger</h2>
+      <p class="beta-lede" data-i18n-html="onboarding_intro_html">Leave your name and how you want to use the app. We keep it on this device so you can come back straight in.</p>
+      <!-- Onboarding progress indicator -->
+      <div class="onboarding-progress" id="comfortOnboardingProgress" aria-hidden="true">
+        <div class="onboarding-progress-steps">
+          <span class="onboarding-step-dot active" data-step="1"></span>
+          <span class="onboarding-step-line"></span>
+          <span class="onboarding-step-dot" data-step="2"></span>
+          <span class="onboarding-step-line"></span>
+          <span class="onboarding-step-dot" data-step="3"></span>
+        </div>
+        <span class="onboarding-progress-label" id="comfortOnboardingStepLabel" data-i18n="onboarding_step_1_of_3">Paso 1 de 3 · ~1 min</span>
+      </div>
+      <form id="comfortOnboardingForm" autocomplete="on">
+        <!-- Step 1: Identity -->
+        <div class="onboarding-step-group" data-onboarding-group="1">
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingName" data-i18n="onboarding_name">Name</label>
+            <input id="comfortOnboardingName" name="displayName" autocomplete="name" required />
+          </div>
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingEmail" data-i18n="onboarding_email">Email</label>
+            <input id="comfortOnboardingEmail" name="email" type="email" autocomplete="email" />
+          </div>
+        </div>
+        <!-- Step 2: Focus & lifestyle -->
+        <div class="onboarding-step-group" data-onboarding-group="2">
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingFocus" data-i18n="onboarding_focus">What do you want to organize first?</label>
+            <textarea
+              id="comfortOnboardingFocus"
+              name="focus"
+              data-i18n-attr="placeholder|onboarding_focus_placeholder"
+              placeholder="Example: subscriptions, card debt, monthly cash flow."
+            ></textarea>
+          </div>
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingLifestyle" data-i18n="onboarding_lifestyle">Tu situación principal</label>
+            <select id="comfortOnboardingLifestyle" name="lifestyle">
+              <option value="payroll" data-i18n="onboarding_lifestyle_payroll">Nómina</option>
+              <option value="freelance" data-i18n="onboarding_lifestyle_freelance">Freelance</option>
+              <option value="family" data-i18n="onboarding_lifestyle_family">Familia</option>
+              <option value="student" data-i18n="onboarding_lifestyle_student">Estudiante</option>
+              <option value="simple" data-i18n="onboarding_lifestyle_simple">Solo orden rápido</option>
+            </select>
+          </div>
+        </div>
+        <!-- Step 3: Currency -->
+        <div class="onboarding-step-group" data-onboarding-group="3">
+          <div class="comfort-beta-field">
+            <label for="comfortOnboardingCurrency" data-i18n="onboarding_currency">Display currency</label>
+            <select id="comfortOnboardingCurrency" name="currency">
+              <option value="" data-i18n="onboarding_currency_auto">Automatic (browser locale)</option>
+              <option value="USD">USD</option>
+              <option value="EUR">EUR</option>
+              <option value="GBP">GBP</option>
+              <option value="MXN">MXN</option>
+              <option value="ARS">ARS</option>
+              <option value="COP">COP</option>
+              <option value="CLP">CLP</option>
+              <option value="BRL">BRL</option>
+              <option value="CAD">CAD</option>
+              <option value="JPY">JPY</option>
+              <option value="CNY">CNY</option>
+              <option value="CHF">CHF</option>
+              <option value="PEN">PEN</option>
+            </select>
+          </div>
+        </div>
+        <p id="comfortOnboardingErr" class="comfort-beta-err" hidden></p>
+        <div class="comfort-beta-actions">
+          <button type="button" class="btn-coach" id="comfortOnboardingNext" data-i18n="onboarding_next">Siguiente</button>
+          <button type="submit" class="btn-coach" id="comfortOnboardingSubmit" data-i18n="onboarding_submit" hidden>Continue</button>
+          <button type="button" class="btn-ghost" id="comfortOnboardingBack" data-i18n="onboarding_back" hidden>Atrás</button>
+          <button type="button" class="btn-ghost" id="comfortOnboardingCancel" data-i18n="onboarding_cancel" hidden>
+            Cancel
+          </button>
+        </div>
+      </form>
+      <p class="comfort-beta-note comfort-hybrid-beta-row" id="comfortHybridBetaRow" hidden>
+        <button type="button" class="btn-ghost" id="comfortHybridBetaBtn" data-i18n="hybrid_beta_cta">
+          Tester access (beta login)
+        </button>
+      </p>
+    </div>
+  </dialog>
+  <dialog id="comfortBetaLogin" class="comfort-beta-overlay-shell" aria-labelledby="comfortBetaLoginTitle">
+    <div class="comfort-beta-card">
+      <h2 id="comfortBetaLoginTitle" data-i18n="beta_login_title">Comfort Ledger — Beta</h2>
+      <p class="beta-lede" data-i18n="beta_login_intro">Acceso restringido. Usa el usuario y contraseña que te enviaron.</p>
+      <form id="comfortBetaLoginForm" autocomplete="on">
+        <div class="comfort-beta-field">
+          <label for="comfortBetaUser" data-i18n="beta_login_user">Usuario</label>
+          <input id="comfortBetaUser" name="username" autocomplete="username" required />
+        </div>
+        <div class="comfort-beta-field">
+          <label for="comfortBetaPass" data-i18n="beta_login_pass">Contraseña</label>
+          <input
+            id="comfortBetaPass"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+        </div>
+        <p id="comfortBetaLoginErr" class="comfort-beta-err" hidden></p>
+        <div class="comfort-beta-actions">
+          <button type="submit" class="btn-coach" data-i18n="beta_login_submit">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+  <dialog
+    id="comfortBetaTrialEnd"
+    class="comfort-beta-overlay-shell"
+    aria-labelledby="comfortBetaTrialTitle"
+    data-comfort-dismissible="true"
+  >
+    <div class="comfort-beta-card">
+      <h2 id="comfortBetaTrialTitle" data-i18n="beta_trial_title">Prueba terminada</h2>
+      <p class="beta-lede" data-i18n-html="beta_trial_body_html"></p>
+      <div class="comfort-beta-actions">
+        <a
+          id="comfortBetaSubscribeBtn"
+          class="btn-coach"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-i18n="beta_trial_subscribe"
+          >Suscribirse</a>
+        <button type="button" class="btn-ghost" id="comfortBetaTrialDismiss" data-i18n="beta_trial_cancel">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </dialog>
+  <dialog
+    id="comfortCoachSettings"
+    class="comfort-beta-overlay-shell"
+    aria-labelledby="comfortCoachSettingsTitle"
+    data-comfort-dismissible="true"
+  >
+    <div class="comfort-beta-card">
+      <h2 id="comfortCoachSettingsTitle" data-i18n="coach_settings_title">Ajustes del coach</h2>
+      <p class="beta-lede" data-i18n="coach_settings_intro">
+        Activa el coach con IA (OpenAI) o usa el modo local basado en reglas. Tu elección se guarda solo en este dispositivo.
+      </p>
+
+      <form id="coachSettingsForm" autocomplete="off">
+        <fieldset class="coach-mode-fieldset">
+          <legend class="sr-only" data-i18n="coach_settings_mode_legend">Modo del coach</legend>
+
+          <label class="coach-mode-option">
+            <input type="radio" name="coachMode" value="local" checked />
+            <div class="coach-mode-body">
+              <strong data-i18n="coach_mode_local_title">Local — rápido y privado</strong>
+              <span data-i18n="coach_mode_local_desc">Reglas + tus cifras. Cero datos salen del navegador.</span>
+            </div>
+          </label>
+
+          <label class="coach-mode-option">
+            <input type="radio" name="coachMode" value="openai" />
+            <div class="coach-mode-body">
+              <strong data-i18n="coach_mode_openai_title">OpenAI — respuestas más ricas</strong>
+              <span data-i18n="coach_mode_openai_desc">Envía tu pregunta y un resumen anónimo a OpenAI usando tu propia API key. Respuestas más conversacionales.</span>
+            </div>
+          </label>
+        </fieldset>
+
+        <!-- Side-by-side response examples -->
+        <div class="coach-example-compare">
+          <p class="coach-example-label" data-i18n="coach_example_label">Ejemplo de respuesta a la misma pregunta:</p>
+          <div class="coach-example-grid">
+            <div class="coach-example-card">
+              <p class="coach-example-mode" data-i18n="coach_example_mode_local">⚡ Local</p>
+              <blockquote class="coach-example-text" data-i18n="coach_example_local_text">Tu gasto (85% del ingreso) supera la zona de confort. Recomiendo revisar suscripciones y mover el remanente a tu meta de ahorro.</blockquote>
+            </div>
+            <div class="coach-example-card coach-example-card--ai">
+              <p class="coach-example-mode" data-i18n="coach_example_mode_ai">✨ OpenAI</p>
+              <blockquote class="coach-example-text" data-i18n="coach_example_ai_text">Veo que este mes gastas MXN 12,400 vs. MXN 14,600 de ingreso — te quedan ~MXN 2,200 libres. ¿Quieres que proyecte cuántos meses tardarías en alcanzar tu meta de vacaciones apartando ese remanente?</blockquote>
+            </div>
+          </div>
+        </div>
+
+        <div class="coach-openai-setup" id="coachOpenAISetup" hidden>
+          <label class="comfort-beta-field">
+            <span data-i18n="coach_openai_key_label">Tu API key de OpenAI</span>
+            <input
+              id="coachOpenAIKey"
+              name="apiKey"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              data-i18n-attr="placeholder|coach_openai_key_placeholder"
+              placeholder="sk-..."
+            />
+          </label>
+          <label class="comfort-beta-field">
+            <span data-i18n="coach_openai_model_label">Modelo</span>
+            <select id="coachOpenAIModel" name="model">
+              <option value="gpt-4o-mini">gpt-4o-mini (recomendado · barato)</option>
+              <option value="gpt-4o">gpt-4o (más fino · más caro)</option>
+              <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+            </select>
+          </label>
+          <p class="coach-openai-hint" data-i18n-html="coach_openai_hint_html">
+            Obtén tu API key en <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer">platform.openai.com/api-keys</a>. Cada consulta cuesta fracciones de centavo. La key se guarda <strong>solo en este dispositivo</strong>.
+          </p>
+          <p class="coach-openai-warn" data-i18n="coach_openai_warn">
+            No compartas tu navegador con otras personas si guardas la key aquí.
+          </p>
+        </div>
+
+        <p id="coachSettingsErr" class="comfort-beta-err" hidden></p>
+        <div class="comfort-beta-actions">
+          <button type="submit" class="btn-coach" data-i18n="coach_settings_save">Guardar</button>
+          <button type="button" class="btn-ghost" id="coachSettingsCancel" data-i18n="coach_settings_close">Cerrar</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+  <!-- Post-onboarding welcome modal — shown once after first-time setup -->
+  <dialog
+    id="comfortWelcomeModal"
+    class="comfort-beta-overlay-shell"
+    aria-labelledby="comfortWelcomeTitle"
+    data-comfort-dismissible="true"
+  >
+    <div class="comfort-beta-card comfort-welcome-card">
+      <h2 id="comfortWelcomeTitle" data-i18n="welcome_title">¡Todo listo!</h2>
+      <p class="beta-lede" id="comfortWelcomeIntro" data-i18n="welcome_intro">Tu perfil quedó guardado en este dispositivo.</p>
+      <ul class="welcome-tips">
+        <li data-i18n-html="welcome_tip1_html"><strong>Ingreso primero:</strong> Registra tu salario o cobros para que los cálculos de salud sean precisos.</li>
+        <li data-i18n-html="welcome_tip2_html"><strong>Coach financiero:</strong> Pregunta "¿cómo voy este mes?" cuando quieras un análisis rápido de tu situación.</li>
+        <li data-i18n-html="welcome_tip3_html"><strong>Todo local:</strong> Tu información nunca sale de este dispositivo. Exporta respaldo cuando quieras.</li>
+      </ul>
+      <div class="comfort-beta-actions">
+        <button type="button" class="btn-coach" id="comfortWelcomeStart" data-i18n="welcome_start">Empezar →</button>
+      </div>
+    </div>
+  </dialog>
+  <div id="comfortBetaDemoBar" class="comfort-beta-demo comfort-beta-demo--hidden" aria-live="polite"></div>
+  <div id="comfortSavedIndicator" class="comfort-saved-indicator" aria-live="polite"></div>
+  <div id="comfortUndoToast" class="comfort-undo-toast" role="status" aria-live="polite">
+    <span data-undo-label></span>
+    <button type="button" class="comfort-undo-action" data-undo-action>Undo</button>
+  </div>
+  <div class="app-shell" aria-hidden="true"></div>
+  <div class="app" id="main" role="main">
+    <header class="masthead">
+      <div class="masthead-grid">
+        <div class="brand">
+          <picture>
+            <source type="image/webp" srcset="branding/comfort-ledger-nav-icon.webp" />
+            <img
+              class="brand-mark-img"
+              src="branding/comfort-ledger-nav-icon.png"
+              width="221"
+              height="188"
+              alt=""
+              decoding="async"
+            />
+          </picture>
+          <div class="brand-copy">
+            <p class="brand-eyebrow" data-i18n="brand_eyebrow">Vista patrimonial</p>
+            <h1>Comfort Ledger</h1>
+            <p class="tagline" data-i18n="tagline">Menos ruido. Más claridad.</p>
+          </div>
+        </div>
+        <div class="masthead-aside">
+          <div class="theme-switch" role="radiogroup" aria-labelledby="comfortThemeRadiogroupLabel">
+            <span id="comfortThemeRadiogroupLabel" class="lang-switch-label" data-i18n="theme_label">Apariencia</span>
+            <div class="lang-switch-btns">
+              <button type="button" class="lang-btn" data-theme-value="dark" aria-pressed="true" data-i18n="theme_dark">
+                Oscuro
+              </button>
+              <button type="button" class="lang-btn" data-theme-value="light" aria-pressed="false" data-i18n="theme_light">
+                Claro
+              </button>
+              <button type="button" class="lang-btn" data-theme-value="auto" aria-pressed="false" data-i18n="theme_auto">
+                Sistema
+              </button>
+            </div>
+          </div>
+          <div class="lang-switch" role="group" aria-labelledby="langSwitchLabel">
+            <span id="langSwitchLabel" class="lang-switch-label" data-i18n="lang_label">Idioma</span>
+            <div class="lang-switch-btns">
+              <button type="button" class="lang-btn" data-set-lang="es" aria-pressed="true">ES</button>
+              <button type="button" class="lang-btn" data-set-lang="en" aria-pressed="false">EN</button>
+              <button type="button" class="lang-btn" data-set-lang="zh" aria-pressed="false">中文</button>
+            </div>
+          </div>
+          <div class="trust-row">
+            <span class="pill-trust" id="comfortTrustPillPrimary">100% local</span>
+            <span class="pill-trust pill-trust--muted" id="comfortTrustPillSecondary">Sin conexión a red</span>
+            <span class="pill-trust pill-trust--trial" id="comfortTrialPill" hidden aria-live="polite"></span>
+          </div>
+          <div class="backup-toolbar">
+            <button type="button" class="btn-ghost" id="comfortExportBtn" data-i18n="backup_export">
+              Exportar respaldo
+            </button>
+            <button type="button" class="btn-ghost" id="comfortImportBtn" data-i18n="backup_import">
+              Importar…
+            </button>
+            <input type="file" id="comfortImportFile" class="sr-only" accept="application/json,.json" />
+          </div>
+          <p id="comfortBackupStatus" class="comfort-backup-status" role="status" aria-live="polite" hidden></p>
+          <div class="host-profile" id="comfortProfileCard" hidden>
+            <div class="host-profile-copy">
+              <strong class="host-profile-name" id="comfortProfileName">—</strong>
+              <span class="host-profile-note" id="comfortProfileLifestyle" hidden></span>
+              <span class="host-profile-note" data-i18n="onboarding_saved_note">Guardado en este dispositivo.</span>
+            </div>
+            <button type="button" class="btn-ghost" id="comfortProfileEditBtn" data-i18n="onboarding_edit">Editar</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="kpi-hero" id="comfortKpiHero" aria-labelledby="comfortKpiLabel" data-tone="empty" data-mobile-tab="home">
+      <p class="kpi-hero-label" id="comfortKpiLabel" data-i18n="kpi_free_label">Libres después de todo este mes</p>
+      <p class="kpi-hero-value" id="comfortKpiValue">—</p>
+      <p class="kpi-hero-status" id="comfortKpiStatus"></p>
+    </section>
+
+    <section class="panel health" id="healthPanel" aria-labelledby="healthTitle" data-mobile-tab="home">
+      <h2 id="healthTitle" data-i18n="health_title">Resumen de salud</h2>
+      <div class="health-score" id="healthScore" role="status">
+        <span class="health-ring" id="healthRing" aria-hidden="true"></span>
+        <div class="health-copy">
+          <strong id="healthLabel">—</strong>
+          <p id="healthNarrative"></p>
+        </div>
+      </div>
+      <ul class="health-metrics" id="healthMetrics"></ul>
+    </section>
+
+    <section class="panel goals-panel" id="goalsPanel" aria-labelledby="goalsTitle" data-mobile-tab="goals">
+      <div class="section-head">
+        <h2 id="goalsTitle" data-i18n="goals_title">Metas con tus cobros</h2>
+        <button type="button" class="btn-ghost" id="addGoalBtn" data-i18n="goals_add">+ Meta</button>
+      </div>
+      <p class="sub" data-i18n-html="goals_sub_html">Define <strong>monto objetivo</strong> (vacaciones, enganche de auto, etc.) y <strong>meses</strong> para lograrlo. Calculamos cuánto apartar <strong>cada mes del cheque</strong>; los totales aparecen en el <strong>Resumen de salud</strong> de arriba.</p>
+      <div class="goals-panel-body">
+        <div class="post-dash-summary post-dash-summary--dark" id="goalsSummary" role="status"></div>
+        <div
+          class="post-dash-scroll goals-scroll-wrap"
+          id="goalsScrollWrap"
+          role="region"
+          data-i18n-attr="aria-label|goals_scroll_aria"
+          aria-label="Lista de metas; desplaza hacia abajo para ver las más antiguas."
+        >
+          <div id="goalsList" class="goals-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid-main">
+      <div class="charts-column" data-mobile-tab="home" id="comfortChartsRegion">
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_flow_title">Flujo del mes</h3>
+          <p class="sub" data-i18n="chart_flow_sub">Ingreso vs gasto mensualizado vs carga de deuda</p>
+          <div class="donut-wrap">
+            <div class="donut" id="donutFlow" role="img" data-i18n-attr="aria-label|donut_aria" aria-label="Gráfico de flujo"></div>
+            <ul class="donut-legend" id="donutLegend"></ul>
+          </div>
+        </section>
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_cushion_title">Colchón vs deuda</h3>
+          <p class="sub" data-i18n="chart_cushion_sub">Visual honesto: ahorros frente a lo que debes</p>
+          <div class="bar-compare" id="barCompare" role="img" data-i18n-attr="aria-label|cushion_aria" aria-label="Comparación ahorros y deuda"></div>
+          <p class="chart-footnote" id="cushionFootnote"></p>
+        </section>
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_cadence_title">Ritmo de gastos</h3>
+          <p class="sub" data-i18n="chart_cadence_sub">Por cadencia: diario, semanal o mensual (equivalente al mes)</p>
+          <div class="cadence-bars" id="cadenceBars" role="img" data-i18n-attr="aria-label|cadence_aria" aria-label="Gastos por cadencia"></div>
+        </section>
+        <section class="panel chart-card">
+          <h3 data-i18n="chart_card_title">Deuda en tarjetas vs ingreso</h3>
+          <p class="sub" data-i18n-html="chart_card_sub_html">Suma solo filas marcadas como <strong>Tarjeta</strong>; comparado a tu ingreso mensual total</p>
+          <div id="cardDebtChart" class="card-debt-chart" role="img" data-i18n-attr="aria-label|card_debt_aria" aria-label="Deuda tarjetas versus ingreso"></div>
+        </section>
+      </div>
+
+      <aside class="coach-column" id="comfortCoachColumn" data-mobile-tab="coach">
+        <section class="panel coach" id="coachPanel" aria-labelledby="coachTitle">
+          <div class="coach-head">
+            <h2 id="coachTitle" data-i18n="coach_title">Coach IA</h2>
+            <span class="coach-badge" data-i18n="coach_badge">Asesor local</span>
+            <button
+              type="button"
+              class="coach-settings-btn"
+              id="coachSettingsBtn"
+              data-i18n-attr="aria-label|coach_settings_aria"
+              aria-label="Ajustes del coach"
+              title="Ajustes"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </button>
+          </div>
+          <p class="coach-intro" data-i18n-html="coach_intro_html">Pregunta por tu mes, deudas o zona de confort. Este coach es <strong>local</strong> (reglas + tus números): no conecta con BlackLedger Omega ni con internet.</p>
+          <div class="coach-thread" id="coachThread" aria-live="polite"></div>
+          <form class="coach-form" id="coachForm">
+            <label class="sr-only" for="coachInput" data-i18n="coach_input_label">Mensaje al coach</label>
+            <textarea id="coachInput" rows="3" data-i18n-attr="placeholder|coach_placeholder" placeholder="Ej.: ¿Estoy cómodo con 10k ahorrados si debo 9.2k?" required></textarea>
+            <button type="submit" class="btn-coach" data-i18n="coach_send">Enviar</button>
+          </form>
+          <p class="coach-status" id="coachStatus" role="status"></p>
+        </section>
+        <div
+          class="coach-clocks"
+          role="group"
+          data-i18n-attr="aria-label|twin_clocks_title"
+          aria-label="Chicago y Nueva York"
+        >
+          <article class="neo-clock" aria-labelledby="neoClockChiLbl">
+            <div class="neo-clock-ring" aria-hidden="true"></div>
+            <div class="neo-clock-face">
+              <span class="neo-clock-city" id="neoClockChiLbl" data-i18n="world_chicago">Chicago</span>
+              <span class="neo-clock-time" id="clockChicagoTime">--:--</span>
+              <span class="neo-clock-date" id="clockChicagoDate">—</span>
+            </div>
+          </article>
+          <article class="neo-clock" aria-labelledby="neoClockNyLbl">
+            <div class="neo-clock-ring" aria-hidden="true"></div>
+            <div class="neo-clock-face">
+              <span class="neo-clock-city" id="neoClockNyLbl" data-i18n="world_newyork">Nueva York</span>
+              <span class="neo-clock-time" id="clockNYTime">--:--</span>
+              <span class="neo-clock-date" id="clockNYDate">—</span>
+            </div>
+          </article>
+        </div>
+      </aside>
+    </div>
+
+    <div
+      class="comfort-moves-subnav"
+      id="comfortMovesSubnav"
+      role="tablist"
+      data-i18n-attr="aria-label|moves_subnav_aria"
+      aria-label="Ingresos y gastos"
+      hidden
+    >
+      <button
+        type="button"
+        class="comfort-moves-seg"
+        id="comfortMovesTabIncome"
+        role="tab"
+        aria-selected="true"
+        aria-controls="incomePanel"
+        data-moves-sub="income"
+        tabindex="0"
+        data-i18n="moves_tab_income"
+      >
+        Ingresos
+      </button>
+      <button
+        type="button"
+        class="comfort-moves-seg"
+        id="comfortMovesTabExpense"
+        role="tab"
+        aria-selected="false"
+        aria-controls="expensePanel"
+        data-moves-sub="expense"
+        tabindex="-1"
+        data-i18n="moves_tab_expense"
+      >
+        Gastos
+      </button>
+    </div>
+
+    <div class="grid-inputs">
+      <section class="panel inputs-card" id="incomePanel" data-mobile-tab="moves" data-mobile-moves-sub="income">
+        <div class="section-head">
+          <h2 data-i18n="income_title">Ingresos</h2>
+          <button type="button" class="btn-ghost" id="addIncomeBtn" data-i18n="add_row">+ Agregar</button>
+        </div>
+        <p class="sub" data-i18n-html="income_sub_html">Cada cobro lleva <strong>fecha</strong> (calendario). El resumen y los gráficos suman solo lo del <strong>mes calendario en curso</strong>. Lo nuevo queda arriba.</p>
+        <div class="list-scroll">
+          <div id="incomeList" class="income-list"></div>
+        </div>
+        <label class="field field-tight">
+          <span data-i18n="liquid_label">Efectivo / ahorros líquidos hoy</span>
+          <input type="text" inputmode="decimal" id="liquidSavings" autocomplete="off" placeholder="10000">
+        </label>
+      </section>
+
+      <section class="panel inputs-card" id="expensePanel" data-mobile-tab="moves" data-mobile-moves-sub="expense">
+        <div class="section-head">
+          <h2 data-i18n="expenses_title">Gastos</h2>
+          <button type="button" class="btn-ghost" id="addExpenseBtn" data-i18n="add_row">+ Agregar</button>
+        </div>
+        <p class="sub" data-i18n-html="expenses_sub_html"><strong>Categoría</strong> + concepto. Cadencia <strong>diaria, semanal o mensual</strong>. Lo nuevo queda arriba.</p>
+        <div class="list-scroll">
+          <div id="expenseList" class="expense-list"></div>
+        </div>
+      </section>
+
+      <section class="panel inputs-card" id="debtPanel" data-mobile-tab="debts">
+        <div class="section-head">
+          <h2 data-i18n="debts_title">Deudas</h2>
+          <button type="button" class="btn-ghost" id="addDebtBtn" data-i18n="add_row">+ Agregar</button>
+        </div>
+        <p class="sub" data-i18n-html="debts_sub_html">Marca <strong>Tarjeta</strong> para que cuente en el gráfico vs ingreso. Lo nuevo queda arriba.</p>
+        <div class="list-scroll">
+          <div id="debtList" class="debt-list"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="dash-tactical" id="dash" aria-labelledby="dashTacticalTitle" data-mobile-tab="home">
+      <h2 id="dashTacticalTitle" class="dash-tactical-title" data-i18n="dash_title">Informe ejecutivo</h2>
+      <p class="sub dash-tactical-lede" data-i18n="dash_sub">Misma información que arriba, en porcentaje del ingreso del mes y lectura compacta tipo sala de juntas.</p>
+      <div class="dash-grid" id="dashTacticalGrid"></div>
+    </section>
+
+    <div class="post-dash-wrap" data-mobile-tab="home">
+      <div class="post-dash-weekly" id="postDashWeekly" hidden aria-live="polite"></div>
+      <div class="post-dash-today" id="postDashToday" hidden aria-live="polite"></div>
+      <div class="post-dash-global-toolbar">
+        <p class="sub post-dash-hint" data-i18n-html="post_dash_hint_html"></p>
+        <div class="post-dash-notify-row">
+          <button type="button" class="btn-ghost post-dash-notify-btn" id="recurringNotifyBtn" data-i18n="recurring_notify_btn">Activar avisos del sistema</button>
+          <span class="post-dash-notify-status" id="recurringNotifyStatus" aria-live="polite"></span>
+        </div>
+      </div>
+      <section class="panel post-dash-card post-dash-budgets" id="budgetsPanel" aria-labelledby="budgetsTitle">
+        <div class="section-head">
+          <h2 id="budgetsTitle" class="post-dash-card-title" data-i18n="budgets_section_title">Presupuestos por categoría</h2>
+          <button type="button" class="btn-ghost" id="addBudgetBtn" data-comfort-add="budget" data-i18n="budgets_add">+ Agregar</button>
+        </div>
+        <p class="sub post-dash-card-lede" data-i18n-html="budgets_section_sub_html"></p>
+        <div class="post-dash-summary post-dash-summary--dark" id="budgetsSummary" role="status"></div>
+        <div class="post-dash-scroll" id="budgetsList"></div>
+      </section>
+      <div class="post-dash-split">
+        <section class="panel post-dash-card" id="utilityBillsPanel" aria-labelledby="utilityBillsTitle">
+          <div class="section-head">
+            <h2 id="utilityBillsTitle" class="post-dash-card-title" data-i18n="utility_section_title">Hogar y servicios</h2>
+            <button
+              type="button"
+              class="btn-ghost"
+              id="addUtilityBillBtn"
+              data-comfort-add="utility"
+              data-i18n="utility_add"
+            >
+              + Agregar
+            </button>
+          </div>
+          <p class="sub post-dash-card-lede" data-i18n-html="utility_section_sub_html"></p>
+          <div class="post-dash-summary post-dash-summary--dark" id="utilityBillsSummary" role="status"></div>
+          <div class="post-dash-scroll" id="utilityBillsList"></div>
+        </section>
+        <section class="panel post-dash-card" id="subscriptionsPanel" aria-labelledby="subscriptionsTitle">
+          <div class="section-head">
+            <h2 id="subscriptionsTitle" class="post-dash-card-title" data-i18n="sub_section_title">Suscripciones</h2>
+            <button
+              type="button"
+              class="btn-ghost"
+              id="addSubscriptionBtn"
+              data-comfort-add="subscription"
+              data-i18n="sub_add"
+            >
+              + Agregar
+            </button>
+          </div>
+          <p class="sub post-dash-card-lede" data-i18n-html="sub_section_sub_html"></p>
+          <div class="post-dash-summary post-dash-summary--dark" id="subscriptionsSummary" role="status"></div>
+          <div class="post-dash-scroll" id="subscriptionsList"></div>
+        </section>
+      </div>
+    </div>
+
+    <nav
+      class="comfort-mobile-nav"
+      id="comfortMobileNav"
+      role="tablist"
+      data-i18n-attr="aria-label|mobile_nav_aria"
+      aria-label="Navegación rápida"
+    >
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabHome"
+        aria-selected="true"
+        aria-controls="comfortChartsRegion"
+        data-target="comfortKpiHero"
+        aria-current="true"
+      >
+        <span class="comfort-mobile-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 11.5 12 4l9 7.5"></path>
+            <path d="M5.5 10.5V20h13V10.5"></path>
+          </svg>
+        </span>
+        <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_home">Inicio</span>
+      </button>
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabGoals"
+        aria-selected="false"
+        aria-controls="goalsPanel"
+        data-target="goalsPanel"
+      >
+        <span class="comfort-mobile-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="7"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="m15 9 4-4"></path>
+          </svg>
+        </span>
+        <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_goals">Metas</span>
+        <span class="comfort-mobile-nav-badge" data-badge="goals" hidden>!</span>
+      </button>
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabMoves"
+        aria-selected="false"
+        aria-controls="incomePanel"
+        data-target="incomePanel"
+      >
+        <span class="comfort-mobile-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12h18"></path>
+            <path d="m13 6 6 6-6 6"></path>
+            <path d="M11 18H7a3 3 0 1 1 0-6h4"></path>
+          </svg>
+        </span>
+        <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_moves">Movs</span>
+      </button>
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabDebts"
+        aria-selected="false"
+        aria-controls="debtPanel"
+        data-target="debtPanel"
+      >
+        <span class="comfort-mobile-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="6.5" width="18" height="11" rx="2"></rect>
+            <path d="M3 11h18"></path>
+          </svg>
+        </span>
+        <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_debts">Deudas</span>
+      </button>
+      <button
+        type="button"
+        class="comfort-mobile-nav-btn"
+        role="tab"
+        id="comfortMobileTabCoach"
+        aria-selected="false"
+        aria-controls="coachPanel"
+        data-target="coachPanel"
+      >
+        <span class="comfort-mobile-nav-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3.5a6.5 6.5 0 0 0-6.5 6.5c0 2.3 1.2 3.7 2.5 5"></path>
+            <path d="M12 3.5a6.5 6.5 0 0 1 6.5 6.5c0 2.3-1.2 3.7-2.5 5"></path>
+            <path d="M9 18.5h6"></path>
+            <path d="M9.8 21h4.4"></path>
+          </svg>
+        </span>
+        <span class="comfort-mobile-nav-label" data-i18n="mobile_nav_coach">Coach</span>
+        <span class="comfort-mobile-nav-badge" data-badge="coach" hidden>!</span>
+      </button>
+    </nav>
+  </div>
+  <script src="comfort-ledger-storage-idb.js" defer></script>
+  <script src="comfort-ledger-onboarding.js" defer></script>
+  <script src="comfort-ledger-reminders.js" defer></script>
+  <script src="comfort-ledger-notifications.js" defer></script>
+  <script src="comfort-ledger-modules.js" defer></script>
+  <script src="comfort-ledger-ui.js" defer></script>
+  <script src="comfort-ledger-post-dash.js" defer></script>
+  <script src="comfort-ledger-coach.js" defer></script>
+  <script src="comfort-ledger-bindings.js" defer></script>
+  <script src="comfort-ledger-core.js" defer></script>
+  <script src="comfort-ledger-pwa.js" async></script>
+</body>
+</html>
