@@ -588,6 +588,7 @@ const UI_STRINGS = {
     backup_import_err_invalid: "El archivo no es un respaldo válido de Comfort Ledger.",
     backup_import_err_read: "No se pudo leer el archivo.",
     backup_fs_ok: "Copia guardada donde elegiste.",
+    export_pdf: "Exportar PDF",
     health_title: "Resumen de salud",
     goals_title: "Metas con tus cobros",
     goals_add: "+ Meta",
@@ -993,6 +994,7 @@ const UI_STRINGS = {
     backup_import_err_invalid: "This file is not a valid Comfort Ledger backup.",
     backup_import_err_read: "Could not read the file.",
     backup_fs_ok: "Backup saved to the location you chose.",
+    export_pdf: "Export PDF",
     health_title: "Health summary",
     goals_title: "Goals from your paychecks",
     goals_add: "+ Goal",
@@ -1393,6 +1395,7 @@ const UI_STRINGS = {
     backup_import_err_invalid: "该文件不是有效的 Comfort Ledger 备份。",
     backup_import_err_read: "无法读取该文件。",
     backup_fs_ok: "已保存到你选择的位置。",
+    export_pdf: "导出 PDF",
     health_title: "健康摘要",
     goals_title: "与工资挂钩的目标",
     goals_add: "+ 目标",
@@ -3333,6 +3336,7 @@ function collectEls() {
     budgetsSummary: document.getElementById("budgetsSummary"),
     addBudgetBtn: document.getElementById("addBudgetBtn"),
     comfortExportBtn: document.getElementById("comfortExportBtn"),
+    comfortExportPdfBtn: document.getElementById("comfortExportPdfBtn"),
     comfortImportBtn: document.getElementById("comfortImportBtn"),
     comfortImportFile: document.getElementById("comfortImportFile")
   };

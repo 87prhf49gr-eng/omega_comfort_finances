@@ -451,6 +451,10 @@ function bind() {
     })();
   });
 
+  els.comfortExportPdfBtn?.addEventListener("click", () => {
+    window.print();
+  });
+
   els.comfortImportBtn?.addEventListener("click", () => {
     comfortSetBackupStatus("", null);
     els.comfortImportFile?.click();

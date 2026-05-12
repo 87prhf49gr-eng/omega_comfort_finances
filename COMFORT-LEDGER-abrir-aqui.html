@@ -366,7 +366,10 @@
     </section>
 
     <section class="panel health" id="healthPanel" aria-labelledby="healthTitle" data-mobile-tab="home">
-      <h2 id="healthTitle" data-i18n="health_title">Resumen de salud</h2>
+      <div class="health-head">
+        <h2 id="healthTitle" data-i18n="health_title">Resumen de salud</h2>
+        <button type="button" class="btn-ghost" id="comfortExportPdfBtn" data-i18n="export_pdf">Exportar PDF</button>
+      </div>
       <div class="health-score" id="healthScore" role="status">
         <span class="health-ring" id="healthRing" aria-hidden="true"></span>
         <div class="health-copy">
