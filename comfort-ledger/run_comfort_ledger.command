@@ -1,13 +1,10 @@
 #!/bin/bash
-# Abre Comfort Ledger en el navegador por defecto (un solo HTML, sin Python ni servidor).
+# Wrapper de compatibilidad: reenvía al workspace limpio de Comfort Ledger.
 DIR="$(cd "$(dirname "$0")" && pwd)"
-FILE="$DIR/COMFORT-LEDGER-abrir-aqui.html"
-if [[ -f "$FILE" ]]; then
-  open "$FILE"
-  echo "Listo: se abrió Comfort Ledger en tu navegador."
-  echo "Archivo: $FILE"
-  exit 0
+TARGET="$DIR/comfort-ledger/run_comfort_ledger.command"
+if [[ -x "$TARGET" ]]; then
+  exec "$TARGET"
 fi
-echo "No encontré COMFORT-LEDGER-abrir-aqui.html en:"
-echo "$DIR"
+echo "No encontré el launcher nuevo en:"
+echo "$TARGET"
 exit 1

@@ -588,6 +588,7 @@ const UI_STRINGS = {
     backup_import_err_invalid: "El archivo no es un respaldo válido de Comfort Ledger.",
     backup_import_err_read: "No se pudo leer el archivo.",
     backup_fs_ok: "Copia guardada donde elegiste.",
+    export_pdf: "Exportar PDF",
     health_title: "Resumen de salud",
     goals_title: "Metas con tus cobros",
     goals_add: "+ Meta",
@@ -766,6 +767,10 @@ const UI_STRINGS = {
     saved_label: "Guardado",
     kpi_empty_title: "Añade tu primer ingreso",
     kpi_empty_sub: "Así podemos calcular si te alcanza el mes.",
+    kpi_onboarding_title: "Empieza con 3 pasos",
+    kpi_onboarding_income: "Agrega tu ingreso mensual",
+    kpi_onboarding_expenses: "Registra tus gastos fijos",
+    kpi_onboarding_debts: "Anota tus deudas (opcional)",
     kpi_free_label: "Libres después de todo este mes",
     kpi_warn: "Cuidado: gastos + deuda ≥ ingreso",
     kpi_neg: "Estás en rojo este mes",
@@ -791,12 +796,15 @@ const UI_STRINGS = {
     remove_goal_aria: "Quitar meta",
     health_goal_monthly: "Apartado a metas (cada mes)",
     health_free_after_goals: "Libre tras gastos, mínimos y metas",
+    health_goal_proj_item: "🎯 Meta “{label}”: lista en {months} meses",
     health_income: "Ingreso cobrado",
     health_expenses: "Gastos (mensualizado)",
     health_debt_min: "Mínimos deuda",
     health_free_after: "Libre post gastos + mínimos",
     health_savings: "Ahorros líquidos",
     health_debt_total: "Deuda total",
+    health_budget_mini_title: "Presupuestos cerca del límite",
+    health_budget_mini_item: "{spent} de {budget} ({pct}%)",
     dash_dyn_title: "Dinámica del mes",
     dash_dyn_hint: "% del ingreso cobrado",
     dash_dyn_pct_title: "% del ingreso del mes",
@@ -988,6 +996,7 @@ const UI_STRINGS = {
     backup_import_err_invalid: "This file is not a valid Comfort Ledger backup.",
     backup_import_err_read: "Could not read the file.",
     backup_fs_ok: "Backup saved to the location you chose.",
+    export_pdf: "Export PDF",
     health_title: "Health summary",
     goals_title: "Goals from your paychecks",
     goals_add: "+ Goal",
@@ -1163,6 +1172,10 @@ const UI_STRINGS = {
     saved_label: "Saved",
     kpi_empty_title: "Add your first income",
     kpi_empty_sub: "So we can see if the month adds up.",
+    kpi_onboarding_title: "Start with 3 steps",
+    kpi_onboarding_income: "Add your monthly income",
+    kpi_onboarding_expenses: "Record your fixed expenses",
+    kpi_onboarding_debts: "Add debts (optional)",
     kpi_free_label: "Free after everything this month",
     kpi_warn: "Heads up: expenses + debt ≥ income",
     kpi_neg: "You're in the red this month",
@@ -1188,12 +1201,15 @@ const UI_STRINGS = {
     remove_goal_aria: "Remove goal",
     health_goal_monthly: "Set aside for goals (each month)",
     health_free_after_goals: "Free after expenses, minimums & goals",
+    health_goal_proj_item: "🎯 Goal “{label}”: ready in {months} months",
     health_income: "Income received",
     health_expenses: "Expenses (monthly)",
     health_debt_min: "Debt minimums",
     health_free_after: "Free after expenses + minimums",
     health_savings: "Liquid savings",
     health_debt_total: "Total debt",
+    health_budget_mini_title: "Budgets near limit",
+    health_budget_mini_item: "{spent} of {budget} ({pct}%)",
     dash_dyn_title: "Month dynamics",
     dash_dyn_hint: "% of income received",
     dash_dyn_pct_title: "% of this month’s income",
@@ -1383,6 +1399,7 @@ const UI_STRINGS = {
     backup_import_err_invalid: "该文件不是有效的 Comfort Ledger 备份。",
     backup_import_err_read: "无法读取该文件。",
     backup_fs_ok: "已保存到你选择的位置。",
+    export_pdf: "导出 PDF",
     health_title: "健康摘要",
     goals_title: "与工资挂钩的目标",
     goals_add: "+ 目标",
@@ -1552,6 +1569,10 @@ const UI_STRINGS = {
     saved_label: "已保存",
     kpi_empty_title: "添加你的第一笔收入",
     kpi_empty_sub: "让我们看看这个月是否够用。",
+    kpi_onboarding_title: "从 3 步开始",
+    kpi_onboarding_income: "添加每月收入",
+    kpi_onboarding_expenses: "记录固定支出",
+    kpi_onboarding_debts: "填写债务（可选）",
     kpi_free_label: "本月扣除所有后可自由支配",
     kpi_warn: "注意：支出加债务 ≥ 收入",
     kpi_neg: "本月已赤字",
@@ -1577,12 +1598,15 @@ const UI_STRINGS = {
     remove_goal_aria: "删除目标",
     health_goal_monthly: "目标每月预留",
     health_free_after_goals: "扣除支出、最低还款与目标后结余",
+    health_goal_proj_item: "🎯 目标“{label}”：约 {months} 个月完成",
     health_income: "已到账收入",
     health_expenses: "支出（月化）",
     health_debt_min: "债务最低还款",
     health_free_after: "扣除支出与最低还款后结余",
     health_savings: "活期储蓄",
     health_debt_total: "债务合计",
+    health_budget_mini_title: "接近上限的预算",
+    health_budget_mini_item: "{spent} / {budget}（{pct}%）",
     dash_dyn_title: "当月结构",
     dash_dyn_hint: "占已收收入比例",
     dash_dyn_pct_title: "占当月收入%",
@@ -2056,7 +2080,8 @@ const defaultState = () => ({
   savingsGoals: [],
   utilityBills: [],
   subscriptions: [],
-  budgets: []
+  budgets: [],
+  monthlyHistory: []
 });
 
 function parseNum(raw) {
@@ -2484,6 +2509,7 @@ function hydrateComfortStateFromRaw(data) {
       ? data.subscriptions.map(normalizeSubscription)
       : base.subscriptions.slice();
     const budgets = Array.isArray(data.budgets) ? data.budgets.map(normalizeBudget) : base.budgets.slice();
+    const monthlyHistory = Array.isArray(data.monthlyHistory) ? data.monthlyHistory : [];
     const lsParsed = parseNum(data.liquidSavings);
     const liquidSavings = Number.isFinite(lsParsed) ? lsParsed : base.liquidSavings;
     const profile = normalizeProfile(data.profile) || base.profile;
@@ -2497,7 +2523,8 @@ function hydrateComfortStateFromRaw(data) {
       savingsGoals,
       utilityBills,
       subscriptions,
-      budgets
+      budgets,
+      monthlyHistory
     };
   } catch {
     return null;
@@ -3022,6 +3049,14 @@ function compute(state) {
       .sort((a, b) => b.monthly - a.monthly);
   })();
 
+  // Net worth and debt-free projection
+  const netWorth = savings - totalDebt;
+  let debtFreeMonths = null;
+  if (totalDebt > 0) {
+    const cap = monthlyDebtPay + Math.max(0, freeAfter);
+    if (cap > 0) debtFreeMonths = Math.ceil(totalDebt / cap);
+  }
+
   return {
     income,
     incomeMonthLabel,
@@ -3034,6 +3069,8 @@ function compute(state) {
     freeAfterGoals,
     savingsGoalsMonthly,
     debtVsSavings,
+    netWorth,
+    debtFreeMonths,
     tone,
     label,
     narrative,
@@ -3305,6 +3342,7 @@ function collectEls() {
     budgetsSummary: document.getElementById("budgetsSummary"),
     addBudgetBtn: document.getElementById("addBudgetBtn"),
     comfortExportBtn: document.getElementById("comfortExportBtn"),
+    comfortExportPdfBtn: document.getElementById("comfortExportPdfBtn"),
     comfortImportBtn: document.getElementById("comfortImportBtn"),
     comfortImportFile: document.getElementById("comfortImportFile")
   };
@@ -3324,9 +3362,13 @@ function renderKpiHero(snap) {
     if (label) label.textContent = t("kpi_empty_title");
     value.textContent = "—";
     status.textContent = t("kpi_empty_sub");
+    renderKpiOnboarding(host, !(state.expenses || []).length && !(state.debts || []).length);
+    const nwRow = document.getElementById("comfortNetWorthRow");
+    if (nwRow) nwRow.hidden = true;
     return;
   }
 
+  renderKpiOnboarding(host, false);
   if (label) label.textContent = t("kpi_free_label");
   value.textContent = fmtMoney(free);
 
@@ -3344,6 +3386,133 @@ function renderKpiHero(snap) {
   }
   host.dataset.tone = tone;
   status.textContent = statusText;
+
+  // Net worth row
+  const nwRow = document.getElementById("comfortNetWorthRow");
+  if (nwRow) {
+    const nw = Number(snap.netWorth) || 0;
+    const cls = nw >= 0 ? "nw-pos" : "nw-neg";
+    const lbl = UI_LOCALE === "en" ? "Net worth" : UI_LOCALE === "zh" ? "净资产" : "Patrimonio neto";
+    nwRow.innerHTML = `<span class="nw-label">${escapeHtml(lbl)}</span><span class="nw-sep"> · </span><span class="nw-value ${cls}">${escapeHtml(fmtMoney(nw))}</span>`;
+    nwRow.hidden = false;
+  }
+}
+
+function renderKpiOnboarding(host, show) {
+  const existing = host.querySelector(".kpi-onboarding");
+  if (!show) {
+    existing?.remove();
+    return;
+  }
+
+  const html = `
+    <div class="kpi-onboarding">
+      <p>${escapeHtml(t("kpi_onboarding_title"))}</p>
+      <ol>
+        <li>
+          <button type="button" class="kpi-onboarding-step" data-onboarding-goto="income">
+            <span>1</span><strong>${escapeHtml(t("kpi_onboarding_income"))}</strong>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="kpi-onboarding-step" data-onboarding-goto="expenses">
+            <span>2</span><strong>${escapeHtml(t("kpi_onboarding_expenses"))}</strong>
+          </button>
+        </li>
+        <li>
+          <button type="button" class="kpi-onboarding-step" data-onboarding-goto="debts">
+            <span>3</span><strong>${escapeHtml(t("kpi_onboarding_debts"))}</strong>
+          </button>
+        </li>
+      </ol>
+    </div>
+  `;
+
+  if (existing) {
+    existing.outerHTML = html;
+  } else {
+    host.insertAdjacentHTML("beforeend", html);
+  }
+}
+
+function renderGoalProjection(snap) {
+  const host = document.getElementById("healthGoalProjections");
+  if (!host) return;
+  const savings = Math.max(0, Number(snap?.savings) || 0);
+  const monthlyFree = Math.max(Number(snap?.freeAfterGoals) || 0, 1);
+  const goals = (state.savingsGoals || [])
+    .filter((g) => {
+      const target = Math.max(0, Number(g?.targetAmount) || 0);
+      return target > 0 && savings < target;
+    })
+    .map((g) => {
+      const label = String(g.label || t("default_goal_name")).trim() || t("default_goal_name");
+      const target = Math.max(0, Number(g.targetAmount) || 0);
+      const months = Math.max(1, Math.ceil((target - savings) / monthlyFree));
+      return `<p>${escapeHtml(tFill("health_goal_proj_item", { label, months }))}</p>`;
+    });
+
+  if (!goals.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+
+  host.innerHTML = goals.join("");
+  host.hidden = false;
+}
+
+function renderHealthBudgetMini(snap) {
+  const host = document.getElementById("healthBudgetMini");
+  if (!host) return;
+  const budgets = Array.isArray(state.budgets) ? state.budgets.map(normalizeBudget) : [];
+  if (!budgets.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+
+  const byCat = new Map((snap.expensesByCategory || []).map((row) => [row.category, Number(row.monthly) || 0]));
+  const rows = budgets
+    .map((b) => {
+      const budget = Math.max(0, Number(b.monthly) || 0);
+      const spent = Math.max(0, Number(byCat.get(b.category) || 0));
+      const ratio = budget > 0 ? spent / budget : 0;
+      return { category: b.category, budget, spent, ratio };
+    })
+    .filter((row) => row.budget > 0 && row.ratio >= 0.7)
+    .sort((a, b) => b.ratio - a.ratio)
+    .slice(0, 3);
+
+  if (!rows.length) {
+    host.hidden = true;
+    host.innerHTML = "";
+    return;
+  }
+
+  host.innerHTML = `
+    <h3>${escapeHtml(t("health_budget_mini_title"))}</h3>
+    <ul>
+      ${rows
+        .map((row) => {
+          const pct = Math.round(row.ratio * 100);
+          return `
+            <li>
+              <span>${escapeHtml(categoryLabel(row.category))}</span>
+              <strong>${escapeHtml(
+                tFill("health_budget_mini_item", {
+                  spent: fmtMoney(row.spent),
+                  budget: fmtMoney(row.budget),
+                  pct: String(pct)
+                })
+              )}</strong>
+            </li>
+          `;
+        })
+        .join("")}
+    </ul>
+  `;
+  host.hidden = false;
 }
 
 function renderHealth(snap) {
@@ -3366,6 +3535,35 @@ function renderHealth(snap) {
     <li><strong>${fmtMoney(snap.savings)}</strong>${t("health_savings")}</li>
     <li><strong>${fmtMoney(snap.totalDebt)}</strong>${t("health_debt_total")}</li>
   `;
+  renderHealthBudgetMini(snap);
+
+  // Debt-free projection banner
+  const projEl = document.getElementById("healthProjection");
+  if (projEl) {
+    const dfm = snap.debtFreeMonths;
+    if (dfm !== null && dfm !== undefined && snap.totalDebt > 0) {
+      const yrs = Math.floor(dfm / 12);
+      const mos = dfm % 12;
+      let timeStr;
+      if (UI_LOCALE === "en") {
+        timeStr = yrs > 0 ? `${yrs}y ${mos}m` : `${mos}mo`;
+      } else if (UI_LOCALE === "zh") {
+        timeStr = yrs > 0 ? `${yrs}年${mos}个月` : `${mos}个月`;
+      } else {
+        timeStr = yrs > 0 ? `${yrs}a ${mos}m` : `${mos} meses`;
+      }
+      const lbl = UI_LOCALE === "en"
+        ? `🎯 Debt-free in <strong>${escapeHtml(timeStr)}</strong> at this pace`
+        : UI_LOCALE === "zh"
+          ? `🎯 按此速度 <strong>${escapeHtml(timeStr)}</strong> 后还清债务`
+          : `🎯 Sin deudas en <strong>${escapeHtml(timeStr)}</strong> a este ritmo`;
+      projEl.innerHTML = lbl;
+      projEl.hidden = false;
+    } else {
+      projEl.hidden = true;
+    }
+  }
+  renderGoalProjection(snap);
 }
 
 function renderTacticalDash(snap) {
@@ -4116,6 +4314,7 @@ function patchCoachClocksI18n(root) {
 }
 
 function ensureCoachClocksDom() {
+  return; // world clocks removed
   if (document.getElementById("clockChicagoTime") && document.getElementById("clockNYTime")) return true;
   const inner = coachClocksInnerHtml();
   const existing = document.querySelector(".coach-clocks");
@@ -4136,6 +4335,7 @@ function ensureCoachClocksDom() {
 }
 
 function renderWorldClocks() {
+  return; // world clocks removed
   ensureCoachClocksDom();
   const tChi = document.getElementById("clockChicagoTime");
   const dChi = document.getElementById("clockChicagoDate");

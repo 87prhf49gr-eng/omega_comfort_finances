@@ -30,6 +30,7 @@ function renderAll() {
   renderUtilityBills();
   renderSubscriptions();
   renderBudgets();
+  renderMonthlySparklines();
   updateRecurringNotifyUi();
   renderTodayBanner();
   renderWeeklyCheckIn();

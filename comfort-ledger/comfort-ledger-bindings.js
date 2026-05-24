@@ -138,6 +138,31 @@ function bind() {
     else if (kind === "debt") addDebtRow();
   });
 
+  document.addEventListener("click", (ev) => {
+    const btn = ev.target.closest?.("[data-onboarding-goto]");
+    if (!btn) return;
+    const kind = btn.getAttribute("data-onboarding-goto");
+    const map = {
+      income: { panel: "incomePanel", nav: "incomePanel", sub: "income", focus: "addIncomeBtn" },
+      expenses: { panel: "expensePanel", nav: "incomePanel", sub: "expense", focus: "addExpenseBtn" },
+      debts: { panel: "debtPanel", nav: "debtPanel", focus: "addDebtBtn" }
+    };
+    const target = map[kind];
+    if (!target) return;
+
+    document.querySelector(`.comfort-mobile-nav-btn[data-target="${target.nav}"]`)?.click();
+    if (target.sub) {
+      window.setTimeout(() => {
+        document.querySelector(`.comfort-moves-seg[data-moves-sub="${target.sub}"]`)?.click();
+      }, 20);
+    }
+    window.setTimeout(() => {
+      const panel = document.getElementById(target.panel);
+      panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById(target.focus)?.focus({ preventScroll: true });
+    }, 80);
+  });
+
   if (!state.savingsGoals) state.savingsGoals = [];
   els.addGoalBtn?.addEventListener("click", () => {
     const arr = state.savingsGoals;
@@ -426,6 +451,10 @@ function bind() {
     })();
   });
 
+  els.comfortExportPdfBtn?.addEventListener("click", () => {
+    window.print();
+  });
+
   els.comfortImportBtn?.addEventListener("click", () => {
     comfortSetBackupStatus("", null);
     els.comfortImportFile?.click();
@@ -460,5 +489,34 @@ function bind() {
     reader.onerror = () => comfortSetBackupStatus(t("backup_import_err_read"), "err");
     reader.readAsText(file, "utf-8");
   });
+  setupCoachFab();
+  // Save current month's snapshot on every session start (idempotent)
+  if (typeof saveMonthlySnapshot === "function") {
+    try { saveMonthlySnapshot(); } catch { /* ignore */ }
+  }
 }
 
+function setupCoachFab() {
+  const fab = document.getElementById("coachFabBtn");
+  const backdrop = document.getElementById("coachDrawerBackdrop");
+  const closeBtn = document.getElementById("coachDrawerClose");
+  if (!fab) return;
+
+  function openDrawer() {
+    document.body.classList.add("coach-drawer-open");
+    fab.setAttribute("aria-expanded", "true");
+  }
+  function closeDrawer() {
+    document.body.classList.remove("coach-drawer-open");
+    fab.setAttribute("aria-expanded", "false");
+  }
+
+  fab.addEventListener("click", openDrawer);
+  if (backdrop) backdrop.addEventListener("click", closeDrawer);
+  if (closeBtn) closeBtn.addEventListener("click", closeDrawer);
+  document.addEventListener("keydown", function coachDrawerEsc(e) {
+    if (e.key === "Escape" && document.body.classList.contains("coach-drawer-open")) {
+      closeDrawer();
+    }
+  });
+}
